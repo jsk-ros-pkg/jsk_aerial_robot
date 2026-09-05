@@ -1,8 +1,10 @@
 import os
+from decimal import Decimal, InvalidOperation
+
 import rospy
 import rospkg
 from spinal.srv import *
-from spinal.msg import ServoTorqueCmd
+from spinal.msg import ServoInfo, ServoTorqueCmd
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
@@ -13,6 +15,74 @@ from python_qt_binding.QtCore import *
 import rosgraph
 import distutils.util
 import xml.etree.ElementTree as ET
+
+SERVO_MODE_NAMES = {
+    ServoInfo.MODE_DP: 'DP',
+    ServoInfo.MODE_DV: 'DV',
+    ServoInfo.MODE_DC: 'DC',
+    ServoInfo.MODE_MIT: 'MIT',
+    ServoInfo.MODE_EM: 'EM',
+    ServoInfo.MODE_DEP: 'DEP',
+}
+SERVO_INTERNAL_MODE_NAMES = {
+    ServoInfo.SERVO_MODE_CURRENT: 'Current',
+    ServoInfo.SERVO_MODE_VELOCITY: 'Velocity',
+    ServoInfo.SERVO_MODE_POSITION: 'Position',
+    ServoInfo.SERVO_MODE_EXTENDED_POSITION: 'Extended Position',
+    ServoInfo.SERVO_MODE_UNKNOWN: 'Unknown',
+}
+SERVO_BUS_NAMES = {
+    ServoInfo.BUS_RS485: 'R',
+    ServoInfo.BUS_TTL: 'T',
+    ServoInfo.BUS_UNKNOWN: 'Unknown',
+}
+
+
+def parse_servo_mode(text):
+    mode = text.strip().upper()
+    values = {name: value for value, name in SERVO_MODE_NAMES.items()
+              if value != ServoInfo.MODE_EM}
+    if mode not in values:
+        raise ValueError('Input one of DP, DEP, DV, DC or MIT')
+    return values[mode]
+
+
+def parse_servo_bus(text):
+    bus = text.strip().upper()
+    if bus in ('R', 'RS485'):
+        return ServoInfo.BUS_RS485
+    if bus in ('T', 'TTL'):
+        return ServoInfo.BUS_TTL
+    raise ValueError('Input R/RS485 or T/TTL')
+
+
+def parse_mit_gain(text):
+    try:
+        gain = Decimal(text.strip())
+    except InvalidOperation:
+        raise ValueError('Input a non-negative gain with at most 4 decimals')
+    if not gain.is_finite() or gain < 0:
+        raise ValueError('Input a non-negative finite gain')
+    scaled = gain * ServoInfo.GAIN_DECIMAL_SCALE
+    if scaled != scaled.to_integral_value():
+        raise ValueError('MIT gain supports at most 4 decimal places')
+    scaled = int(scaled)
+    integer = scaled // ServoInfo.GAIN_DECIMAL_SCALE
+    decimal = scaled % ServoInfo.GAIN_DECIMAL_SCALE
+    if integer > 32767:
+        raise ValueError('MIT gain integer part exceeds int16 range')
+    return integer, decimal
+
+
+def format_mit_gain(integer, decimal):
+    return '{}.{:04d}'.format(integer, decimal)
+
+def parse_mit_pd(text):
+    values = text.split(',')
+    if len(values) != 2:
+        raise ValueError('Input MIT Kp and Kd separated by a comma')
+    return parse_mit_gain(values[0]), parse_mit_gain(values[1])
+
 
 class BoardConfigurator(Plugin):
 
@@ -58,6 +128,12 @@ class BoardConfigurator(Plugin):
 
         self._widget.setObjectName('BoardConfigurator')
 
+        self._board_id = None
+        self._servo_index = None
+        self._raw_servo_id = None
+        self._current_servo_serial_index = None
+        self._command = None
+
         self._widget.boardInfoUpdateButton.clicked.connect(self.updateButtonCallback)
         self._widget.boardInfoTreeView.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._widget.boardInfoTreeView.clicked.connect(self.treeClickedCallback)
@@ -70,12 +146,6 @@ class BoardConfigurator(Plugin):
         self._widget.boardInfoTreeView.show()
         self._widget.setLayout(self._widget.gridLayout)
         self._widget.boardInfoTreeView.setEditTriggers(QAbstractItemView.NoEditTriggers)
-
-        self._board_id = None
-        self._servo_id = None
-        self._command = None
-
-        self._current_servo_serial_index = None
 
         if context.serial_number() > 1:
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
@@ -132,6 +202,9 @@ class BoardConfigurator(Plugin):
                 board.appendRow([QStandardItem('imu_send_data_flag'), QStandardItem(str(bool(b.imu_send_data_flag)))])
                 board.appendRow([QStandardItem('dynamixel_ttl_rs485_mixed'), QStandardItem(str(bool(b.dynamixel_ttl_rs485_mixed)))])
                 board.appendRow([QStandardItem('servo_pulley_skip_thresh'), QStandardItem(str(b.servo_pulley_skip_thresh))])
+                if b.slave_id == 0:
+                    board.appendRow([QStandardItem('servo_feedback_frequency'), QStandardItem(str(b.servo_feedback_frequency))])
+                    board.appendRow([QStandardItem('servo_target_watchdog'), QStandardItem(str(b.servo_target_watchdog_timeout))])
                 servos = QStandardItem('servo (' + str(len(b.servos)) + ')')
                 for j, s in enumerate(b.servos):
                     servo = QStandardItem(str(j))
@@ -139,6 +212,15 @@ class BoardConfigurator(Plugin):
                     servo.appendRow([QStandardItem('servo_serial_index'), QStandardItem(str(servo_serial_index))])
                     servo.appendRow([QStandardItem('joint_name'), QStandardItem(str(self.joint_id_name_map.get(servo_serial_index)))])
                     servo_serial_index += 1
+                    if b.slave_id == 0:
+                        servo.appendRow([QStandardItem('configured'), QStandardItem(str(bool(s.configured)))])
+                        servo.appendRow([QStandardItem('bus_type'), QStandardItem(SERVO_BUS_NAMES.get(s.bus_type, 'Unknown'))])
+                        servo.appendRow([QStandardItem('mode'), QStandardItem(SERVO_MODE_NAMES.get(s.mode, 'Unknown'))])
+                        servo.appendRow([QStandardItem('servo_mode'), QStandardItem(SERVO_INTERNAL_MODE_NAMES.get(s.servo_mode, 'Unknown'))])
+                        servo.appendRow([
+                            QStandardItem('mit_pd'),
+                            QStandardItem('{}, {}'.format(
+                                format_mit_gain(s.kp_integer, s.kp_decimal), format_mit_gain(s.kd_integer, s.kd_decimal)))])
                     servo.appendRow([QStandardItem('pid_gain'), QStandardItem(str(s.p_gain) + ', ' + str(s.i_gain) + ', ' + str(s.d_gain))])
                     servo.appendRow([QStandardItem('profile_velocity'), QStandardItem(str(s.profile_velocity))])
                     servo.appendRow([QStandardItem('send_data_flag'), QStandardItem(str(bool(s.send_data_flag)))])
@@ -155,7 +237,7 @@ class BoardConfigurator(Plugin):
             rospy.logerr("/get_board_info service call failed: %s"%e)
 
         self._widget.boardInfoTreeView.setColumnWidth(0, 250)
-        self._widget.boardInfoTreeView.setColumnWidth(1, 70)
+        self._widget.boardInfoTreeView.setColumnWidth(1, 160)
         self._widget.boardInfoTreeView.expandAll()
         self._widget.boardInfoTreeView.show()
 
@@ -164,8 +246,16 @@ class BoardConfigurator(Plugin):
         row = self._widget.boardInfoTreeView.currentIndex().row()
         param = self._widget.boardInfoTreeView.currentIndex().sibling(row, 0).data()
         value = self._widget.boardInfoTreeView.currentIndex().sibling(row, 1).data()
-        board_param_list = ['board_id', 'imu_send_data_flag', 'dynamixel_ttl_rs485_mixed', 'servo_pulley_skip_thresh']
-        servo_param_list = ['pid_gain', 'profile_velocity', 'current_limit', 'send_data_flag', 'external_encoder_flag', 'resolution[joint:servo]']
+        board_param_list = ['board_id', 'imu_send_data_flag',
+                            'dynamixel_ttl_rs485_mixed',
+                            'servo_pulley_skip_thresh',
+                            'servo_feedback_frequency',
+                            'servo_target_watchdog']
+        servo_param_list = ['bus_type', 'mode', 'mit_pd',
+                            'pid_gain', 'profile_velocity',
+                            'current_limit', 'send_data_flag',
+                            'external_encoder_flag',
+                            'resolution[joint:servo]']
         if value and (param in servo_param_list):
             raw_servo_id = self._widget.boardInfoTreeView.currentIndex().sibling(0,1).data()
             servo_index = self._widget.boardInfoTreeView.currentIndex().parent().data()
@@ -180,13 +270,24 @@ class BoardConfigurator(Plugin):
             board_id = self._widget.boardInfoTreeView.currentIndex().parent().data()
             self._widget.paramLabel.setText('board_id: ' + board_id + ' ' + param)
             self._board_id = board_id
+            self._servo_index = None
+            self._raw_servo_id = None
+            self._current_servo_serial_index = None
             self._command = param
         else:
             self._board_id = None
             self._command = None
             self._servo_index = None
             self._raw_servo_id = None
+            self._current_servo_serial_index = None
             self._widget.paramLabel.setText('')
+
+    def disableServoTorque(self):
+        servo_trq_msg = ServoTorqueCmd()
+        servo_trq_msg.index = [self._current_servo_serial_index]
+        servo_trq_msg.torque_enable = [0]
+        self.servo_torque_pub_.publish(servo_trq_msg)
+        rospy.sleep(0.5)
 
     def configureButtonCallback(self):
         req = None
@@ -200,6 +301,11 @@ class BoardConfigurator(Plugin):
         else:
             req = SetBoardConfigRequest()
             req.data.append(int(self._board_id))
+
+        # DirectServo configuration is keyed by the physical Dynamixel ID.
+        # Neuron boards continue to use their board-local servo index.
+        servo_config_key = (self._raw_servo_id if spinal_flag
+                            else self._servo_index)
 
         if self._command == 'board_id':
             if spinal_flag:
@@ -219,9 +325,65 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_IMU_SEND_FLAG
+        elif self._command == 'servo_feedback_frequency':
+            if not spinal_flag:
+                return
+            try:
+                req.data.append(int(self._widget.lineEdit.text()))
+            except ValueError as e:
+                rospy.logerr(str(e))
+                return
+            req.command = req.SET_SERVO_FEEDBACK_FREQUENCY
+        elif self._command == 'servo_target_watchdog':
+            if not spinal_flag:
+                return
+            try:
+                timeout_ms = int(Decimal(self._widget.lineEdit.text()) * 1000)
+                if timeout_ms < 0 or timeout_ms > 60000:
+                    raise ValueError('Watchdog must be within 0..60 seconds')
+                req.data.append(timeout_ms)
+            except (InvalidOperation, ValueError) as e:
+                rospy.logerr(str(e))
+                return
+            req.command = req.SET_SERVO_TARGET_WATCHDOG_TIMEOUT
+        elif self._command == 'bus_type':
+            if not spinal_flag:
+                return
+            try:
+                req.data.extend([int(servo_config_key),
+                                 parse_servo_bus(self._widget.lineEdit.text())])
+            except ValueError as e:
+                rospy.logerr(str(e))
+                return
+            req.command = req.SET_SERVO_BUS_TYPE
+            self.disableServoTorque()
+        elif self._command == 'mode':
+            if not spinal_flag:
+                return
+            try:
+                req.data.extend([int(servo_config_key),
+                                 parse_servo_mode(self._widget.lineEdit.text())])
+            except ValueError as e:
+                rospy.logerr(str(e))
+                return
+            req.command = req.SET_SERVO_CONTROL_MODE
+            self.disableServoTorque()
+        elif self._command == 'mit_pd':
+            if not spinal_flag:
+                return
+            try:
+                kp, kd = parse_mit_pd(self._widget.lineEdit.text())
+                req.data.extend([
+                    int(servo_config_key), kp[0], kp[1],
+                    kd[0], kd[1]])
+            except ValueError as e:
+                rospy.logerr(str(e))
+                return
+            req.command = req.SET_SERVO_MIT_PD
+            self.disableServoTorque()
         elif self._command == 'pid_gain':
             try:
-                req.data.append(int(self._servo_index))
+                req.data.append(int(servo_config_key))
                 pid_gains = list(map(lambda x: int(x), self._widget.lineEdit.text().split(',')))
                 if len(pid_gains) != 3:
                     raise ValueError('Input 3 gains(int)')
@@ -230,9 +392,11 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_PID_GAIN
+            if spinal_flag:
+                self.disableServoTorque()
         elif self._command == 'profile_velocity':
             try:
-                req.data.append(int(self._servo_index))
+                req.data.append(int(servo_config_key))
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -240,7 +404,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_PROFILE_VEL
         elif self._command == 'send_data_flag':
             try:
-                req.data.append(int(self._servo_index))
+                req.data.append(int(servo_config_key))
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -248,18 +412,13 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_SEND_DATA_FLAG
         elif self._command == 'current_limit':
             try:
-                req.data.append(int(self._servo_index))
+                req.data.append(int(servo_config_key))
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
                 return
             req.command = req.SET_SERVO_CURRENT_LIMIT
-            #need to disable servo torque
-            servo_trq_msg = ServoTorqueCmd()
-            servo_trq_msg.index = [self._current_servo_serial_index]
-            servo_trq_msg.torque_enable = [0]
-            self.servo_torque_pub_.publish(servo_trq_msg)
-            rospy.sleep(0.5)
+            self.disableServoTorque()
         elif self._command == 'dynamixel_ttl_rs485_mixed':
             try:
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
@@ -276,7 +435,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_PULLEY_SKIP_THRESH
         elif self._command == 'external_encoder_flag':
             try:
-                req.data.append(int(self._servo_index))
+                req.data.append(int(servo_config_key))
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -284,7 +443,7 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_EXTERNAL_ENCODER_FLAG
         elif self._command == 'resolution[joint:servo]':
             try:
-                req.data.append(int(self._servo_index))
+                req.data.append(int(servo_config_key))
                 resolutions = list(map(lambda x: int(x), self._widget.lineEdit.text().split(':')))
                 if len(resolutions) != 2:
                     raise ValueError('Input 2 resoultion(int)')

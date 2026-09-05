@@ -81,7 +81,7 @@ public:
                     double sample_freq = 0, double cutoff_freq = 0):
     name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0),
     init_target_angle_val_(false), curr_torque_val_(0), target_torque_val_(0),
-    curr_velocity_val_(0), angle_sgn_(angle_sgn),
+    curr_velocity_val_(0), target_velocity_val_(0), angle_sgn_(angle_sgn),
     zero_point_offset_(zero_point_offset), angle_scale_(angle_scale),
     velocity_scale_(velocity_scale), upper_limit_(upper_limit),
     lower_limit_(lower_limit), torque_scale_(torque_scale),
@@ -147,6 +147,11 @@ public:
     target_torque_val_ = val;
   }
 
+  inline void setTargetVelocityVal(const double& val)
+  {
+    target_velocity_val_ = val;
+  }
+
   inline void setCurrVelocityVal(const double& val)
   {
     curr_velocity_val_ = velocity_scale_ * angle_sgn_ * val;
@@ -206,6 +211,25 @@ public:
       }
   }
 
+  int16_t getTargetVelocityRaw() const
+  {
+    if (velocity_scale_ == 0.0) return 0;
+    return static_cast<int16_t>(boost::algorithm::clamp(
+      target_velocity_val_ * angle_sgn_ / velocity_scale_,
+      static_cast<double>(INT16_MIN), static_cast<double>(INT16_MAX)));
+  }
+
+  int16_t getTargetCurrentRaw() const
+  {
+    if (torque_scale_ == 0.0) return 0;
+    return static_cast<int16_t>(boost::algorithm::clamp(
+      target_torque_val_ * angle_sgn_ / torque_scale_,
+      static_cast<double>(INT16_MIN), static_cast<double>(INT16_MAX)));
+  }
+
+  inline bool hasVelocityScale() const {return velocity_scale_ != 0.0;}
+  inline bool hasTorqueScale() const {return torque_scale_ != 0.0;}
+
 
   inline const string& getName(){return name_; }
   inline const int& getId() const {return id_; }
@@ -223,6 +247,7 @@ private:
   double curr_torque_val_; // Nm
   double target_torque_val_; // Nm
   double curr_velocity_val_; // rad/s
+  double target_velocity_val_; // rad/s
   int angle_sgn_;
   int zero_point_offset_;
   double angle_scale_;
@@ -257,7 +282,6 @@ protected:
   map<string, ros::Subscriber> servo_torque_subs_;
   map<string, bool> no_real_state_flags_;
   map<string, ros::Publisher> servo_target_pos_pubs_;
-  map<string, ros::Publisher> servo_target_torque_pubs_;
   map<string, ros::ServiceServer> servo_enable_srvs_;
   map<string, ros::Publisher> servo_enable_pubs_;
   map<string, vector<ros::Publisher> > servo_target_pos_sim_pubs_; // TODO: should be actionlib, trajectory controller
@@ -268,6 +292,8 @@ protected:
   bool send_init_joint_pose_;
   bool simulation_mode_;
   bool use_mujoco_;
+  bool auto_configure_direct_servo_;
+  bool direct_servo_config_ready_;
   int send_init_joint_pose_cnt_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);

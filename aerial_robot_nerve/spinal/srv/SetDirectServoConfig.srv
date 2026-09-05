@@ -1,21 +1,31 @@
 #commands
-## servo_index is from 0
+## Per-servo commands are keyed by physical Dynamixel ID.
 uint8 SET_SERVO_HOMING_OFFSET = 1
-# [servo_index, joint_offset] !torque disable!
+# [servo_id, joint_offset] !torque disable!
 uint8 SET_SERVO_PID_GAIN = 2
-# [servo_index, p_gain, i_gain, d_gain]
+# [servo_id, p_gain, i_gain, d_gain]
 uint8 SET_SERVO_PROFILE_VEL = 3
-# [servo_index, profile_vel]
+# [servo_id, profile_vel]
 uint8 SET_SERVO_SEND_DATA_FLAG = 4
-# [servo_index, flag]
+# [servo_id, flag]
 uint8 SET_SERVO_CURRENT_LIMIT = 5
-# [servo_index, current_limit] !torque disable!
+# [servo_id, current_limit] !torque disable!
 uint8 SET_DYNAMIXEL_TTL_RS485_MIXED = 6
 # [flag]
 uint8 SET_SERVO_EXTERNAL_ENCODER_FLAG = 7
-# [servo_index, flag]
+# [servo_id, flag]
 uint8 SET_SERVO_RESOLUTION_RATIO = 8
-# [servo_index, joint_resolution, servo_resolution]
+# [servo_id, joint_resolution, servo_resolution]
+uint8 SET_SERVO_CONTROL_MODE = 9
+# [servo_id, mode] !torque disable!
+uint8 SET_SERVO_MIT_PD = 10
+# [servo_id, kp_integer, kp_decimal, kd_integer, kd_decimal] !torque disable!
+uint8 SET_SERVO_BUS_TYPE = 12
+# [servo_id, 'R' or 'T'] !torque disable!
+uint8 SET_SERVO_FEEDBACK_FREQUENCY = 13
+# [frequency_hz]
+uint8 SET_SERVO_TARGET_WATCHDOG_TIMEOUT = 15
+# [timeout_ms], YAML and BoardInfo expose seconds; 0 disables
 
 
 uint8 command

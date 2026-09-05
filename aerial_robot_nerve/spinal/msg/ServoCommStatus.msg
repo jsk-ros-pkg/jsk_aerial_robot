@@ -12,8 +12,11 @@ uint32 recovery_count
 uint32 deadline_miss_count
 uint32 queue_overflow_count
 uint32 unexpected_completion_count
+uint32 watchdog_timeout_count
+uint32 configuration_error_count
 
 uint16 queue_high_water_mark
+bool bus_map_valid
 
 # Per-servo cumulative counters. Arrays share the same index.
 uint8[] servo_ids

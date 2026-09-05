@@ -8,7 +8,6 @@
 
 #include "servo.h"
 
-#define SERVO_PUB_INTERVAL 20 // 50Hz
 #define SERVO_TORQUE_PUB_INTERVAL  1000 // 1Hz
 #define SERVO_COMM_STATUS_PUB_INTERVAL 1000 // 1Hz
 
@@ -64,6 +63,8 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   servo_last_pub_time_ = 0;
   servo_torque_last_pub_time_ = 0;
   servo_comm_status_last_pub_time_ = 0;
+  servo_comm_status_initialized_ = false;
+  last_bus_map_valid_ = false;
 
   board_info_res_.boards_length = 1;
   board_info_res_.boards = new spinal::BoardInfo[1];
@@ -84,30 +85,13 @@ void DirectServo::sendData(bool flag_send_asap)
 {
   uint32_t now_time = HAL_GetTick();
 
-  if (flag_send_asap && servo_handler_.getROSCommFlag() == true)  // This setting will ignore the setting of SERVO_PUB_INTERVAL and pub the information once the measurement is updated.
-  {
-	  servo_state_msg_.stamp = nh_->now();
-      for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
-        const ServoData& s = servo_handler_.getServo()[i];
-        if (s.send_data_flag_ != 0) {
-          spinal::ServoState servo;
-          servo.index = i;
-          servo.angle = s.present_position_;
-          servo.velocity = s.present_velocity;
-          servo.temp = s.present_temp_;
-          servo.load = s.present_current_;
-          servo.error = s.hardware_error_status_;
-          servo_state_msg_.servos[i] = servo;
-        }
-      }
-      servo_state_pub_.publish(&servo_state_msg_);
-      servo_last_pub_time_ = now_time;
-
-      servo_handler_.setROSCommFlag(false);
-  }
-  else
-  {
-  if( now_time - servo_last_pub_time_ >= SERVO_PUB_INTERVAL)
+  const uint16_t feedback_frequency =
+    servo_handler_.getServoFeedbackFrequency();
+  const uint32_t publish_interval =
+    feedback_frequency == 0 ? UINT32_MAX :
+    (1000U + feedback_frequency - 1U) / feedback_frequency;
+  if ((!flag_send_asap || servo_handler_.getROSCommFlag()) &&
+      now_time - servo_last_pub_time_ >= publish_interval)
     {
 	  servo_state_msg_.stamp = nh_->now();
       for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
@@ -125,8 +109,8 @@ void DirectServo::sendData(bool flag_send_asap)
       }
       servo_state_pub_.publish(&servo_state_msg_);
       servo_last_pub_time_ = now_time;
+      servo_handler_.setROSCommFlag(false);
     }
-  }
 
   if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
     {
@@ -140,7 +124,13 @@ void DirectServo::sendData(bool flag_send_asap)
       servo_torque_last_pub_time_= now_time;
     }  
 
-  if (now_time - servo_comm_status_last_pub_time_ >= SERVO_COMM_STATUS_PUB_INTERVAL)
+  const bool bus_map_valid = servo_handler_.busMapValid();
+  const bool status_changed =
+    !servo_comm_status_initialized_ ||
+    bus_map_valid != last_bus_map_valid_;
+  if (status_changed ||
+      now_time - servo_comm_status_last_pub_time_ >=
+        SERVO_COMM_STATUS_PUB_INTERVAL)
     {
       const ServoCommCounters& counters = servo_handler_.getCommCounters();
       servo_comm_status_msg_.stamp = nh_->now();
@@ -152,7 +142,12 @@ void DirectServo::sendData(bool flag_send_asap)
       servo_comm_status_msg_.deadline_miss_count = counters.deadline_miss_count;
       servo_comm_status_msg_.queue_overflow_count = counters.queue_overflow_count;
       servo_comm_status_msg_.unexpected_completion_count = counters.unexpected_completion_count;
+      servo_comm_status_msg_.watchdog_timeout_count =
+        counters.watchdog_timeout_count;
+      servo_comm_status_msg_.configuration_error_count =
+        counters.configuration_error_count;
       servo_comm_status_msg_.queue_high_water_mark = counters.queue_high_water_mark;
+      servo_comm_status_msg_.bus_map_valid = bus_map_valid;
       for (unsigned int i = 0; i < servo_handler_.getServoNum(); ++i) {
         const ServoData& servo = servo_handler_.getServo()[i];
         servo_comm_status_msg_.servo_ids[i] = servo.id_;
@@ -162,6 +157,8 @@ void DirectServo::sendData(bool flag_send_asap)
       }
       servo_comm_status_pub_.publish(&servo_comm_status_msg_);
       servo_comm_status_last_pub_time_ = now_time;
+      servo_comm_status_initialized_ = true;
+      last_bus_map_valid_ = bus_map_valid;
     }
 }
 
@@ -218,20 +215,39 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
 
 void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
 {
-  if (control_msg.index_length != control_msg.angles_length) return;
-  for (unsigned int i = 0; i < control_msg.index_length; i++) {
-    uint8_t index = control_msg.index[i];
-    if(index >= servo_handler_.getServoNum())
-      {
-        nh_->logerror("Invalid Servo ID!");
-        return;
-      }
-    ServoData& s = servo_handler_.getServo()[index];
-    int32_t goal_pos = static_cast<int32_t>(control_msg.angles[i]);
-    s.setGoalPosition(goal_pos);
-    if (! s.torque_enable_) {
-      s.torque_enable_ = true;
-      servo_handler_.setTorque(index);
+  const uint32_t count = control_msg.index_length;
+  const bool has_position = control_msg.position_length != 0;
+  const bool has_velocity = control_msg.velocity_length != 0;
+  const bool has_current = control_msg.current_length != 0;
+  if (count == 0 || (!has_position && !has_velocity && !has_current) ||
+      (has_position && control_msg.position_length != count) ||
+      (has_velocity && control_msg.velocity_length != count) ||
+      (has_current && control_msg.current_length != count)) {
+    nh_->logerror("Invalid ServoControlCmd array lengths");
+    return;
+  }
+
+  for (uint32_t i = 0; i < count; ++i) {
+    if (control_msg.index[i] >= servo_handler_.getServoNum()) {
+      nh_->logerror("Invalid servo index in ServoControlCmd");
+      return;
+    }
+  }
+
+  for (uint32_t i = 0; i < count; ++i) {
+    const uint8_t servo_index = control_msg.index[i];
+    if (!servo_handler_.setGoalTargets(
+          servo_index,
+          has_position, has_position ? control_msg.position[i] : 0,
+          has_velocity, has_velocity ? control_msg.velocity[i] : 0,
+          has_current, has_current ? control_msg.current[i] : 0)) {
+      nh_->logerror("Failed to update ServoControlCmd cache");
+      return;
+    }
+    ServoData& servo = servo_handler_.getServo()[servo_index];
+    if (!servo.torque_enable_) {
+      servo.torque_enable_ = true;
+      servo_handler_.setTorque(servo_index);
     }
   }
 }
@@ -247,7 +263,7 @@ void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& contr
         return;
       }
     ServoData& s = servo_handler_.getServo()[index];
-    s.torque_enable_ = (control_msg.torque_enable[i] != 0) ? true : false;
+    s.torque_enable_ = control_msg.torque_enable[i] != 0;
     servo_handler_.setTorqueFromPresetnPos(index);
 
   }
@@ -273,11 +289,24 @@ void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, sp
   board.imu_send_data_flag = 1;
 #if DYNAMIXEL
   board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
+  board.servo_feedback_frequency =
+    servo_handler_.getServoFeedbackFrequency();
+  board.servo_target_watchdog_timeout =
+    static_cast<float>(servo_handler_.getTargetWatchdogTimeoutMs()) /
+    1000.0f;
 #endif
   board.slave_id = 0;
   for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
     const ServoData& s = servo_handler_.getServo()[i];
     board.servos[i].id = s.id_;
+    board.servos[i].configured = s.configured();
+    board.servos[i].bus_type = s.bus_type_;
+    board.servos[i].mode = s.mode_;
+    board.servos[i].servo_mode = s.operating_mode_;
+    board.servos[i].kp_integer = s.kp_integer_;
+    board.servos[i].kp_decimal = s.kp_decimal_;
+    board.servos[i].kd_integer = s.kd_integer_;
+    board.servos[i].kd_decimal = s.kd_decimal_;
     board.servos[i].p_gain = s.p_gain_;
     board.servos[i].i_gain = s.i_gain_;
     board.servos[i].d_gain = s.d_gain_;

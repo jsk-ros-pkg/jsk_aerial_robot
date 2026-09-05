@@ -17,6 +17,47 @@
 
 #define MAX_SERVO_NUM 10
 
+enum DirectServoMode : uint8_t
+{
+  DIRECT_SERVO_MODE_DP = 0,
+  DIRECT_SERVO_MODE_DV = 1,
+  DIRECT_SERVO_MODE_DC = 2,
+  DIRECT_SERVO_MODE_MIT = 3,
+  DIRECT_SERVO_MODE_EM = 4,
+  DIRECT_SERVO_MODE_DEP = 5,
+  DIRECT_SERVO_MODE_UNKNOWN = 0xFF,
+};
+
+enum ServoBusType : uint8_t
+{
+  SERVO_BUS_RS485 = 'R',
+  SERVO_BUS_TTL = 'T',
+  SERVO_BUS_UNKNOWN = 0xFF,
+};
+
+constexpr uint8_t SERVO_FLASH_FLAG_SEND_DATA = 1U << 0;
+constexpr uint8_t SERVO_FLASH_FLAG_EXTERNAL_ENCODER = 1U << 1;
+constexpr uint8_t SERVO_FLASH_FLAG_MASK =
+  SERVO_FLASH_FLAG_SEND_DATA | SERVO_FLASH_FLAG_EXTERNAL_ENCODER;
+
+struct ServoFlashConfig
+{
+  uint16_t p_gain = 0xFFFF;
+  uint16_t i_gain = 0xFFFF;
+  uint16_t d_gain = 0xFFFF;
+  uint16_t profile_velocity = 0xFFFF;
+  uint8_t id = 0xFF;
+  uint8_t bus_type = SERVO_BUS_UNKNOWN;
+  uint8_t mode = DIRECT_SERVO_MODE_UNKNOWN;
+  uint8_t flags = 0xFF;
+  uint16_t joint_resolution = 0xFFFF;
+  uint16_t servo_resolution = 0xFFFF;
+  int32_t joint_offset = -1;
+};
+
+static_assert(sizeof(ServoFlashConfig) == 20,
+              "ServoFlashConfig must remain a 20-byte Flash record");
+
 enum ServoResult : int8_t
 {
   SERVO_RESULT_OK = 0,
@@ -39,6 +80,8 @@ struct ServoCommCounters
   uint32_t deadline_miss_count = 0;
   uint32_t queue_overflow_count = 0;
   uint32_t unexpected_completion_count = 0;
+  uint32_t watchdog_timeout_count = 0;
+  uint32_t configuration_error_count = 0;
   uint16_t queue_high_water_mark = 0;
 };
 
@@ -48,11 +91,24 @@ public:
   explicit ServoData(uint8_t id): id_(id){}
 
 	uint8_t id_ = 255;
+  uint8_t bus_type_ = SERVO_BUS_UNKNOWN;
+  uint8_t mode_ = DIRECT_SERVO_MODE_UNKNOWN;
+  uint8_t operating_mode_ = 0xFF;
+  int16_t kp_integer_ = 0;
+  int16_t kp_decimal_ = 0;
+  int16_t kd_integer_ = 0;
+  int16_t kd_decimal_ = 0;
   int32_t present_position_ = 0;
   int32_t present_velocity = 0;
+	int32_t target_position_ = 0;
+  int32_t target_velocity_ = 0;
+  int16_t target_current_ = 0;
 	int32_t goal_position_ = 0;
   int32_t goal_velocity_ = 0;
   int16_t goal_current_ = 0;
+  uint32_t last_target_tick_ = 0;
+  bool target_received_ = false;
+  bool watchdog_timed_out_ = false;
   int32_t calib_value_ = 0;
 	int32_t homing_offset_ = 0;
   int32_t internal_offset_ = 0;
@@ -72,6 +128,7 @@ public:
 	bool led_ = false;
 	bool torque_enable_ = false;
 	bool first_get_pos_flag_ = true;
+  bool configured_ = false;
   float angle_scale_ = 3.1416f / 2047.0f;
   uint16_t zero_point_offset_ = 2047;
   uint32_t cur_vel_pos_update_count_ = 0;
@@ -80,7 +137,32 @@ public:
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
-	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
+  void setGoalPosition(int32_t goal_position) {
+    target_position_ = goal_position;
+    goal_position_ = resolution_ratio_ * goal_position - internal_offset_;
+  }
+  void setGoalVelocity(int32_t goal_velocity) {
+    target_velocity_ = goal_velocity;
+    goal_velocity_ = goal_velocity;
+  }
+  void setGoalCurrent(int16_t goal_current) {
+    target_current_ = goal_current;
+    goal_current_ = goal_current;
+  }
+  void resetGoalTargets() {
+    target_position_ = present_position_;
+    target_velocity_ = 0;
+    target_current_ = 0;
+    goal_position_ = static_cast<int32_t>(
+      resolution_ratio_ * target_position_) - internal_offset_;
+    goal_velocity_ = 0;
+    goal_current_ = 0;
+    target_received_ = false;
+    watchdog_timed_out_ = false;
+  }
+  bool configured() const {
+    return configured_;
+  }
   int32_t getGoalPosition() const {return goal_position_;}
   int32_t getGoalVelocity() const {return goal_velocity_;}
   int16_t getGoalCurrent() const {return goal_current_;}
@@ -118,6 +200,20 @@ public:
     (void)timeout_ms;
     return SERVO_RESULT_INVALID_ARGUMENT;
   }
+  virtual bool setGoalTargets(uint8_t servo_index,
+                              bool has_position, int32_t position,
+                              bool has_velocity, int32_t velocity,
+                              bool has_current, int16_t current)
+  {
+    if (servo_index >= servo_num_) return false;
+    ServoData& servo = servo_[servo_index];
+    if (has_position) servo.setGoalPosition(position);
+    if (has_velocity) servo.setGoalVelocity(velocity);
+    if (has_current) servo.setGoalCurrent(current);
+    return true;
+  }
+  virtual uint16_t getServoFeedbackFrequency() const {return 50;}
+  virtual bool busMapValid() const {return servo_num_ > 0;}
   unsigned int getServoNum() const {return servo_num_;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}

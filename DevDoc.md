@@ -130,43 +130,54 @@ enum ServoBusType : uint8_t {
 };
 ```
 
-Any persistent association must be keyed by physical Dynamixel ID, not discovery index. One compact Stage 2 candidate is:
+Any persistent association must be keyed by physical Dynamixel ID, not discovery index. Each slot keeps the existing 20-byte footprint:
 
-```cpp
-struct ServoBusRecord {
-  uint8_t id;
-  uint8_t type;  // 'R' or 'T'
-};
-
-ServoBusRecord servo_bus_map[MAX_SERVO_NUM];  // 20 bytes for 10 servos
+```text
+offset  0: p_gain              uint16
+offset  2: i_gain              uint16
+offset  4: d_gain              uint16
+offset  6: profile_velocity    uint16
+offset  8: physical ID         uint8
+offset  9: bus type            uint8 ('R' or 'T')
+offset 10: mode                uint8 (DP/DEP/DV/DC/MIT)
+offset 11: flags               uint8 (bit 0 send, bit 1 external encoder)
+offset 12: joint_resolution    uint16
+offset 14: servo_resolution    uint16
+offset 16: joint_offset        int32
 ```
 
 A direct table indexed by every possible Dynamixel ID would use about 253 bytes, so the 20-byte record array is the smaller stable mapping.
 
 Stage 2 persistence rules:
 
-- Stage 2 owns the exact Flash placement and compatibility migration for the ID-keyed bus records.
-- Do not insert fields into the existing per-servo Flash registration sequence.
-- Use `0xFF, 0xFF` for unused records.
-- Accept only `R` and `T`; every other value is unconfigured or invalid.
+- Stage 2 owns the fixed 20-byte ID-keyed record shown above.
+- The new ID/bus/mode/flags bytes reuse the old two 16-bit flag offsets, preserving all later offsets and the total Flash region size.
+- An all-`0xFF` slot is unused; legacy flag-only data is invalid because it has no valid bus.
+- Accept physical IDs 0..252, bus `R`/`T`, known flag bits, and either a persistent
+  DP/DEP/DV/DC/MIT mode or `Unknown` while a newly allocated record is incomplete.
+- After scanning, apply only unique matching records; extra detected IDs remain visible but unconfigured.
+- Read the Dynamixel EEPROM operating mode and write it only when mismatched; restore configured RAM gains/profile directly on every boot.
+- Setting `bus_type` only allocates/updates the MCU Flash record. It does not access Dynamixel EEPROM/RAM
+  or mark a new servo configured; setting `mode` completes the record and applies the servo configuration.
 - Keep `ttl_rs485_mixed_` as the global grouping enable: `0` uses one selected-servo group and nonzero uses separate R/T masks.
 - In Stage 2, derive the R/T masks from valid per-ID records instead of the temporary Stage 1 hardcoded ID lists.
-- Do not write Flash when the requested map is unchanged.
+- Do not rewrite MCU Flash when the requested persistent value is unchanged.
 
-The configuration command submits the whole map once:
+Configuration services update one physical-ID record at a time:
 
 ```text
-SET_SERVO_BUS_MAP
-payload: [id0, 'R', id1, 'T', ...]
+SET_SERVO_BUS_TYPE     [physical_id, 'R' or 'T']
+SET_SERVO_CONTROL_MODE [physical_id, DP/DEP/DV/DC/MIT]
+SET_SERVO_MIT_PD       [physical_id, kp_integer, kp_decimal, kd_integer, kd_decimal]  # RAM only
 ```
 
-A valid map must contain every detected ID exactly once. IDs must also be unique across the RS485 and TTL branches; the same Dynamixel ID cannot safely exist on both branches because the transmitted instruction reaches both sides.
+A detected ID may initially have no record or an incomplete bus-only record, so it remains exposed for configuration. Torque remains inhibited until every detected ID has exactly one unique, complete record; an ID cannot belong to both R and T branches.
 
 The actual Dynamixel ID is the only persistent configuration key. Discovery index and
-`servo_serial_index` are runtime/UI ordering only. Map lookup uses `findServoById(id)`, and the
-derived R and T request groups have deterministic ordering, preferably ascending ID. Later
-persistent properties such as control mode and gains follow the same ID-keyed rule, although
-their behavior is implemented in Stage 2.
+`servo_serial_index` are runtime/UI ordering only. Flash lookup uses the physical ID, and the
+derived R and T request groups follow discovery order. Persistent control mode, position gains,
+profile velocity, flags, and encoder settings share the same record. MIT Kp/Kd are deliberately
+RAM-only and are supplied together by YAML/RQT without a separate readiness flag.
 
 The existing `direct_ttl_mode_` has a different meaning: it selects the MCU UART electrical mode for a direct half-duplex connection. It must not be derived from the downstream per-servo `R/T` map.
 
@@ -174,7 +185,7 @@ The existing `direct_ttl_mode_` has a different meaning: it selects the MCU UART
 
 Stage 1 does not add a new global inhibit state. An invalid temporary R/T split is not queued, increments an existing diagnostic counter, and leaves the reviewed timeout/CRC recovery behavior unchanged.
 
-Stage 2 adds configuration-aware `control_inhibited` behavior. The following configuration and runtime conflict rules belong to Stage 2.
+Stage 2 reports `bus_map_valid`; a false value directly blocks normal control. The following configuration and runtime conflict rules belong to Stage 2.
 
 Configuration conflicts include:
 
@@ -187,11 +198,10 @@ Runtime response conflicts include:
 - an ID outside the current R/T request group;
 - duplicate or out-of-order IDs in a Fast Sync aggregate response;
 - a response length inconsistent with the expected group;
-- repeated communication failures that prevent a complete feedback cycle.
 
-On a definite configuration or response conflict:
+On a definite configuration conflict:
 
-1. Set `control_inhibited = true`.
+1. Keep the affected servo unconfigured so that `bus_map_valid = false`.
 2. Reject new torque-on requests.
 3. Stop normal position, velocity, current, and MIT goal writes.
 4. If torque is already enabled, allow one safety torque-off operation.
@@ -199,7 +209,7 @@ On a definite configuration or response conflict:
 6. Publish the fault immediately and then at the normal diagnostic rate.
 7. Never re-enable torque automatically after recovery.
 
-A single CRC error or timeout increments a counter and triggers the existing Stage 1 RX recovery; it does not immediately become a bus conflict. Stage 2 may escalate repeated failures to control inhibit only after a defined and tested threshold; the initial candidate is three complete feedback cycles.
+A CRC error, timeout, or invalid response increments the existing Stage 1 counters and triggers RX recovery without changing the global configuration inhibit state. After the first valid position feedback, MIT current uses the latest cached position and velocity without an additional per-cycle feedback-completeness gate.
 
 Do not reuse the existing Dynamixel hardware bits in `ServoState.error`. The current Stage 1 baseline `ServoCommStatus` message contains:
 
@@ -304,10 +314,8 @@ Implementation requirements:
 - Use `int64_t` intermediate values.
 - Preserve symmetric rounding for positive and negative current.
 - Clamp against both configured current limit and the Dynamixel goal-current range.
-- Output zero before the first complete position/velocity feedback.
-- Update the MIT feedback snapshot only after all non-empty R/T groups succeed.
-- Output zero for an incomplete MIT feedback cycle; inhibit control after the failure threshold.
-- Apply a timestamp-based target watchdog to MIT and DC.
+- Output zero while `first_get_pos_flag_` is set; afterwards calculate from the latest cached position and velocity without a per-cycle group-completeness gate.
+- Apply a timestamp-based target watchdog to DV, DC, and MIT.
 - Change mode, `kp`, and `kd` only with torque disabled.
 - Read configuration back before allowing torque-on.
 
@@ -330,7 +338,7 @@ Dynamixel: register access and internal motor control
 The unified target is:
 
 ```text
-ServoTargetStates
+ServoControlCmd
   uint8[] index
   int16[] position
   int16[] velocity
@@ -401,21 +409,21 @@ Stage 2 is implemented as one cohesive development change. The reference path al
 
 Scope:
 
-- Replace the Stage 1 hardcoded R/T lists with one persistent ID-keyed R/T record for every detected Dynamixel servo.
+- Replace the Stage 1 hardcoded R/T lists with compact persistent records keyed by physical Dynamixel ID.
 - Keep `ttl_rs485_mixed_` as the global grouping enable: the persistent map supplies group membership and the flag selects one-group or R/T-group scheduling.
 - Store and read back R/T by physical Dynamixel ID, never by discovery index or `servo_serial_index`.
-- Add the service, message, status, and Flash fields needed to set and inspect the complete R/T map.
-- Reject missing, duplicate, unknown, overlapping, or non-R/T records and inhibit torque-on until every detected ID has one valid assignment.
-- Apply persistent configuration only while torque is off, avoid unchanged Flash writes, and preserve `direct_ttl_mode_` as an independent UART electrical-mode state.
-- Port operating-mode write/readback, target position/velocity/current, MIT gains, and DP/DEP/DV/DC/MIT/EM goal generation from the reference path.
-- Use `int64_t` MIT intermediates, symmetric rounding, configured current limits, a target watchdog, and feedback-failure/emergency handling.
-- Change persistent mode and gains only while torque is off and require Dynamixel register readback before torque-on.
+- Store ID, R/T bus, DP/DEP/DV/DC/MIT mode, packed flags, gains/profile, and encoder settings in each fixed 20-byte MCU Flash record.
+- Expose missing IDs as unconfigured, reject duplicate/invalid records, and inhibit torque-on until every detected ID has one valid assignment.
+- Check Dynamixel EEPROM before writing changed operating mode; write configured RAM gains/profile directly after every reboot.
+- Port target position/velocity/current, RAM-only MIT gains, and DP/DEP/DV/DC/MIT goal generation; retain EM only as a runtime safe state.
+- Use `int64_t` MIT intermediates, symmetric rounding, configured current limits, first-position-feedback protection, the latest cached position/velocity, a target watchdog, and emergency handling.
+- Change persistent mode/configuration only while torque is off and require register/readback consistency before torque-on.
 - Use a bounded Bulk Write when a cycle contains different per-servo goal registers.
-- Add or enable the final target/configuration/status messages and regenerate rosserial headers.
-- Add physical-ID-keyed R/T, mode, MIT gains, current limit, and other required settings to YAML.
-- On startup, discover IDs, compare firmware readback with YAML, apply required changes, verify them, and only then permit torque-on.
+- Upgrade `ServoControlCmd` to position/velocity/current and regenerate rosserial headers; do not add a parallel target message.
+- Let Flash determine per-servo mode by default; YAML may explicitly update mode and supplies MIT Kp/Kd together when used.
+- On startup, discover IDs, apply matching Flash configuration, expose unmatched IDs, then apply optional host YAML overrides.
 - Implement mode-aware SI/raw conversion in `servo_bridge`; gains, signs, and offsets are converted exactly once.
-- Use a non-conflicting DirectServo target topic during migration and preserve DP/DEP compatibility until every DirectServo consumer is switched.
+- Publish all three target fields through `ServoControlCmd` on the existing DirectServo target topic.
 - Keep the local goal/feedback loop at 200 Hz, decouple `servo/states` to approximately 50 Hz, and keep communication diagnostics near 1 Hz.
 
 `INSTRUCTION_PACKET_SIZE` must cover the maximum selected Bulk Write or the operation must be split into bounded packets. No packet builder may write beyond its buffer.
@@ -424,7 +432,7 @@ Human review checklist:
 
 - The implementation follows the reference behavior but is adapted to the current queue, scheduler, parser, data model, and ROS interfaces.
 - R/T, mode, gains, and current limits remain associated with physical IDs across discovery-order changes and reboot.
-- Valid configuration is required for torque-on; configuration, communication, stale-target, and emergency failures reach a defined safe state.
+- Valid configuration is required for torque-on; missing initial position feedback, stale-target, and emergency failures retain their defined handling.
 - DP/DEP compatibility is preserved and MIT is never enabled as an unreviewed default.
 - Firmware and host conversions do not duplicate sign, scale, offset, or gain conversion.
 - Flash writes, Dynamixel register writes, and service results all have explicit readback semantics.
@@ -437,7 +445,7 @@ Functional gate:
 - Verify invalid maps or modes inhibit torque-on while diagnostics, reconfiguration, and safety torque-off remain available.
 - Configure and read back every mode, then test DP/DEP/DV/DC direction, target field, and limits.
 - Verify `kp=kd=0` makes MIT equal current feedforward, then test low MIT gains and conservative current limits with propellers removed.
-- Verify stale targets, incomplete feedback, communication faults, EM, and current limits stop unsafe output.
+- Verify first-position-feedback protection, stale targets, EM, and current limits produce the defined output.
 - Confirm YAML -> service -> Flash/register -> `ServoInfo`/`BoardInfo` readback is consistent by physical ID.
 - Confirm persistent R/T masks reuse the Stage 1 grouped queue/parser without changing its one/two-group 200 Hz behavior.
 - Confirm host command rate and approximately 50 Hz ROS publication do not drive or block the 200 Hz local UART/control schedule.
@@ -454,10 +462,151 @@ Scope:
 - Reuse a shared servo transport/control component or a Neuron adapter around the verified contract according to the current architecture; review the resulting boundary in the single Stage 3 gate.
 - Run the high-rate feedback and MIT loop on the MCU that owns the Dynamixel UART, normally Neuron in the production chain.
 - Define CAN messages for high-rate targets separately from low-rate R/T, mode, gain, current-limit, and diagnostic data.
-- Respect classic CAN payload limits with explicit fragmentation or bounded records, sequence/acknowledgment rules, timeout behavior, and register/Flash readback.
+- Upgrade the production Spinal/Neuron link to CAN FD with bit-rate switching, use bounded CAN-FD records with explicit DLC padding, sequence/acknowledgment rules, timeout behavior, and register/Flash readback, and retain Classic CAN only where compatibility is explicitly required.
 - Preserve physical-ID-keyed configuration and the same one/two-group R/T behavior where the Neuron hardware topology requires it.
 - Keep DirectServo operational as the validated reference and rollback path until the Neuron chain passes equivalent tests.
 - Avoid publishing incompatible old/new message types on the same ROS topic.
+
+### Stage 3 CubeMX and `.ioc` configuration
+
+The CubeMX `.ioc` files are the source of truth for FDCAN peripheral configuration. Do not
+hand-edit the generated `MX_FDCAN1_Init()` body as the implementation method: code generation
+will overwrite changes outside `USER CODE` regions. Stage 3 changes hardware configuration in
+CubeMX, commits the corresponding `.ioc` change, regenerates code, and reviews the generated diff.
+Protocol, packing, scheduling, and safety logic remain normal source changes outside generated
+CubeMX regions.
+
+The two relevant CubeMX projects are:
+
+```text
+aerial_robot_nerve/neuron/neuron_g4/neuron_g4.ioc
+aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_v2/spinal.ioc
+```
+
+#### Neuron G4 configuration
+
+Open `neuron_g4.ioc` with the matching STM32CubeMX/STM32CubeIDE version, select FDCAN1, and set:
+
+```text
+Parameter                         Value
+Frame Format                     FD mode with Bit Rate Switching
+Mode                             Normal
+Auto Retransmission              Enable
+Clock Divider                    1
+Nominal Prescaler                1
+Nominal Time Segment 1           63
+Nominal Time Segment 2           16
+Nominal Synchronization Jump     16
+Data Prescaler                   1
+Data Time Segment 1              7
+Data Time Segment 2              2
+Data Synchronization Jump        2
+Standard Filters                 2, unless the reviewed ID layout changes
+```
+
+Keep the FDCAN kernel clock sourced from the PLL at 80 MHz. These settings give matching 80%
+sample points and the intended rates:
+
+```text
+nominal = 80 MHz / (1 * (1 + 63 + 16)) = 1 Mbit/s
+data    = 80 MHz / (1 * (1 + 7 + 2))   = 8 Mbit/s
+```
+
+After generation, verify that the generated Neuron initialization contains:
+
+```cpp
+hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
+```
+
+The current Neuron `.ioc` stores the nominal/data timing but does not store `FrameFormat`, so it
+currently regenerates `FDCAN_FRAME_CLASSIC`. Adding the frame-format setting to the `.ioc` is a
+required Stage 3 change.
+
+#### Spinal H7_v2 configuration
+
+The H7_v2 `.ioc` already selects `FDCAN_FRAME_FD_BRS`, the same 1 Mbit/s nominal and 8 Mbit/s
+data timing, 64-byte RX/TX elements, and a ten-element TX FIFO. Preserve those values unless a
+measured physical-layer test requires a lower data rate.
+
+The current H7_v2 RX FIFO has only one element. That is vulnerable to a four-Neuron reply burst
+even when average bus utilization is low. Stage 3 must size the hardware RX FIFO and the RTOS CAN
+mail queue from the maximum scheduled burst. An initial RX FIFO candidate is eight 64-byte
+elements, subject to message-RAM validation; acceptance is based on zero FIFO overrun and zero
+software queue overflow during the Stage 3 stress test rather than on the candidate number alone.
+
+#### CubeMX regeneration rules
+
+1. Start from a clean or intentionally recorded worktree and record the CubeMX version used.
+2. Enable "Keep User Code when re-generating" before code generation.
+3. Make FDCAN clock, frame-format, timing, FIFO, and element-size changes in the `.ioc`, not by
+   editing their generated assignments in `main.c`.
+4. Generate once, inspect the complete Git diff, and reject unrelated clock, pin, middleware,
+   linker, task, or interrupt changes.
+5. Generate a second time without changing the `.ioc`; the second generation must produce no
+   semantic diff.
+6. Rebuild Spinal and Neuron, then first flash one Spinal/Neuron pair before enabling CAN FD on
+   the complete robot bus.
+
+Only code enclosed by the intended CubeMX `USER CODE` markers is expected to survive regeneration.
+If Stage 3 discovers existing custom code outside those markers, move it to a maintained source
+file or a valid user region as a separately reviewed change before relying on regeneration.
+
+### Stage 3 CAN-FD protocol and bandwidth guardrails
+
+CubeMX does not configure the application protocol. Stage 3 must separately update the common CAN
+code and the Spinal/Neuron servo, IMU, motor, and scheduler code.
+
+In particular, the current FDCAN send helper selects Classic CAN whenever `dlc <= 8` and selects
+CAN FD only for larger payloads. Replace this implicit size rule with an explicit frame-mode
+argument or equivalent reviewed policy. A high-rate payload of eight bytes or less may still need
+FD+BRS; otherwise pad a bounded record to a supported 12-byte FD DLC. Accept only the CAN-FD DLC
+sizes `0..8, 12, 16, 20, 24, 32, 48, 64`, clear every padding byte, and validate received DLC before
+casting or decoding a payload.
+
+The initial bandwidth calculation uses the current raw field widths:
+
+```text
+feedback per servo: position int16 + velocity int32 + current int16 + error uint8 = 9 bytes
+P/C target per servo: position int16 + current int16 = 4 bytes
+```
+
+With four Neurons, six joints, eight gimbals, 11-bit identifiers, 1 Mbit/s arbitration, 8 Mbit/s
+data, and conservative bit stuffing, the estimated servo-only utilization at 200 Hz is:
+
+| CAN traffic | Application payload | Estimated bus utilization |
+|---|---:|---:|
+| Six-joint P/C targets and six-joint P/V/C/Error feedback | 15.6 kB/s | about 7.0% |
+| All 14 servo P/C targets and six-joint feedback | 22.0 kB/s | about 8.4% |
+| All 14 servo P/C targets and all 14 servo feedback | 36.4 kB/s | about 11.7% |
+| All 14 servo P/V/C targets and all 14 servo feedback | 47.6 kB/s | about 13.1% |
+
+CAN bandwidth is therefore not the primary obstacle, but retaining the existing Classic small-frame
+layout wastes the available margin. If eight independent rotor commands remain as two Classic
+eight-byte frames at 500 Hz, they consume up to about 13.5%. If all four Neuron IMUs retain three
+Classic six-byte frames at 200 Hz, they consume up to about 27.6%. Together with the conservative
+full-servo case, this is about 54.2% before retransmission and other traffic. Packing all eight rotor
+commands into one 12-byte FD frame and each Neuron gyro/acc/mag set into one 20-byte FD frame reduces
+the corresponding total estimate to about 20.8%.
+
+Stage 3 therefore uses per-board packed target/state records, packs related IMU and rotor fields
+where their update and safety semantics match, and gives control/emergency frames suitable CAN-ID
+priority. Every high-rate record includes at least a protocol version or record type, a sequence
+counter, bounded fields, and explicit stale/timeout behavior. The receiver must not treat successful
+CAN delivery as confirmation that a Dynamixel register or Neuron Flash write succeeded.
+
+The current Spinal scheduler provides 500 aggregate servo-board slots per second and round-robins
+them across Neurons, which is only 125 Hz per board for four Neurons. Stage 3 must redesign that
+scheduler rather than merely changing a frequency constant. Likewise, the current Neuron feedback
+record has no velocity, position is sampled at 50 Hz, and current/error are sampled at 5 Hz. A
+200 Hz CAN publication is not accepted unless the Neuron-owned Dynamixel transaction actually
+produces fresh P/V/C data at that rate; repeated cached samples do not satisfy the gate.
+
+All active controllers on a bus must be CAN-FD tolerant before transmitting the first FD frame.
+An STM32F1/Classic-only Neuron cannot remain active on the same bus during the FD migration. Verify
+the exact CAN transceiver part, termination, topology, and harness length at the selected 8 Mbit/s
+data phase; FDCAN-capable MCUs alone do not prove that the physical layer supports that rate. If
+8 Mbit/s fails the error-rate and recovery gate, change the data timing consistently in both `.ioc`
+files and record the measured reason; do not create unmatched Spinal and Neuron timings.
 
 Human review checklist:
 
@@ -469,6 +618,15 @@ Human review checklist:
 
 Functional gate:
 
+- Regenerating each CubeMX project from its committed `.ioc` produces the reviewed FD+BRS, timing,
+  FIFO, and element-size configuration without hand edits to generated initialization code.
+- A second generation without `.ioc` changes produces no semantic diff, and all preserved custom
+  code remains inside maintained files or valid `USER CODE` regions.
+- Every active node and transceiver passes single-pair bring-up before the complete bus is switched
+  to CAN FD; no Classic-only node remains active when FD frames are transmitted.
+- At 200 Hz and worst scheduled CAN load, FDCAN protocol errors, RX FIFO overruns, CAN mail-queue
+  overflow, stale sequences, and missed control deadlines remain within their defined acceptance
+  limits; normal utilization retains explicit retransmission and emergency-command margin.
 - The full VIM4/ROS <-> Spinal <-> CAN <-> Neuron <-> Dynamixel chain builds and discovers/configures servos by physical ID.
 - DP/DEP compatibility and the new DV/DC/MIT/EM semantics match the verified DirectServo behavior.
 - The Neuron-owned local goal/feedback loop passes at 200 Hz while PC state publication remains approximately 50 Hz.
@@ -560,7 +718,7 @@ PC-side statistics:
 
 ### 5.4 Initial acceptance criteria
 
-- Stage 2 valid maps result in `control_inhibited=false`; every invalid map results in true.
+- Stage 2 valid maps result in `bus_map_valid=true`; every invalid map results in false.
 - A Stage 1 mixed high-rate feedback cycle sends no more than two Fast Sync Read commands, and its goal cycle sends no more than two Sync Write commands.
 - Every healthy active servo reports approximately 200 feedback updates and 200 goal writes per one-second diagnostic window.
 - Stage 1 `invalid_packet_count`, `unexpected_completion_count`, and `queue_overflow_count` remain zero in normal operation.
@@ -570,7 +728,7 @@ PC-side statistics:
 - At 200 Hz, the initial candidate CRC+timeout limit is 0.01% of feedback cycles and must be confirmed from test data.
 - Stage 2/3 DP/DEP behavior remains compatible with the pre-migration baseline.
 - Stage 2/3 DC/MIT never exceeds the configured current limit.
-- Configuration conflict, repeated communication failure, target timeout, and EM never continue normal control.
+- Configuration conflict, missing initial MIT position feedback, target timeout, and EM never continue normal control.
 
 The 200 Hz rate is a required operating condition, not an optional target or a lower-rate release fallback.
 
@@ -598,16 +756,32 @@ aerial_robot_nerve/spinal/msg/ServoInfo.msg
 aerial_robot_nerve/spinal/msg/ServoState.msg
 aerial_robot_nerve/spinal/msg/ServoStates.msg
 aerial_robot_nerve/spinal/msg/ServoCommStatus.msg
-aerial_robot_nerve/spinal/msg/ServoTargetStates.msg
+aerial_robot_nerve/spinal/msg/ServoControlCmd.msg
 aerial_robot_nerve/spinal/srv/SetDirectServoConfig.srv
 aerial_robot_model/include/aerial_robot_model/servo_bridge.h
 aerial_robot_model/src/servo_bridge/servo_bridge.cpp
-robots/dragon/config/quad/v1_5_202601/Servo.yaml
+aerial_robot_nerve/spinal/launch/Servo.yaml
+aerial_robot_nerve/spinal/launch/DirectServo.urdf
+aerial_robot_nerve/spinal/launch/bridge.launch
 ```
 
 Stage 3 Neuron integration scope:
 
-Stage 3 may modify the required Spinal/CAN/Neuron files as one cohesive integration change. Avoid CubeMX-generated regions and unrelated flight-control code unless the unified Stage 3 implementation has a concrete requirement.
+Stage 3 may modify the required Spinal/CAN/Neuron files as one cohesive integration change. FDCAN
+peripheral changes belong in the two CubeMX `.ioc` files. The corresponding generated regions may
+change only as output from the committed `.ioc`; do not hand-edit them. Protocol implementation,
+packing, scheduling, state acquisition, diagnostics, and safety behavior belong in maintained
+Spinal/Neuron library source. Avoid unrelated flight-control code unless the unified Stage 3
+implementation has a concrete requirement.
+
+Minimum CubeMX/configuration scope:
+
+```text
+aerial_robot_nerve/neuron/neuron_g4/neuron_g4.ioc
+aerial_robot_nerve/neuron/neuron_g4/Core/Src/main.c                  # generated from .ioc
+aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_v2/spinal.ioc
+aerial_robot_nerve/spinal/mcu_project/boards/stm32H7_v2/Src/main.c   # generated from .ioc
+```
 
 ## 7. Commit, Review, and Rollback Rules
 
@@ -624,7 +798,7 @@ Each major Stage is implemented as one cohesive change and delivers:
 Rollback points:
 
 - Stage 1: set `ttl_rs485_mixed_` to zero and retain the reviewed one-group 200 Hz queue/parser baseline while diagnosing the mixed grouping change.
-- Stage 2: retain the old DirectServo configuration/bridge/topic contract and DP/DEP default; do not partially enable the new R/T map or DV/DC/MIT behavior if the unified gate fails.
+- Stage 2: restore the previous DirectServo revision as one unit if the unified Flash/message/mode migration fails; no runtime default mode fallback is provided.
 - Stage 3: keep DirectServo as the active hardware path and do not enable the Neuron path until end-to-end validation passes.
 
 Temporary fallbacks must be removed or explicitly documented before release.
@@ -656,4 +830,4 @@ The revised plan matches the initial development objective with the following ex
 - Testing is based on observable software behavior and stress statistics, not unavailable measurement equipment.
 - The 200 Hz local goal/feedback rate is fixed; acceptance determines whether a stage passes, not which lower rate is released.
 
-Parameters still requiring human confirmation during their owning stage are the exact DirectServo topic name, `TARGET_TIMEOUT_MS`, the consecutive-failure threshold, the persistent R/T record layout, and whether maximum-size Bulk Write uses a larger buffer or bounded packet splitting. These Stage 2 choices do not block the remaining Stage 1 grouped-transport work.
+Parameters still requiring human confirmation during their owning stage are the exact DirectServo topic name, `TARGET_TIMEOUT_MS`, the persistent R/T record layout, and whether maximum-size Bulk Write uses a larger buffer or bounded packet splitting. These Stage 2 choices do not block the remaining Stage 1 grouped-transport work.

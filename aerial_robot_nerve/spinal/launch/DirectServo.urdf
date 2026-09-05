@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot name="direct_servo">
+  <link name="base_link" />
+
+  <link name="gimbal1_link" />
+  <joint name="gimbal1" type="revolute">
+    <parent link="base_link" />
+    <child link="gimbal1_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793"
+           effort="10" velocity="20" />
+  </joint>
+
+  <link name="gimbal2_link" />
+  <joint name="gimbal2" type="revolute">
+    <parent link="base_link" />
+    <child link="gimbal2_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793"
+           effort="10" velocity="20" />
+  </joint>
+
+  <link name="gimbal3_link" />
+  <joint name="gimbal3" type="revolute">
+    <parent link="base_link" />
+    <child link="gimbal3_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793"
+           effort="10" velocity="20" />
+  </joint>
+
+  <link name="gimbal4_link" />
+  <joint name="gimbal4" type="revolute">
+    <parent link="base_link" />
+    <child link="gimbal4_link" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.141592653589793" upper="3.141592653589793"
+           effort="10" velocity="20" />
+  </joint>
+</robot>

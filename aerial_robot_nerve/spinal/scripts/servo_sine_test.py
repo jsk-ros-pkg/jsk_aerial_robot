@@ -27,7 +27,7 @@ STATE_TOPIC = "servo/states"
 # Safety switch: inspect state statistics only until this is explicitly enabled.
 SEND_COMMANDS = True
 
-# ServoControlCmd.angles uses raw int16 servo units, not radians.
+# ServoControlCmd.position uses raw int16 servo units, not radians.
 # Each dictionary controls one servo. Multiple entries are sent in one message.
 SERVO_TARGETS = [
     {
@@ -336,7 +336,7 @@ class ServoSineTest(object):
     def _publish_at_elapsed_time(self, elapsed):
         msg = ServoControlCmd()
         msg.index = [target[0] for target in self.targets]
-        msg.angles = [
+        msg.position = [
             int(
                 round(
                     target[1]
@@ -358,7 +358,7 @@ class ServoSineTest(object):
             return
         msg = ServoControlCmd()
         msg.index = [target[0] for target in self.targets]
-        msg.angles = [int(round(target[1])) for target in self.targets]
+        msg.position = [int(round(target[1])) for target in self.targets]
         self.publisher.publish(msg)
         rospy.loginfo("sent final center target to %s", self.command_topic)
         rospy.sleep(0.05)

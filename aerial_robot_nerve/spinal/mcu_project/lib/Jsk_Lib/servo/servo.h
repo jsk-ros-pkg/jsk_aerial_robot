@@ -87,6 +87,8 @@ private:
   uint32_t servo_last_pub_time_;
   uint32_t servo_torque_last_pub_time_;
   uint32_t servo_comm_status_last_pub_time_;
+  bool servo_comm_status_initialized_;
+  bool last_bus_map_valid_;
 
   void servoControlCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);

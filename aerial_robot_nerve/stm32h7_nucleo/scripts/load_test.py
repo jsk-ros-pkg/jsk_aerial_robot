@@ -16,7 +16,7 @@ pub = rospy.Publisher(joint_control_topic_name, ServoControlCmd, queue_size=10)
 
 joint_msg = ServoControlCmd()
 joint_msg.index  = [1] * joint_num
-joint_msg.angles = [1] * joint_num
+joint_msg.position = [1] * joint_num
 
 loop_rate = rospy.Rate(rate)
 
