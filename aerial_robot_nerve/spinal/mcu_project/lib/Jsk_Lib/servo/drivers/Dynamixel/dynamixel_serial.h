@@ -310,6 +310,7 @@ public:
   DynamixelSerial(){}
 
   void init(UART_HandleTypeDef* huart, osMutexId* mutex = NULL) override;
+  bool createRTOSObjects();
   void pinReconfig() override;
   void ping() override;
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout) override;

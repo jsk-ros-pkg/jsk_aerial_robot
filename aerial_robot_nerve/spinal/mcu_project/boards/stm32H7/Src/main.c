@@ -266,7 +266,6 @@ int main(void)
   controller_.init(&htim1, &htim4, &estimator_, NULL, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
 
   bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
-  if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
 
   /* USER CODE END 2 */
 
@@ -294,6 +293,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
+  if (servo_connect && !servo_.createRTOSObjects()) Error_Handler();
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
@@ -312,6 +312,7 @@ int main(void)
   /* add mail queue for CAN RX */
   osMailQDef(CanMail, 10, can_msg); // defualt: 20 for 8 data bytes (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets)); 10 for 64 data bytes
   canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
+  if (nerve_connect && canMsgMailHandle != NULL) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spinal
 
   /* USER CODE END RTOS_QUEUES */
 

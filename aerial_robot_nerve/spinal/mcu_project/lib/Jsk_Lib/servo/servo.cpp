@@ -75,6 +75,15 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   return true;
 }
 
+bool DirectServo::createRTOSObjects()
+{
+#if DYNAMIXEL
+  return servo_handler_.createRTOSObjects();
+#else
+  return true;
+#endif
+}
+
 void DirectServo::update()
 {
   servo_handler_.update();

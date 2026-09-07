@@ -51,6 +51,7 @@ public:
   ~DirectServo(){}
 
   bool init(UART_HandleTypeDef* huart, ros::NodeHandle* nh, osMutexId* mutex);
+  bool createRTOSObjects();
   void update();
   bool connected() {return connected_;}
   void sendData(bool flag_send_asap);

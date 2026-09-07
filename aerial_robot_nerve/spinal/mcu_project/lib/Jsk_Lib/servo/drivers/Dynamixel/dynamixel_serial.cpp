@@ -51,11 +51,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
 {
 	huart_ = huart;
   mutex_ = mutex;  // Kept for API compatibility; runtime UART ownership is task-local.
-  queue_mutex_ = osMutexCreate(osMutex(DynamixelInstructionQueueMutex));
-  service_completion_ = osSemaphoreCreate(osSemaphore(DynamixelServiceCompletion), 1);
-  if (service_completion_ != nullptr) {
-    osSemaphoreWait(service_completion_, 0);
-  }
   pending_transaction_ = PendingTransaction();
   service_request_ = ServoServiceRequest();
   torque_off_pending_mask_ = 0;
@@ -180,10 +175,22 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
   }
 
   const uint32_t startup_configuration_errors =
-    comm_counters_.configuration_error_count;
+  comm_counters_.configuration_error_count;
   comm_counters_ = ServoCommCounters();
   comm_counters_.configuration_error_count = startup_configuration_errors;
   enforceConfigurationSafety();
+}
+
+bool DynamixelSerial::createRTOSObjects()
+{
+  if (queue_mutex_ != nullptr || service_completion_ != nullptr) {
+    return queue_mutex_ != nullptr && service_completion_ != nullptr;
+  }
+
+  queue_mutex_ = osMutexCreate(osMutex(DynamixelInstructionQueueMutex));
+  service_completion_ =
+    osSemaphoreCreate(osSemaphore(DynamixelServiceCompletion), 1);
+  return queue_mutex_ != nullptr && service_completion_ != nullptr;
 }
 
 void DynamixelSerial::pinReconfig()
