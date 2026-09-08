@@ -140,11 +140,15 @@
 #define REBOOT_LEN				3
 #define TORQUE_ENABLE_BYTE_LEN			1
 #define LED_BYTE_LEN				1
+#define TORQUE_LED_BYTE_LEN			(TORQUE_ENABLE_BYTE_LEN + LED_BYTE_LEN)
 #define STATUS_RETURN_LEVEL_BYTE_LEN		1
 #define GOAL_POSITION_BYTE_LEN			4
+#define GOAL_VELOCITY_BYTE_LEN			4
 #define GOAL_CURRENT_BYTE_LEN			2
 #define PRESENT_POSITION_BYTE_LEN		4
+#define PRESENT_VELOCITY_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
+#define PRESENT_CVP_BYTE_LEN			10
 #define PRESENT_TEMPERATURE_BYTE_LEN		1
 #define MOVING_BYTE_LEN 			1
 #define OPERATING_MODE_BYTE_LEN 		1
@@ -225,13 +229,63 @@
 #define INST_SET_TORQUE				15
 #define INST_GET_MODEL_NUMBER			16
 #define INST_GET_OPERATING_MODE			17
+#define INST_GET_PRESENT_CVP			18
+
+enum NeuronServoMode : uint8_t
+{
+  NEURON_SERVO_MODE_DP = 0,
+  NEURON_SERVO_MODE_DV = 1,
+  NEURON_SERVO_MODE_DC = 2,
+  NEURON_SERVO_MODE_MIT = 3,
+  NEURON_SERVO_MODE_EM = 4,
+  NEURON_SERVO_MODE_DEP = 5,
+  NEURON_SERVO_MODE_UNKNOWN = 0xFF,
+};
+
+enum NeuronServoBus : uint8_t
+{
+  NEURON_SERVO_BUS_RS485 = 'R',
+  NEURON_SERVO_BUS_TTL = 'T',
+  NEURON_SERVO_BUS_UNKNOWN = 0xFF,
+};
+
+constexpr uint8_t NEURON_SERVO_FLASH_FLAG_SEND_DATA = 1U << 0;
+constexpr uint8_t NEURON_SERVO_FLASH_FLAG_EXTERNAL_ENCODER = 1U << 1;
+constexpr uint8_t NEURON_SERVO_FLASH_FLAG_MASK =
+  NEURON_SERVO_FLASH_FLAG_SEND_DATA |
+  NEURON_SERVO_FLASH_FLAG_EXTERNAL_ENCODER;
+constexpr int32_t NEURON_MIT_GAIN_SCALE = 10000;
+constexpr uint16_t NEURON_SERVO_FEEDBACK_FREQUENCY_HZ = 50;
+constexpr uint32_t NEURON_DEFAULT_TARGET_WATCHDOG_MS = 100;
+
+struct NeuronServoFlashConfig
+{
+  uint16_t p_gain = 0xFFFF;
+  uint16_t i_gain = 0xFFFF;
+  uint16_t d_gain = 0xFFFF;
+  uint16_t profile_velocity = 0xFFFF;
+  uint8_t id = 0xFF;
+  uint8_t bus_type = NEURON_SERVO_BUS_UNKNOWN;
+  uint8_t mode = NEURON_SERVO_MODE_UNKNOWN;
+  uint8_t flags = 0xFF;
+  uint16_t joint_resolution = 0xFFFF;
+  uint16_t servo_resolution = 0xFFFF;
+  int32_t joint_offset = -1;
+};
+static_assert(sizeof(NeuronServoFlashConfig) == 20,
+              "NeuronServoFlashConfig must remain a 20-byte Flash record");
 
 //instruction frequency: 0 means no process
+#ifdef STM32G4
+#define CONTROL_CYCLE_DU 5 //[msec], 5ms => 200Hz
+#define GET_LOAD_DU 0 // current is included in the combined feedback read
+#else
 #define SET_COMMAND_DU 20 //[msec], 20ms => 50Hz
 #define SET_COMMAND_OFFSET 0 // offset from SET_COMMAND
 #define GET_POS_DU 20 //[msec], 20ms => 50Hz
 #define GET_POS_OFFSET 10 //offset from SET_COMMAND
 #define GET_LOAD_DU 200 //[msec], 200ms => 5Hz
+#endif
 #define GET_LOAD_OFFSET 0 //offset from SET_COMMAND
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
 #define GET_TEMP_OFFSET 50 //offset from SET_COMMAND
@@ -309,25 +363,43 @@ private:
 
 class ServoData {
 public:
-	ServoData(){}
-	ServoData(uint8_t id):
-          id_(id),
-          goal_current_(0),
-          internal_offset_(0),
-          pulley_skip_time_(0),
-          pulley_skip_reset_du_(1000),
-          operating_mode_(0),
-          hardware_error_status_(0),
-          torque_enable_(false),
-          force_servo_off_(false),
-          send_goal_position_(false),
-          first_get_pos_flag_(true)
+  ServoData(): ServoData(255) {}
+  explicit ServoData(uint8_t id):
+    id_(id), bus_type_(NEURON_SERVO_BUS_UNKNOWN),
+    mode_(NEURON_SERVO_MODE_UNKNOWN), present_position_(0),
+    present_velocity_(0), goal_position_(0), goal_velocity_(0),
+    goal_current_(0), pvc_update_count_(0), last_target_tick_(0),
+    target_received_(false), watchdog_timed_out_(false),
+    configured_(false), kp_integer_(0), kp_decimal_(0),
+    kd_integer_(0), kd_decimal_(0), calib_value_(0),
+    homing_offset_(0), internal_offset_(0), pulley_skip_time_(0),
+    pulley_skip_reset_du_(1000), present_temp_(0),
+    present_current_(0), moving_(0), model_number_(0),
+    shutdown_bit_(0), operating_mode_(0xFF),
+    hardware_error_status_(0), p_gain_(0), i_gain_(0), d_gain_(0),
+    profile_velocity_(0), current_limit_(0), send_data_flag_(1),
+    external_encoder_flag_(0), joint_offset_(0),
+    joint_resolution_(1), servo_resolution_(1),
+    resolution_ratio_(1.0f), led_(false), torque_enable_(false),
+    force_servo_off_(false), send_goal_position_(false),
+    first_get_pos_flag_(true)
   {}
 
 	uint8_t id_;
-  	int32_t present_position_;
+	uint8_t bus_type_;
+	uint8_t mode_;
+	int32_t present_position_;
+	int32_t present_velocity_;
 	int32_t goal_position_;
-  	int16_t goal_current_;
+	int32_t goal_velocity_;
+	int16_t goal_current_;
+	uint32_t pvc_update_count_;
+	uint32_t last_target_tick_;
+	bool target_received_;
+	bool watchdog_timed_out_;
+	bool configured_;
+	int16_t kp_integer_, kp_decimal_;
+	int16_t kd_integer_, kd_decimal_;
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
@@ -346,8 +418,8 @@ public:
 	uint16_t send_data_flag_;
         uint16_t external_encoder_flag_;
         int32_t joint_offset_;
-        int16_t joint_resolution_;
-        int16_t servo_resolution_;
+	uint16_t joint_resolution_;
+	uint16_t servo_resolution_;
         float resolution_ratio_;
 	bool led_;
 	bool torque_enable_;
@@ -357,11 +429,14 @@ public:
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	int32_t getPresentPosition() const {return present_position_;}
+	int32_t getPresentVelocity() const {return present_velocity_;}
 	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position;}
+	void setGoalVelocity(int32_t goal_velocity) {goal_velocity_ = goal_velocity;}
   	int32_t getInternalGoalPosition() const {return resolution_ratio_ * goal_position_ - internal_offset_;}
 	int32_t getGoalPosition() const {return goal_position_;}
 	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
 	int16_t getGoalCurrent() const { return goal_current_;}
+	bool configured() const {return configured_;}
 	bool operator==(const ServoData& r) const {return this->id_ == r.id_;}
 };
 
@@ -375,17 +450,28 @@ public:
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout);
   void reboot(uint8_t servo_index);
   void setTorque(uint8_t servo_index, bool torque_enable);
-  void setHomingOffset(uint8_t servo_index);
+  bool setHomingOffset(uint8_t servo_index);
   void setRoundOffset(uint8_t servo_index, int32_t ref_value);
-  void setPositionGains(uint8_t servo_index);
-  void setProfileVelocity(uint8_t servo_index);
-  void setCurrentLimit(uint8_t servo_index);
+  bool setPositionGains(uint8_t servo_index);
+  bool setProfileVelocity(uint8_t servo_index);
+  bool setCurrentLimit(uint8_t servo_index);
+  bool setGoalTargets(uint8_t servo_index,
+                      bool has_position, int32_t position,
+                      bool has_velocity, int32_t velocity,
+                      bool has_current, int16_t current);
+  uint8_t configure(uint8_t command, const int32_t* data,
+                    uint8_t data_length);
+  void startTargetCycle();
+  bool takeTargetCycleComplete();
   void update();
   unsigned int getServoNum() const {return servo_num_;}
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
   void setTTLRS485Mixed(uint16_t flag) {ttl_rs485_mixed_ = flag;}
   uint16_t getPulleySkipThresh() const {return pulley_skip_thresh_;}
   void setPulleySkipThresh(uint16_t value) {pulley_skip_thresh_ = value;}
+  uint16_t getServoFeedbackFrequency() const {return servo_feedback_frequency_hz_;}
+  uint32_t getTargetWatchdogTimeoutMs() const {return target_watchdog_timeout_ms_;}
+  bool busMapValid() const;
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
@@ -396,14 +482,21 @@ private:
   RingBuffer<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
+  std::array<NeuronServoFlashConfig, MAX_SERVO_NUM> servo_flash_configs_;
   uint16_t ttl_rs485_mixed_;
   uint16_t pulley_skip_thresh_;
+  uint16_t servo_feedback_frequency_hz_;
+  uint32_t target_watchdog_timeout_ms_;
   uint32_t set_command_tick_;
   uint32_t get_pos_tick_;
   uint32_t get_load_tick_;
   uint32_t get_temp_tick_;
   uint32_t get_move_tick_;
   uint32_t get_error_tick_;
+#ifdef STM32G4
+  bool target_cycle_pending_;
+  bool target_cycle_complete_;
+#endif
 
   /* uart rx */
   uint8_t rx_buf_[RX_BUFFER_SIZE];
@@ -411,6 +504,20 @@ private:
 
   void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
   int8_t readStatusPacket(uint8_t status_packet_instruction);
+  bool findServoIndex(uint8_t servo_id, uint8_t& servo_index) const;
+  static bool validPersistentMode(uint8_t mode);
+  static uint8_t expectedOperatingMode(uint8_t mode);
+  static bool validFlashConfig(const NeuronServoFlashConfig& config);
+  NeuronServoFlashConfig* findServoFlashConfig(uint8_t servo_id);
+  NeuronServoFlashConfig* findOrCreateServoFlashConfig(uint8_t servo_index);
+  static void copyFlashConfigToServo(
+    const NeuronServoFlashConfig& config, ServoData& servo);
+  static void copyServoToFlashConfig(
+    const ServoData& servo, NeuronServoFlashConfig& config);
+  void updateConfigurationState(ServoData& servo);
+  void updateTargetWatchdogs(uint32_t now_ms);
+  int16_t calculateMITGoalCurrent(const ServoData& servo) const;
+  void cmdBulkWriteGoalStates();
 
   void cmdPing(uint8_t id);
   void cmdReboot(uint8_t id);
@@ -428,14 +535,19 @@ private:
   inline void cmdReadPositionGains(uint8_t servo_index);
   inline void cmdReadPresentCurrent(uint8_t servo_index);
   inline void cmdReadPresentPosition(uint8_t servo_index);
+  inline void cmdReadPresentCVP(uint8_t servo_index);
   inline void cmdReadPresentTemperature(uint8_t servo_index);
   inline void cmdReadProfileVelocity(uint8_t servo_index);
   inline void cmdWriteCurrentLimit(uint8_t servo_index);
   inline void cmdWriteHomingOffset(uint8_t servo_index);
   inline void cmdWritePositionGains(uint8_t servo_index);
   inline void cmdWriteProfileVelocity(uint8_t servo_index);
+  inline void cmdWriteOperatingMode(uint8_t servo_index,
+                                    uint8_t operating_mode);
   inline void cmdWriteStatusReturnLevel(uint8_t id, uint8_t set);
   inline void cmdWriteTorqueEnable(uint8_t servo_index);
+  inline void cmdWriteTorqueEnableWithLED(uint8_t servo_index,
+                                          bool torque_enable);
   inline void cmdWriteGoalCurrent(uint8_t servo_index);
   inline void cmdSyncReadCurrentLimit(bool send_all = true);
   inline void cmdSyncReadHardwareErrorStatus(bool send_all = true);
@@ -446,6 +558,7 @@ private:
   inline void cmdSyncReadPositionGains(bool send_all = true);
   inline void cmdSyncReadPresentCurrent(bool send_all = true);
   inline void cmdSyncReadPresentPosition(bool send_all = true);
+  inline void cmdSyncReadPresentCVP(bool send_all = true);
   inline void cmdSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadProfileVelocity(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();

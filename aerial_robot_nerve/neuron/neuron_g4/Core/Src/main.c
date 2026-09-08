@@ -216,7 +216,6 @@ int main(void)
   CANDeviceManager::addDevice(&imu_);
   CANDeviceManager::addDevice(&servo_);
   CANDeviceManager::addDevice(&initializer);
-  CANDeviceManager::useRTOS(&canMsgMailHandle);
 
   /* USER CODE END 2 */
 
@@ -239,7 +238,6 @@ int main(void)
   canTxSemHandle = osSemaphoreCreate(osSemaphore(canTxSem), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
-  /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
@@ -257,6 +255,7 @@ int main(void)
   /* add mail queue for CAN RX */
   osMailQDef(CanMail, 20, can_msg); // this is for the margin set for spinal: initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets -> 20)
   canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
+  CANDeviceManager::useRTOS(&canMsgMailHandle);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -426,7 +425,7 @@ static void MX_FDCAN1_Init(void)
   /* USER CODE END FDCAN1_Init 1 */
   hfdcan1.Instance = FDCAN1;
   hfdcan1.Init.ClockDivider = FDCAN_CLOCK_DIV1;
-  hfdcan1.Init.FrameFormat = FDCAN_FRAME_CLASSIC;
+  hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
   hfdcan1.Init.Mode = FDCAN_MODE_NORMAL;
   hfdcan1.Init.AutoRetransmission = ENABLE;
   hfdcan1.Init.TransmitPause = DISABLE;
@@ -779,8 +778,12 @@ static void MX_GPIO_Init(void)
 
 void CANDeviceManager::userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
 {
-  if (device_id == CAN::DEVICEID_SERVO && message_id == CAN::MESSAGEID_RECEIVE_SERVO_ANGLE) {
-      osSemaphoreRelease(canTxSemHandle);
+  (void)slave_id;
+  (void)DLC;
+  (void)data;
+  if (device_id == CAN::DEVICEID_SERVO &&
+      message_id == CAN::MESSAGEID_RECEIVE_SERVO_TARGET) {
+    osSemaphoreRelease(canTxSemHandle);
   }
 }
 
@@ -819,7 +822,7 @@ void servoTaskCallback(void const * argument)
   for(;;)
   {
     servo_.update();
-    osDelay(1); // 1ms sleep is OK
+    osDelay(1);
   }
   /* USER CODE END servoTaskCallback */
 }
@@ -875,6 +878,10 @@ __weak void canRxCallback(void const * argument)
 void canTxCallback(void const * argument)
 {
   /* USER CODE BEGIN canTxCallback */
+  /* The CMSIS v1 binary semaphore is created full. Drain its initial token
+     only after the scheduler has started. */
+  (void)osSemaphoreWait(canTxSemHandle, 0);
+
   /* Infinite loop */
   for(;;)
   {
@@ -883,6 +890,7 @@ void canTxCallback(void const * argument)
 
     servo_.sendData();
     imu_.sendData();
+    motor_.sendData();
   }
   /* USER CODE END canTxCallback */
 }

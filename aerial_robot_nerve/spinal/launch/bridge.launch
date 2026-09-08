@@ -3,7 +3,7 @@
 
   <!-- Opt-in because this launch is also included by robot bringup files that
        already load their own Servo.yaml and start their own ServoBridge. -->
-  <arg name="load_direct_servo_config" default="false" />
+  <arg name="load_direct_servo_config" default="true" />
   <arg name="start_servo_bridge" default="$(arg load_direct_servo_config)" />
   <arg name="direct_servo_config_file" default="$(find spinal)/launch/Servo.yaml" />
   <arg name="direct_servo_robot_description_file"

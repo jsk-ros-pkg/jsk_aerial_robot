@@ -1,14 +1,18 @@
 servo_controller:
-  # ServoBridge applies these overrides through /direct_servo_config after the
-  # MCU has discovered the physical Dynamixel IDs and loaded its Flash records.
+  # ServoControlCmd uses the global id. Configuration uses board_id plus the
+  # board-local servo_index; the MCU resolves the physical Dynamixel ID.
   auto_configure_direct_servo: true
   direct_servo_config_timeout: 10.0
+  # Keep calls serialized and leave time for low-level state/flash processing.
+  direct_servo_config_call_interval: 0.02
+  direct_servo_config_startup_delay: 1.0
   servo_feedback_frequency: 200
   servo_target_watchdog: 0.1
   dynamixel_ttl_rs485_mixed: true
 
   gimbals:
     no_real_state: false
+    board_id: 1
     bus_type: T
 
     # Beetle omni gimbal servo: Dynamixel XC330-T181.
@@ -27,11 +31,10 @@ servo_controller:
     joint_resolution: 1
     servo_resolution: 1
 
-    # id is the logical servo index used by ServoControlCmd. physical_id is the
-    # persistent Dynamixel ID used for R/T, mode, and Flash configuration.
+    # id remains the global ServoControlCmd index.
     controller1:
       id: 0
-      physical_id: 2
+      servo_index: 0
       name: gimbal1
       mode: MIT
       mit_kp_si: 0.45
@@ -39,13 +42,13 @@ servo_controller:
 
     controller2:
       id: 1
-      physical_id: 3
+      servo_index: 1
       name: gimbal2
       mode: DP
 
     controller3:
       id: 2
-      physical_id: 4
+      servo_index: 2
       name: gimbal3
       mode: MIT
       mit_kp_si: 0.45
@@ -55,8 +58,8 @@ servo_controller:
     # RS485 branch. Its scaling and register configuration differ from XC330.
     controller4:
       id: 3
+      servo_index: 3
       mode: DP
-      physical_id: 5
       name: gimbal4
       bus_type: R
       angle_scale: 0.00076699

@@ -7,6 +7,12 @@
 
 #include <CANDevice/initializer/can_initializer.h>
 
+namespace
+{
+constexpr uint8_t CONFIG_REQUEST_MAX_ATTEMPTS = 3;
+constexpr uint32_t CONFIG_RESPONSE_TIMEOUT_MS = 200;
+}
+
 void CANInitializer::sendData()
 {
   // reconnection with reboot neuron
@@ -14,11 +20,40 @@ void CANInitializer::sendData()
 
     // wait for the neuron completely reboot, 5000ms
     if (HAL_GetTick() - reboot_time_ > 5000) {
-      requestConfig(reboot_id_);
+      for (Neuron& neuron : neuron_) {
+        if (neuron.getSlaveId() != reboot_id_) continue;
+        config_retry_id_ = reboot_id_;
+        config_retry_count_ = 1;
+        config_retry_generation_ = neuron.getConfigGeneration();
+        config_retry_time_ = HAL_GetTick();
+        requestConfig(config_retry_id_);
+        break;
+      }
       reboot_time_ = 0;
       reboot_id_ = 0;
     }
   }
+
+  if (config_retry_id_ == 0) return;
+  for (Neuron& neuron : neuron_) {
+    if (neuron.getSlaveId() != config_retry_id_) continue;
+    if (neuron.getConfigGeneration() != config_retry_generation_) {
+      config_retry_id_ = 0;
+      return;
+    }
+    if (HAL_GetTick() - config_retry_time_ < CONFIG_RESPONSE_TIMEOUT_MS) {
+      return;
+    }
+    if (config_retry_count_ >= CONFIG_REQUEST_MAX_ATTEMPTS) {
+      config_retry_id_ = 0;
+      return;
+    }
+    requestConfig(config_retry_id_);
+    config_retry_count_++;
+    config_retry_time_ = HAL_GetTick();
+    return;
+  }
+  config_retry_id_ = 0;
 }
 
 void CANInitializer::initDevices()
@@ -27,15 +62,26 @@ void CANInitializer::initDevices()
 	HAL_Delay(200);
 	std::sort(neuron_.begin(), neuron_.end());
 	for (unsigned int i = 0; i < neuron_.size(); i++) {
-		uint8_t slave_id = neuron_.at(i).getSlaveId();
-		requestConfig(slave_id);
-		HAL_Delay(200);
+		Neuron& neuron = neuron_.at(i);
+		const uint8_t slave_id = neuron.getSlaveId();
+		const uint32_t generation = neuron.getConfigGeneration();
+		for (uint8_t attempt = 0;
+		     attempt < CONFIG_REQUEST_MAX_ATTEMPTS; ++attempt) {
+			requestConfig(slave_id);
+			HAL_Delay(CONFIG_RESPONSE_TIMEOUT_MS);
+			if (neuron.getConfigGeneration() != generation) break;
+		}
 	}
+	neuron_.erase(
+	  std::remove_if(neuron_.begin(), neuron_.end(),
+	    [](const Neuron& neuron) { return !neuron.getInitialized(); }),
+	  neuron_.end());
 }
 
-void CANInitializer::requestConfig(uint8_t slave_id)
+bool CANInitializer::requestConfig(uint8_t slave_id)
 {
-	sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST, slave_id, 0, nullptr, 1);
+	return sendMessage(CAN::MESSAGEID_RECEIVE_INITIAL_CONFIG_REQUEST,
+	                   slave_id, 0, nullptr, 1);
 }
 
 void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
@@ -204,6 +250,9 @@ void CANInitializer::configDevice(const spinal::SetBoardConfig::Request& req)
 
 void CANInitializer::addDevice(uint8_t slave_id)
 {
+  for (const Neuron& neuron : neuron_) {
+    if (neuron.getSlaveId() == slave_id) return;
+  }
   neuron_.push_back(Neuron(slave_id));
 }
 
@@ -237,50 +286,95 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
 
   switch (message_id)
     {
-    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_0:
-      {
-        if (neuron_[index].getInitialized()) {
-          neuron_[index].can_imu_.setSendDataFlag((data[1] != 0) ? true : false);
-          neuron_[index].can_servo_.setDynamixelTTLRS485Mixed((data[2] != 0) ? true : false);
-          uint16_t thresh = (data[4] << 8) | data[3];
-          neuron_[index].can_servo_.setPulleySkipThresh(thresh);
-          return;
-        }
-        neuron_[index].can_motor_ = CANMotor(slave_id);
-        neuron_[index].can_servo_ = CANServo(slave_id, data[0], (data[2] != 0) ? true : false, (data[4] << 8) | data[3]);
-        neuron_[index].can_imu_ = CANIMU(slave_id, (data[1] != 0) ? true : false);
-        neuron_[index].setInitialized();
+	    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_0:
+	      {
+	        if (DLC < 5 || data[0] > CAN::CANFD_MAX_SERVO_NUM) break;
+	        const bool extended_config = DLC >= 12;
+	        if (extended_config &&
+	            data[5] != CAN::CANFD_PROTOCOL_VERSION) break;
+	        const uint16_t feedback_frequency = extended_config
+	          ? static_cast<uint16_t>((data[7] << 8) | data[6]) : 200;
+	        const uint32_t watchdog_timeout = extended_config
+	          ? (static_cast<uint32_t>(data[8]) |
+	             (static_cast<uint32_t>(data[9]) << 8) |
+	             (static_cast<uint32_t>(data[10]) << 16) |
+	             (static_cast<uint32_t>(data[11]) << 24)) : 100;
+	        if (feedback_frequency == 0 || feedback_frequency > 200 ||
+	            watchdog_timeout > 60000) break;
+	        neuron_[index].beginConfiguration(
+	          data[0], data[1] != 0, data[2] != 0,
+	          static_cast<uint16_t>((data[4] << 8) | data[3]),
+	          feedback_frequency, watchdog_timeout, extended_config);
         break;
       }
     case CAN::MESSAGEID_SEND_INITIAL_CONFIG_1:
       {
-        uint8_t servo_index = data[0];
-        neuron_[index].can_servo_.servo_[servo_index].id_ = data[1];
-        neuron_[index].can_servo_.servo_[servo_index].p_gain_ = (data[3] << 8) | data[2];
-        neuron_[index].can_servo_.servo_[servo_index].i_gain_ = (data[5] << 8) | data[4];
-        neuron_[index].can_servo_.servo_[servo_index].d_gain_ = (data[7] << 8) | data[6];
+	        if (DLC < 8) break;
+	        const uint8_t servo_index = data[0];
+	        Servo* servo = neuron_[index].pendingServo(servo_index);
+	        if (servo == nullptr) break;
+	        servo->id_ = data[1];
+	        servo->p_gain_ = (data[3] << 8) | data[2];
+	        servo->i_gain_ = (data[5] << 8) | data[4];
+	        servo->d_gain_ = (data[7] << 8) | data[6];
+	        neuron_[index].markConfigurationFragment(servo_index, 0x01);
         break;
       }
     case CAN::MESSAGEID_SEND_INITIAL_CONFIG_2:
       {
-        uint8_t servo_index = data[0];
-        neuron_[index].can_servo_.servo_[servo_index].present_position_ = (data[2] << 8) | data[1];
-        neuron_[index].can_servo_.servo_[servo_index].goal_position_ = (data[2] << 8) | data[1];
-        neuron_[index].can_servo_.servo_[servo_index].profile_velocity_ = (data[4] << 8) | data[3];
-        neuron_[index].can_servo_.servo_[servo_index].current_limit_ = (data[6] << 8) | data[5];
-        neuron_[index].can_servo_.servo_[servo_index].send_data_flag_ = data[7] & 0x01;
-        neuron_[index].can_servo_.servo_[servo_index].external_encoder_flag_ = data[7] & 0x02;
+	        if (DLC < 8) break;
+	        const uint8_t servo_index = data[0];
+	        Servo* servo = neuron_[index].pendingServo(servo_index);
+	        if (servo == nullptr) break;
+	        servo->present_position_ = (data[2] << 8) | data[1];
+	        servo->goal_position_ = servo->present_position_;
+	        servo->profile_velocity_ = (data[4] << 8) | data[3];
+	        servo->current_limit_ = (data[6] << 8) | data[5];
+	        servo->send_data_flag_ = (data[7] & 0x01) != 0;
+	        servo->external_encoder_flag_ = (data[7] & 0x02) != 0;
+	        neuron_[index].markConfigurationFragment(servo_index, 0x02);
         break;
       }
-    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_3:
+	    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_3:
       {
-        uint8_t servo_index = data[0];
-        neuron_[index].can_servo_.servo_[servo_index].error_ = data[1];
-        neuron_[index].can_servo_.servo_[servo_index].goal_current_ = (data[3] << 8) | data[2];
-        neuron_[index].can_servo_.servo_[servo_index].joint_resolution_ = (data[5] << 8) | data[4];
-        neuron_[index].can_servo_.servo_[servo_index].servo_resolution_ = (data[7] << 8) | data[6];
-        break;
-      }
+	        if (DLC < 8) break;
+	        const uint8_t servo_index = data[0];
+	        Servo* servo = neuron_[index].pendingServo(servo_index);
+	        if (servo == nullptr) break;
+	        servo->error_ = data[1];
+	        servo->goal_current_ = static_cast<int16_t>(
+	          static_cast<uint16_t>(data[2]) |
+	          (static_cast<uint16_t>(data[3]) << 8));
+	        servo->joint_resolution_ = (data[5] << 8) | data[4];
+	        servo->servo_resolution_ = (data[7] << 8) | data[6];
+	        neuron_[index].markConfigurationFragment(servo_index, 0x04);
+	        break;
+	      }
+	    case CAN::MESSAGEID_SEND_INITIAL_CONFIG_4:
+	      {
+	        if (DLC < 16) break;
+	        const uint8_t servo_index = data[0];
+	        Servo* servo = neuron_[index].pendingServo(servo_index);
+	        if (servo == nullptr) break;
+	        servo->mode_ = data[1];
+	        servo->bus_type_ = data[2];
+	        servo->operating_mode_ = data[3];
+	        servo->configured_ = data[4] != 0;
+	        servo->kp_integer_ = static_cast<int16_t>(
+	          static_cast<uint16_t>(data[6]) |
+	          (static_cast<uint16_t>(data[7]) << 8));
+	        servo->kp_decimal_ = static_cast<int16_t>(
+	          static_cast<uint16_t>(data[8]) |
+	          (static_cast<uint16_t>(data[9]) << 8));
+	        servo->kd_integer_ = static_cast<int16_t>(
+	          static_cast<uint16_t>(data[10]) |
+	          (static_cast<uint16_t>(data[11]) << 8));
+	        servo->kd_decimal_ = static_cast<int16_t>(
+	          static_cast<uint16_t>(data[12]) |
+	          (static_cast<uint16_t>(data[13]) << 8));
+	        neuron_[index].markConfigurationFragment(servo_index, 0x08);
+	        break;
+	      }
     default:
       {
         break;

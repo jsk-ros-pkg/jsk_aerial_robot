@@ -37,14 +37,8 @@ class DirectServo
 {
 public:
   DirectServo():
-    servo_ctrl_sub_("servo/target_states", &DirectServo::servoControlCallback,this),
-    servo_torque_ctrl_sub_("servo/torque_enable", &DirectServo::servoTorqueControlCallback,this),
     joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this),
-    servo_state_pub_("servo/states", &servo_state_msg_),
-    servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_),
-    servo_comm_status_pub_("servo/comm_status", &servo_comm_status_msg_),
-    servo_config_srv_("direct_servo_config", &DirectServo::servoConfigCallback, this),
-    board_info_srv_("get_board_info", &DirectServo::boardInfoCallback,this)
+    servo_comm_status_pub_("servo/comm_status", &servo_comm_status_msg_)
   {
     connected_ = false;
   }
@@ -54,7 +48,25 @@ public:
   bool createRTOSObjects();
   void update();
   bool connected() {return connected_;}
-  void sendData(bool flag_send_asap);
+  unsigned int getServoNum() const {return servo_handler_.getServoNum();}
+  const ServoData& getServoData(uint8_t index) const {
+    return servo_handler_.getServo()[index];
+  }
+  uint16_t getServoFeedbackFrequency() const {
+    return servo_handler_.getServoFeedbackFrequency();
+  }
+  bool hasFreshState() const {return servo_handler_.getROSCommFlag();}
+  void markStatePublished() {servo_handler_.setROSCommFlag(false);}
+  bool requestConfig(uint8_t command, const int32_t* data,
+                     uint8_t data_length);
+  bool requestConfigByIndex(uint8_t servo_index, uint8_t command,
+                            const int32_t* data, uint8_t data_length);
+  bool setGoalTargets(uint8_t index,
+                      bool has_position, int32_t position,
+                      bool has_velocity, int32_t velocity,
+                      bool has_current, int16_t current);
+  bool setTorqueEnable(uint8_t index, bool enable);
+  void fillBoardInfo(spinal::BoardInfo& board) const;
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
 #if KONDO
@@ -70,33 +82,16 @@ public:
 private:
   /* ROS */
   ros::NodeHandle* nh_;
-  ros::Subscriber<spinal::ServoControlCmd, DirectServo> servo_ctrl_sub_;
-  ros::Subscriber<spinal::ServoTorqueCmd, DirectServo> servo_torque_ctrl_sub_;
   ros::Subscriber<spinal::JointProfiles, DirectServo> joint_profiles_sub_;
-  ros::Publisher servo_state_pub_;
-  ros::Publisher servo_torque_state_pub_;
   ros::Publisher servo_comm_status_pub_;
-
-  ros::ServiceServer<spinal::SetDirectServoConfig::Request, spinal::SetDirectServoConfig::Response, DirectServo> servo_config_srv_;
-  ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response, DirectServo> board_info_srv_;
-
-  spinal::ServoStates servo_state_msg_;
-  spinal::ServoTorqueStates servo_torque_state_msg_;
-  spinal::GetBoardInfo::Response board_info_res_;
   spinal::ServoCommStatus servo_comm_status_msg_;
 
-  uint32_t servo_last_pub_time_;
-  uint32_t servo_torque_last_pub_time_;
   uint32_t servo_comm_status_last_pub_time_;
   bool servo_comm_status_initialized_;
   bool last_bus_map_valid_;
 
-  void servoControlCallback(const spinal::ServoControlCmd& control_msg);
-  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
   void jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg);
-  
-  void servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res);
-  void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res);
+  void publishCommStatus();
   
   /* Servo state */
   struct ServoState{

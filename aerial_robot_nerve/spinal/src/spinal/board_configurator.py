@@ -37,6 +37,33 @@ SERVO_BUS_NAMES = {
     ServoInfo.BUS_UNKNOWN: 'Unknown',
 }
 
+# Parameters supported by SetDirectServoConfig.  board_id 0 is DirectServo;
+# 1..14 select Neurons, and servo_index is local to that board.
+ADDRESSED_SERVO_CONFIG_PARAMS = {
+    'servo_feedback_frequency',
+    'servo_target_watchdog',
+    'bus_type',
+    'mode',
+    'mit_pd',
+    'pid_gain',
+    'profile_velocity',
+    'send_data_flag',
+    'current_limit',
+    'dynamixel_ttl_rs485_mixed',
+    'external_encoder_flag',
+    'resolution[joint:servo]',
+}
+
+TORQUE_OFF_SERVO_CONFIG_PARAMS = {
+    'bus_type',
+    'mode',
+    'mit_pd',
+    'pid_gain',
+    'current_limit',
+    'external_encoder_flag',
+    'resolution[joint:servo]',
+}
+
 
 def parse_servo_mode(text):
     mode = text.strip().upper()
@@ -202,9 +229,8 @@ class BoardConfigurator(Plugin):
                 board.appendRow([QStandardItem('imu_send_data_flag'), QStandardItem(str(bool(b.imu_send_data_flag)))])
                 board.appendRow([QStandardItem('dynamixel_ttl_rs485_mixed'), QStandardItem(str(bool(b.dynamixel_ttl_rs485_mixed)))])
                 board.appendRow([QStandardItem('servo_pulley_skip_thresh'), QStandardItem(str(b.servo_pulley_skip_thresh))])
-                if b.slave_id == 0:
-                    board.appendRow([QStandardItem('servo_feedback_frequency'), QStandardItem(str(b.servo_feedback_frequency))])
-                    board.appendRow([QStandardItem('servo_target_watchdog'), QStandardItem(str(b.servo_target_watchdog_timeout))])
+                board.appendRow([QStandardItem('servo_feedback_frequency'), QStandardItem(str(b.servo_feedback_frequency))])
+                board.appendRow([QStandardItem('servo_target_watchdog'), QStandardItem(str(b.servo_target_watchdog_timeout))])
                 servos = QStandardItem('servo (' + str(len(b.servos)) + ')')
                 for j, s in enumerate(b.servos):
                     servo = QStandardItem(str(j))
@@ -212,15 +238,14 @@ class BoardConfigurator(Plugin):
                     servo.appendRow([QStandardItem('servo_serial_index'), QStandardItem(str(servo_serial_index))])
                     servo.appendRow([QStandardItem('joint_name'), QStandardItem(str(self.joint_id_name_map.get(servo_serial_index)))])
                     servo_serial_index += 1
-                    if b.slave_id == 0:
-                        servo.appendRow([QStandardItem('configured'), QStandardItem(str(bool(s.configured)))])
-                        servo.appendRow([QStandardItem('bus_type'), QStandardItem(SERVO_BUS_NAMES.get(s.bus_type, 'Unknown'))])
-                        servo.appendRow([QStandardItem('mode'), QStandardItem(SERVO_MODE_NAMES.get(s.mode, 'Unknown'))])
-                        servo.appendRow([QStandardItem('servo_mode'), QStandardItem(SERVO_INTERNAL_MODE_NAMES.get(s.servo_mode, 'Unknown'))])
-                        servo.appendRow([
-                            QStandardItem('mit_pd'),
-                            QStandardItem('{}, {}'.format(
-                                format_mit_gain(s.kp_integer, s.kp_decimal), format_mit_gain(s.kd_integer, s.kd_decimal)))])
+                    servo.appendRow([QStandardItem('configured'), QStandardItem(str(bool(s.configured)))])
+                    servo.appendRow([QStandardItem('bus_type'), QStandardItem(SERVO_BUS_NAMES.get(s.bus_type, 'Unknown'))])
+                    servo.appendRow([QStandardItem('mode'), QStandardItem(SERVO_MODE_NAMES.get(s.mode, 'Unknown'))])
+                    servo.appendRow([QStandardItem('servo_mode'), QStandardItem(SERVO_INTERNAL_MODE_NAMES.get(s.servo_mode, 'Unknown'))])
+                    servo.appendRow([
+                        QStandardItem('mit_pd'),
+                        QStandardItem('{}, {}'.format(
+                            format_mit_gain(s.kp_integer, s.kp_decimal), format_mit_gain(s.kd_integer, s.kd_decimal)))])
                     servo.appendRow([QStandardItem('pid_gain'), QStandardItem(str(s.p_gain) + ', ' + str(s.i_gain) + ', ' + str(s.d_gain))])
                     servo.appendRow([QStandardItem('profile_velocity'), QStandardItem(str(s.profile_velocity))])
                     servo.appendRow([QStandardItem('send_data_flag'), QStandardItem(str(bool(s.send_data_flag)))])
@@ -290,22 +315,30 @@ class BoardConfigurator(Plugin):
         rospy.sleep(0.5)
 
     def configureButtonCallback(self):
-        req = None
-        spinal_flag = False
-        if self._board_id == None:
+        if self._board_id is None:
             rospy.logerr("board id is not registered")
             return
-        elif self._board_id == '0':
-            spinal_flag = True
+
+        board_id = int(self._board_id)
+        spinal_flag = board_id == 0
+        addressed_servo_config = (
+            self._command in ADDRESSED_SERVO_CONFIG_PARAMS)
+
+        # DirectServo has no legacy board-management endpoint.  Neuron board
+        # identity, IMU and pulley settings intentionally stay on
+        # SetBoardConfig; all shared servo settings use the addressed service.
+        if spinal_flag and not addressed_servo_config:
+            rospy.logerr("This board parameter is not supported by DirectServo")
+            return
+
+        if addressed_servo_config:
             req = SetDirectServoConfigRequest()
+            req.board_id = board_id
+            req.servo_index = (int(self._servo_index)
+                               if self._servo_index is not None else 0)
         else:
             req = SetBoardConfigRequest()
-            req.data.append(int(self._board_id))
-
-        # DirectServo configuration is keyed by the physical Dynamixel ID.
-        # Neuron boards continue to use their board-local servo index.
-        servo_config_key = (self._raw_servo_id if spinal_flag
-                            else self._servo_index)
+            req.data.append(board_id)
 
         if self._command == 'board_id':
             if spinal_flag:
@@ -326,8 +359,6 @@ class BoardConfigurator(Plugin):
                 return
             req.command = req.SET_IMU_SEND_FLAG
         elif self._command == 'servo_feedback_frequency':
-            if not spinal_flag:
-                return
             try:
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
@@ -335,8 +366,6 @@ class BoardConfigurator(Plugin):
                 return
             req.command = req.SET_SERVO_FEEDBACK_FREQUENCY
         elif self._command == 'servo_target_watchdog':
-            if not spinal_flag:
-                return
             try:
                 timeout_ms = int(Decimal(self._widget.lineEdit.text()) * 1000)
                 if timeout_ms < 0 or timeout_ms > 60000:
@@ -347,43 +376,32 @@ class BoardConfigurator(Plugin):
                 return
             req.command = req.SET_SERVO_TARGET_WATCHDOG_TIMEOUT
         elif self._command == 'bus_type':
-            if not spinal_flag:
-                return
             try:
-                req.data.extend([int(servo_config_key),
-                                 parse_servo_bus(self._widget.lineEdit.text())])
+                req.data.append(parse_servo_bus(
+                    self._widget.lineEdit.text()))
             except ValueError as e:
                 rospy.logerr(str(e))
                 return
             req.command = req.SET_SERVO_BUS_TYPE
-            self.disableServoTorque()
         elif self._command == 'mode':
-            if not spinal_flag:
-                return
             try:
-                req.data.extend([int(servo_config_key),
-                                 parse_servo_mode(self._widget.lineEdit.text())])
+                req.data.append(parse_servo_mode(
+                    self._widget.lineEdit.text()))
             except ValueError as e:
                 rospy.logerr(str(e))
                 return
             req.command = req.SET_SERVO_CONTROL_MODE
-            self.disableServoTorque()
         elif self._command == 'mit_pd':
-            if not spinal_flag:
-                return
             try:
                 kp, kd = parse_mit_pd(self._widget.lineEdit.text())
                 req.data.extend([
-                    int(servo_config_key), kp[0], kp[1],
-                    kd[0], kd[1]])
+                    kp[0], kp[1], kd[0], kd[1]])
             except ValueError as e:
                 rospy.logerr(str(e))
                 return
             req.command = req.SET_SERVO_MIT_PD
-            self.disableServoTorque()
         elif self._command == 'pid_gain':
             try:
-                req.data.append(int(servo_config_key))
                 pid_gains = list(map(lambda x: int(x), self._widget.lineEdit.text().split(',')))
                 if len(pid_gains) != 3:
                     raise ValueError('Input 3 gains(int)')
@@ -392,11 +410,8 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_PID_GAIN
-            if spinal_flag:
-                self.disableServoTorque()
         elif self._command == 'profile_velocity':
             try:
-                req.data.append(int(servo_config_key))
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -404,7 +419,6 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_PROFILE_VEL
         elif self._command == 'send_data_flag':
             try:
-                req.data.append(int(servo_config_key))
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -412,13 +426,11 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_SEND_DATA_FLAG
         elif self._command == 'current_limit':
             try:
-                req.data.append(int(servo_config_key))
                 req.data.append(int(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
                 return
             req.command = req.SET_SERVO_CURRENT_LIMIT
-            self.disableServoTorque()
         elif self._command == 'dynamixel_ttl_rs485_mixed':
             try:
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
@@ -435,7 +447,6 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_PULLEY_SKIP_THRESH
         elif self._command == 'external_encoder_flag':
             try:
-                req.data.append(int(servo_config_key))
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
             except ValueError as e:
                 print(e)
@@ -443,7 +454,6 @@ class BoardConfigurator(Plugin):
             req.command = req.SET_SERVO_EXTERNAL_ENCODER_FLAG
         elif self._command == 'resolution[joint:servo]':
             try:
-                req.data.append(int(servo_config_key))
                 resolutions = list(map(lambda x: int(x), self._widget.lineEdit.text().split(':')))
                 if len(resolutions) != 2:
                     raise ValueError('Input 2 resoultion(int)')
@@ -452,14 +462,18 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_RESOLUTION_RATIO
+        else:
+            rospy.logerr("Unsupported board configuration parameter")
+            return
 
+        if self._command in TORQUE_OFF_SERVO_CONFIG_PARAMS:
+            self.disableServoTorque()
 
         rospy.loginfo('published message')
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            res = None;
-            if(spinal_flag):
+            if addressed_servo_config:
                 res = self.direct_servo_config_client_(req)
             else:
                 res = self.set_board_config_client_(req)
@@ -467,7 +481,7 @@ class BoardConfigurator(Plugin):
             rospy.sleep(1)
             self.updateButtonCallback()
         except rospy.ServiceException as e:
-            if(spinal_flag):
+            if addressed_servo_config:
                 print("/direct_servo_config service call failed: {}".format(e))
             else:
                 print("/set_board_config service call failed: {}".format(e))

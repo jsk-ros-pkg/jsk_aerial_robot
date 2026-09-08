@@ -173,11 +173,12 @@ SET_SERVO_MIT_PD       [physical_id, kp_integer, kp_decimal, kd_integer, kd_deci
 
 A detected ID may initially have no record or an incomplete bus-only record, so it remains exposed for configuration. Torque remains inhibited until every detected ID has exactly one unique, complete record; an ID cannot belong to both R and T branches.
 
-The actual Dynamixel ID is the only persistent configuration key. Discovery index and
-`servo_serial_index` are runtime/UI ordering only. Flash lookup uses the physical ID, and the
-derived R and T request groups follow discovery order. Persistent control mode, position gains,
-profile velocity, flags, and encoder settings share the same record. MIT Kp/Kd are deliberately
-RAM-only and are supplied together by YAML/RQT without a separate readiness flag.
+The actual Dynamixel ID remains the MCU-internal persistent configuration key. It is not duplicated
+as a `physical_id` field in YAML. The host uses each controller's logical `id` as the servo order,
+resolves it through `BoardInfo.servos[id]`, and then uses the discovered `ServoInfo.id` for the
+existing low-level service and Flash lookup. Persistent control mode, position gains, profile
+velocity, flags, and encoder settings share the same record. MIT Kp/Kd are deliberately RAM-only
+and are supplied together by YAML/RQT without a separate readiness flag.
 
 The existing `direct_ttl_mode_` has a different meaning: it selects the MCU UART electrical mode for a direct half-duplex connection. It must not be derived from the downstream per-servo `R/T` map.
 
@@ -340,8 +341,8 @@ The unified target is:
 ```text
 ServoControlCmd
   uint8[] index
-  int16[] position
-  int16[] velocity
+  int32[] position
+  int32[] velocity
   int16[] current
 ```
 
@@ -463,9 +464,50 @@ Scope:
 - Run the high-rate feedback and MIT loop on the MCU that owns the Dynamixel UART, normally Neuron in the production chain.
 - Define CAN messages for high-rate targets separately from low-rate R/T, mode, gain, current-limit, and diagnostic data.
 - Upgrade the production Spinal/Neuron link to CAN FD with bit-rate switching, use bounded CAN-FD records with explicit DLC padding, sequence/acknowledgment rules, timeout behavior, and register/Flash readback, and retain Classic CAN only where compatibility is explicitly required.
-- Preserve physical-ID-keyed configuration and the same one/two-group R/T behavior where the Neuron hardware topology requires it.
+- Use servo slots/YAML logical order for the Spinal/Neuron high-rate path. YAML has no `physical_id`; low-rate MCU persistence may continue to use the automatically discovered Dynamixel ID internally.
 - Keep DirectServo operational as the validated reference and rollback path until the Neuron chain passes equivalent tests.
 - Avoid publishing incompatible old/new message types on the same ROS topic.
+
+### Implemented minimal Stage 3 integration slice
+
+This change implements the smallest complete servo control/configuration path needed by the
+production Spinal/CAN/Neuron chain. It keeps the existing Neuron UART driver and ports only the
+verified DirectServo mode, target-watchdog, persistent-configuration, and readback semantics onto
+that driver. It does not copy the H7 dual-UART transport, its detailed communication counters, or
+the future rotor/ESC hardware adapter into Neuron.
+
+- Every frame emitted by the H7/G4 production link uses CAN FD with BRS, including payloads of
+  eight bytes or less. H7/G4 receive paths reject non-FD or non-BRS frames.
+- Up to five Neurons are supported. A 1 kHz Spinal base schedule assigns one of five servo-board
+  slots per millisecond, giving every configured Neuron exactly 200 Hz.
+- Servo targets are one aggregate frame per Neuron; servo feedback is one 16-byte frame per servo.
+  Spinal drains and decodes all queued frames once per millisecond.
+- Position, velocity, and current fields arriving together in `ServoControlCmd` are validated and
+  applied to the Spinal target cache as one callback update.
+- Each valid servo target is the addressed Neuron's external 200 Hz loop trigger. Neuron caches the
+  newest target and sets a synchronization flag; the always-running 1 ms servo task consumes that
+  flag on its next update, performs one contiguous Dynamixel Current/Velocity/Position read,
+  computes and writes the mode-aware goal, then releases the just-read state for CAN transmission.
+  There are no fixed +1/+2 ms phases. Servo discovery, configuration work, and low-rate monitoring
+  remain independent of target reception.
+- DP/DEP write position, DV writes velocity, DC writes bounded current, and MIT computes bounded
+  current from position/velocity error and feed-forward current. DV/DC/MIT use the target watchdog.
+- Torque-on is inhibited until all detected servos have valid configuration. The first torque-on
+  target is intentionally discarded while the existing goal-position synchronization handshake
+  seeds a safe position; the acknowledged next target starts normal control.
+- Each servo state frame marks whether its P/V/C sample is newer than the previous transmitted one,
+  and also reports watchdog, configured, torque, position-sync, moving, and forced-off status.
+- A low-rate 48-byte CAN-FD configuration request/ACK record carries the existing DirectServo
+  commands. Spinal routes it by `slave_id`, waits for the matching sequence/command ACK, and updates
+  `BoardInfo` from the returned Neuron readback. The ROS service uses `slave_id = 0` for DirectServo
+  and `1..14` for a Neuron; the fixed Neuron feedback rate accepts only 200 Hz.
+- Neuron discovers Dynamixel IDs, sorts them in ascending order for deterministic local servo slots,
+  and stores its 20-byte records in Flash keyed by the discovered hardware ID. YAML remains purely
+  logical: host order is ascending Neuron `slave_id`, then local servo slot; no `physical_id` exists.
+- `DIAG_STATE` is intentionally not introduced in this slice.
+- Rotor command and telemetry records are defined, but ESC telemetry acquisition is intentionally
+  outside scope. Neuron sends no rotor state until a hardware adapter supplies a valid telemetry
+  sample through the new interface.
 
 ### Stage 3 CubeMX and `.ioc` configuration
 
@@ -518,9 +560,8 @@ After generation, verify that the generated Neuron initialization contains:
 hfdcan1.Init.FrameFormat = FDCAN_FRAME_FD_BRS;
 ```
 
-The current Neuron `.ioc` stores the nominal/data timing but does not store `FrameFormat`, so it
-currently regenerates `FDCAN_FRAME_CLASSIC`. Adding the frame-format setting to the `.ioc` is a
-required Stage 3 change.
+The committed Neuron `.ioc` now stores `FDCAN_FRAME_FD_BRS`, and the generated initialization
+matches it. CubeMX regeneration must preserve this setting.
 
 #### Spinal H7_v2 configuration
 
@@ -528,11 +569,10 @@ The H7_v2 `.ioc` already selects `FDCAN_FRAME_FD_BRS`, the same 1 Mbit/s nominal
 data timing, 64-byte RX/TX elements, and a ten-element TX FIFO. Preserve those values unless a
 measured physical-layer test requires a lower data rate.
 
-The current H7_v2 RX FIFO has only one element. That is vulnerable to a four-Neuron reply burst
-even when average bus utilization is low. Stage 3 must size the hardware RX FIFO and the RTOS CAN
-mail queue from the maximum scheduled burst. An initial RX FIFO candidate is eight 64-byte
-elements, subject to message-RAM validation; acceptance is based on zero FIFO overrun and zero
-software queue overflow during the Stage 3 stress test rather than on the candidate number alone.
+The H7/H7_v2 RX FIFO now has eight 64-byte elements instead of one. The RTOS CAN mail queue remains
+ten elements, sufficient for the scheduled maximum of four servo-state frames in one addressed
+board response plus existing traffic; acceptance still requires zero FIFO overrun and zero software
+queue overflow during the Stage 3 stress test.
 
 #### CubeMX regeneration rules
 
@@ -556,50 +596,52 @@ file or a valid user region as a separately reviewed change before relying on re
 CubeMX does not configure the application protocol. Stage 3 must separately update the common CAN
 code and the Spinal/Neuron servo, IMU, motor, and scheduler code.
 
-In particular, the current FDCAN send helper selects Classic CAN whenever `dlc <= 8` and selects
-CAN FD only for larger payloads. Replace this implicit size rule with an explicit frame-mode
-argument or equivalent reviewed policy. A high-rate payload of eight bytes or less may still need
-FD+BRS; otherwise pad a bounded record to a supported 12-byte FD DLC. Accept only the CAN-FD DLC
-sizes `0..8, 12, 16, 20, 24, 32, 48, 64`, clear every padding byte, and validate received DLC before
-casting or decoding a payload.
+The previous FDCAN send helper selected Classic CAN whenever `dlc <= 8`. The H7/G4 helper now
+selects FD+BRS explicitly for every production frame, accepts only DLC sizes
+`0..8, 12, 16, 20, 24, 32, 48, 64`, and clears its complete 64-byte transmit buffer before copying
+a payload. Receivers validate FD+BRS and the record-specific DLC before decoding.
 
-The initial bandwidth calculation uses the current raw field widths:
+The implemented protocol uses the existing 11-bit identifier split
+`device[10:8] / message[7:4] / slave[3:0]`. All multi-byte fields are little-endian and every
+padding byte is cleared before transmission.
 
-```text
-feedback per servo: position int16 + velocity int32 + current int16 + error uint8 = 9 bytes
-P/C target per servo: position int16 + current int16 = 4 bytes
-```
+| Record | CAN ID use | DLC | Payload |
+|---|---|---:|---|
+| Servo target | device Servo, message 4, addressed Neuron | 64 | header `version, target_seq, valid_mask, servo_count`; four 12-byte slot records `flags, reserved, position:int32, velocity:int32, current:int16`; remaining bytes zero |
+| Servo state | device Servo, message = servo slot 0..3, source Neuron | 16 | `version, state_seq, last_target_seq, flags, position:int32, velocity:int32, current:int16, temperature:uint8, error:uint8` |
+| Servo configuration | device Servo, message 15, addressed/source Neuron | 48 | request: `version, config_seq, command, data_count`, then up to five `int32` values; ACK: matching header, result, selected-servo and complete board/servo readback; remaining bytes zero |
+| Rotor target | device Motor, message 0, broadcast | 32 | header `version, target_seq, board_count, reserved`; five 5-byte board records `slave_id, pwm0:uint16, pwm1:uint16`; remaining bytes zero |
+| Rotor state | device Motor, message 1, source Neuron | 32 | header `version, state_seq, valid_mask, source/reserved`; two 14-byte records `flags, temperature:int8, voltage:uint16, current:uint16, consumption:uint16, rpm:uint32, crc_error:uint8, reserved` |
 
-With four Neurons, six joints, eight gimbals, 11-bit identifiers, 1 Mbit/s arbitration, 8 Mbit/s
-data, and conservative bit stuffing, the estimated servo-only utilization at 200 Hz is:
+Servo target flags carry position/velocity/current validity, torque enable, and position-sync
+acknowledgment. Servo state flags carry fresh P/V/C, moving, forced-off, position-sync request, and
+torque/configuration/watchdog state. Rotor state flags reserve valid/fresh/timeout semantics
+compatible with future `esc_telem` input.
 
-| CAN traffic | Application payload | Estimated bus utilization |
-|---|---:|---:|
-| Six-joint P/C targets and six-joint P/V/C/Error feedback | 15.6 kB/s | about 7.0% |
-| All 14 servo P/C targets and six-joint feedback | 22.0 kB/s | about 8.4% |
-| All 14 servo P/C targets and all 14 servo feedback | 36.4 kB/s | about 11.7% |
-| All 14 servo P/V/C targets and all 14 servo feedback | 47.6 kB/s | about 13.1% |
+The larger frames reduce arbitration overhead while preserving simple fixed-offset decoding.
+Protocol version, exact DLC, servo/board count, masks, and slot bounds are validated before payload
+use. Sequence bytes provide target/state correlation and retain the existing safe goal-position
+synchronization; CAN delivery alone is not treated as proof of a Dynamixel register or Flash write.
 
-CAN bandwidth is therefore not the primary obstacle, but retaining the existing Classic small-frame
-layout wastes the available margin. If eight independent rotor commands remain as two Classic
-eight-byte frames at 500 Hz, they consume up to about 13.5%. If all four Neuron IMUs retain three
-Classic six-byte frames at 200 Hz, they consume up to about 27.6%. Together with the conservative
-full-servo case, this is about 54.2% before retransmission and other traffic. Packing all eight rotor
-commands into one 12-byte FD frame and each Neuron gyro/acc/mag set into one 20-byte FD frame reduces
-the corresponding total estimate to about 20.8%.
+The implemented Spinal scheduler sends one servo target in each 1 ms slot and uses a fixed five-slot
+cycle, so one to five Neurons each receive 200 targets per second. Every Neuron independently uses
+target reception as a synchronization marker for its continuously running 1 ms servo task; target
+reception does not start, stop, or wake that task, and no clock synchronization between boards is
+required. The next task update reads P/V/C first, then computes/writes DP/DEP/DV/DC/MIT output, and
+only then sends the just-read state with the received target sequence. If another target arrives
+while a cycle is busy, the pending marker is coalesced and the newest cached target is used on the
+next cycle. The `PVC_FRESH` flag reports whether a Dynamixel read actually completed since the
+previous state frame.
 
-Stage 3 therefore uses per-board packed target/state records, packs related IMU and rotor fields
-where their update and safety semantics match, and gives control/emergency frames suitable CAN-ID
-priority. Every high-rate record includes at least a protocol version or record type, a sequence
-counter, bounded fields, and explicit stale/timeout behavior. The receiver must not treat successful
-CAN delivery as confirmation that a Dynamixel register or Neuron Flash write succeeded.
+The low-rate configuration record uses the same command numbers as `SetDirectServoConfig`. A
+request is successful only after Neuron performs the applicable UART/register or Flash operation
+and Spinal receives an ACK with the matching sequence and command within 250 ms. Initializer frames
+also carry mode, bus, operating-mode, configured, MIT-gain, feedback-frequency, and watchdog
+readback so `get_board_info` is complete before optional host YAML overrides run.
 
-The current Spinal scheduler provides 500 aggregate servo-board slots per second and round-robins
-them across Neurons, which is only 125 Hz per board for four Neurons. Stage 3 must redesign that
-scheduler rather than merely changing a frequency constant. Likewise, the current Neuron feedback
-record has no velocity, position is sampled at 50 Hz, and current/error are sampled at 5 Hz. A
-200 Hz CAN publication is not accepted unless the Neuron-owned Dynamixel transaction actually
-produces fresh P/V/C data at that rate; repeated cached samples do not satisfy the gate.
+Rotor targets are aggregated into one 32-byte broadcast at 500 Hz. The H7 hardware RX FIFO is
+increased from one to eight 64-byte elements, and the RTOS task drains the accumulated frames on its
+1 ms cadence.
 
 All active controllers on a bus must be CAN-FD tolerant before transmitting the first FD frame.
 An STM32F1/Classic-only Neuron cannot remain active on the same bus during the FD migration. Verify
@@ -627,7 +669,7 @@ Functional gate:
 - At 200 Hz and worst scheduled CAN load, FDCAN protocol errors, RX FIFO overruns, CAN mail-queue
   overflow, stale sequences, and missed control deadlines remain within their defined acceptance
   limits; normal utilization retains explicit retransmission and emergency-command margin.
-- The full VIM4/ROS <-> Spinal <-> CAN <-> Neuron <-> Dynamixel chain builds and discovers/configures servos by physical ID.
+- The full VIM4/ROS <-> Spinal <-> CAN <-> Neuron <-> Dynamixel chain builds and maps YAML logical servo order to automatically discovered hardware IDs.
 - DP/DEP compatibility and the new DV/DC/MIT/EM semantics match the verified DirectServo behavior.
 - The Neuron-owned local goal/feedback loop passes at 200 Hz while PC state publication remains approximately 50 Hz.
 - All-R, all-T, mixed R/T, restart/readback, disconnect/reconnect, stale-target, emergency, and communication-load tests pass.
@@ -810,7 +852,7 @@ Temporary fallbacks must be removed or explicitly documented before release.
 | Port proven reference behavior | Semantic port from communication and mode/MIT references | `f5e0a2db` remains failure evidence, not a mixed-bus template |
 | Resolve documented UART problems | The reviewed Stage 1 baseline owns UART, queue, pending response, deadline, services, and recovery | The final Stage 1 change must reuse this baseline |
 | Read/write mixed R/T servos efficiently | Stage 1 uses `ttl_rs485_mixed_` to select one group or temporary hardcoded R/T groups | Counters verify one homogeneous group and at most two mixed groups at 200 Hz |
-| Configure R/T by physical ID | Stage 2 replaces test fixtures with persistent ID-keyed records | YAML/service/Flash/readback remains stable across discovery order |
+| Configure R/T by servo order | YAML logical `id` selects the flattened board/servo order; the bridge uses its discovered ID for persistent records | YAML has no `physical_id`, while service/Flash/readback stays hardware-ID keyed internally |
 | Preserve and extend control modes | Stage 2 ports DP/DEP/DV/DC/MIT/EM with limits and watchdogs | Low-gain/current-limited functional tests |
 | Complete DirectServo host setup | Stage 2 owns messages, YAML, `servo_bridge`, startup application, and 50 Hz publication | End-to-end DirectServo configuration/readback and rate tests |
 | Integrate the production Dragon path | Stage 3 separately designs and implements Spine/CAN/Neuron ownership | DirectServo and Neuron pass equivalent behavior and safety tests |

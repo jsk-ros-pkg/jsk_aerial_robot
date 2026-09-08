@@ -212,15 +212,9 @@ class ServoMonitor(Plugin):
         
         board_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())
         board_servo_index = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())
-        physical_servo_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("id")).text())
-        req = None
-        if(board_id == 0):
-            req = SetDirectServoConfigRequest()
-            req.data.append(physical_servo_id)
-        else:
-            req = SetBoardConfigRequest()
-            req.data.append(board_id)
-            req.data.append(board_servo_index)
+        req = SetDirectServoConfigRequest()
+        req.board_id = board_id
+        req.servo_index = board_servo_index
         try:
             req.data.append(int(self._widget.homingOffsetLineEdit.text()))
         except ValueError as e:
@@ -239,13 +233,10 @@ class ServoMonitor(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            if(board_id == 0):
-                res = self.set_direct_servo_config_client_(req)
-            else:
-                res = self.set_board_config_client_(req)
+            res = self.set_direct_servo_config_client_(req)
             rospy.loginfo(bool(res.success))
         except rospy.ServiceException as e:
-            print("/set_board_config service call failed: %s"%e)
+            print("/direct_servo_config service call failed: %s"%e)
 
     def boardReboot(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
@@ -364,16 +355,13 @@ class ServoMonitor(Plugin):
                 for i, s in enumerate(b.servos):
                     rowData = []
                     rowData.append(None)
-                    if b.slave_id == 0:
-                        rowData.append(str(bool(s.configured)))
-                        rowData.append(BUS_NAMES.get(s.bus_type, 'Unknown'))
-                        rowData.append(CONTROL_MODE_NAMES.get(s.mode, 'Unknown'))
-                        rowData.append(SERVO_MODE_NAMES.get(s.servo_mode, 'Unknown'))
-                        rowData.append('Kp={}, Kd={}'.format(
-                            format_mit_gain(s.kp_integer, s.kp_decimal),
-                            format_mit_gain(s.kd_integer, s.kd_decimal)))
-                    else:
-                        rowData.extend(['N/A'] * 5)
+                    rowData.append(str(bool(s.configured)))
+                    rowData.append(BUS_NAMES.get(s.bus_type, 'Unknown'))
+                    rowData.append(CONTROL_MODE_NAMES.get(s.mode, 'Unknown'))
+                    rowData.append(SERVO_MODE_NAMES.get(s.servo_mode, 'Unknown'))
+                    rowData.append('Kp={}, Kd={}'.format(
+                        format_mit_gain(s.kp_integer, s.kp_decimal),
+                        format_mit_gain(s.kd_integer, s.kd_decimal)))
                     rowData.append(self.joint_id_name_map.get(servo_index))
                     servo_index += 1
                     rowData.append(b.slave_id)

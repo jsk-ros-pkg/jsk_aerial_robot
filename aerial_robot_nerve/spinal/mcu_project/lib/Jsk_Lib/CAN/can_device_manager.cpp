@@ -25,6 +25,20 @@ namespace CANDeviceManager
     GPIO_TypeDef* m_GPIOx;
     uint16_t m_GPIO_Pin;
     osMailQId* canMsgMailHandle = NULL;
+    volatile uint32_t rx_drop_count = 0;
+  }
+
+  void recordRxDrop()
+  {
+    uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    rx_drop_count++;
+    if (primask == 0U) __enable_irq();
+  }
+
+  uint32_t getRxDropCount()
+  {
+    return rx_drop_count;
   }
 
   void init(CAN_GeranlHandleTypeDef* hcan, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
@@ -41,7 +55,7 @@ namespace CANDeviceManager
 
   int makeCommunicationId(uint8_t device_id, uint8_t slave_id)
   {
-    return static_cast<int>((device_id << CAN::DEVICE_ID_LEN) | slave_id);
+    return static_cast<int>((device_id << CAN::SLAVE_ID_LEN) | slave_id);
   }
 
   void addDevice(CANDevice& device)
@@ -77,10 +91,20 @@ namespace CANDeviceManager
 
   void receiveMessage(can_msg msg)
   {
+#ifdef STM32H7
+    const uint32_t dlc = CAN::getDlc(msg.rx_header);
+    if (!CAN::validFrameFormat(msg.rx_header, dlc)) {
+      recordRxDrop();
+      return;
+    }
+    CANDeviceManager::can_timeout_count = 0;
+#endif
     uint8_t slave_id = CAN::getSlaveId(msg.rx_header);
     uint8_t device_id = CAN::getDeviceId(msg.rx_header);
     uint8_t message_id = CAN::getMessageId(msg.rx_header);
+#ifndef STM32H7
     uint32_t dlc = CAN::getDlc(msg.rx_header);
+#endif
 
     int communication_id = CANDeviceManager::makeCommunicationId(device_id, slave_id);
     if (device_id == CAN::DEVICEID_INITIALIZER) { //special
@@ -111,49 +135,67 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef* hcan)
           /* directly call receivemessage, since RTOS is not initialized */
           CANDeviceManager::receiveMessage(msg);
         }
+      else
+        {
+          CANDeviceManager::recordRxDrop();
+        }
     }
   else
     {
       /* add data to RTOS queue */
       can_msg *msg = (can_msg *)osMailAlloc(*CANDeviceManager::canMsgMailHandle, 0);
 
-      if (msg == NULL) return; //allocation is not ready, exit
+      if (msg == NULL) {
+        CANDeviceManager::recordRxDrop();
+        return;
+      }
 
       if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO1, &(msg->rx_header), msg->rx_data) == HAL_OK)
         {
-          osMailPut(*CANDeviceManager::canMsgMailHandle, msg);
+          if (osMailPut(*CANDeviceManager::canMsgMailHandle, msg) == osOK) return;
         }
+      CANDeviceManager::recordRxDrop();
+      osMailFree(*CANDeviceManager::canMsgMailHandle, msg);
     }
 }
 #endif
 
 #ifdef STM32H7
-void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan, uint32_t RxFifo0ITs)
+void HAL_FDCAN_RxFifo0Callback(FDCAN_HandleTypeDef *hfdcan,
+                                uint32_t RxFifo0ITs)
 {
+  (void)RxFifo0ITs;
 
-  CANDeviceManager::can_timeout_count = 0;
-
-  if(CANDeviceManager::canMsgMailHandle == NULL)
-    {
+  while (HAL_FDCAN_GetRxFifoFillLevel(hfdcan, FDCAN_RX_FIFO0) > 0) {
+    if (CANDeviceManager::canMsgMailHandle == NULL) {
       can_msg msg;
-      if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &msg.rx_header, msg.rx_data) == HAL_OK)
-        {
-          /* directly call receivemessage, since RTOS is not initialized */
-          CANDeviceManager::receiveMessage(msg);
-        }
+      if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0,
+                                 &msg.rx_header, msg.rx_data) == HAL_OK) {
+        CANDeviceManager::receiveMessage(msg);
+      }
+      else {
+        CANDeviceManager::recordRxDrop();
+      }
+      continue;
     }
-  else
-    {
-      /* add data to RTOS queue */
-      can_msg *msg = (can_msg *)osMailAlloc(*CANDeviceManager::canMsgMailHandle, 0);
 
-      if (msg == NULL) return; //allocation is not ready, exit
-
-      if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0, &(msg->rx_header), msg->rx_data) == HAL_OK)
-        {
-          osMailPut(*CANDeviceManager::canMsgMailHandle, msg);
-        }
+    can_msg *msg = static_cast<can_msg*>(
+      osMailAlloc(*CANDeviceManager::canMsgMailHandle, 0));
+    if (msg == NULL) {
+      can_msg dropped;
+      HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0,
+                             &dropped.rx_header, dropped.rx_data);
+      CANDeviceManager::recordRxDrop();
+      continue;
     }
+
+    if (HAL_FDCAN_GetRxMessage(hfdcan, FDCAN_RX_FIFO0,
+                               &msg->rx_header, msg->rx_data) != HAL_OK ||
+        osMailPut(*CANDeviceManager::canMsgMailHandle, msg) != osOK) {
+      CANDeviceManager::recordRxDrop();
+      osMailFree(*CANDeviceManager::canMsgMailHandle, msg);
+    }
+  }
 }
 #endif
 
@@ -176,16 +218,20 @@ extern "C"
             continue;
           }
 
-        // get data from RTOS queue if available
-        osEvent event = osMailGet(*CANDeviceManager::canMsgMailHandle, osWaitForever);
-
-        if (event.status == osEventMail)
+        // Decode all frames accumulated during the preceding 1 ms interval.
+        osEvent event;
+        do
           {
-            can_msg *msg = (can_msg*)event.value.p;
-
-            CANDeviceManager::receiveMessage(*msg);
-            osMailFree(*CANDeviceManager::canMsgMailHandle, msg);
+            event = osMailGet(*CANDeviceManager::canMsgMailHandle, 0);
+            if (event.status == osEventMail)
+              {
+                can_msg *msg = static_cast<can_msg*>(event.value.p);
+                CANDeviceManager::receiveMessage(*msg);
+                osMailFree(*CANDeviceManager::canMsgMailHandle, msg);
+              }
           }
+        while (event.status == osEventMail);
+        osDelay(1);
       }
   }
 #ifndef STMCUBEMX_NEW_VERSION

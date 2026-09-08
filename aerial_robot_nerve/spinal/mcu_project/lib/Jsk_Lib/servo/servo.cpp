@@ -8,7 +8,6 @@
 
 #include "servo.h"
 
-#define SERVO_TORQUE_PUB_INTERVAL  1000 // 1Hz
 #define SERVO_COMM_STATUS_PUB_INTERVAL 1000 // 1Hz
 
 bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
@@ -40,19 +39,9 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   }
 
   nh_ = nh;
-  nh_->subscribe(servo_ctrl_sub_);
-  nh_->subscribe(servo_torque_ctrl_sub_);
   nh_->subscribe(joint_profiles_sub_);
-  nh_->advertise(servo_state_pub_);
-  nh_->advertise(servo_torque_state_pub_);
   nh_->advertise(servo_comm_status_pub_);
-  nh_->advertiseService(servo_config_srv_);
-  nh_->advertiseService(board_info_srv_);
 
-  servo_state_msg_.servos_length = actual_servo_num;
-  servo_state_msg_.servos = new spinal::ServoState[actual_servo_num];
-  servo_torque_state_msg_.torque_enable_length = actual_servo_num;
-  servo_torque_state_msg_.torque_enable = new uint8_t[actual_servo_num];
   servo_comm_status_msg_.servo_ids_length = actual_servo_num;
   servo_comm_status_msg_.servo_ids = new uint8_t[actual_servo_num];
   servo_comm_status_msg_.cur_vel_pos_update_count_length = actual_servo_num;
@@ -60,16 +49,9 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
   servo_comm_status_msg_.goal_write_count_length = actual_servo_num;
   servo_comm_status_msg_.goal_write_count = new uint32_t[actual_servo_num];
 
-  servo_last_pub_time_ = 0;
-  servo_torque_last_pub_time_ = 0;
   servo_comm_status_last_pub_time_ = 0;
   servo_comm_status_initialized_ = false;
   last_bus_map_valid_ = false;
-
-  board_info_res_.boards_length = 1;
-  board_info_res_.boards = new spinal::BoardInfo[1];
-  board_info_res_.boards[0].servos_length = servo_handler_.getServoNum();
-  board_info_res_.boards[0].servos = new spinal::ServoInfo[servo_handler_.getServoNum()];
 
   connected_ = true;
   return true;
@@ -87,51 +69,12 @@ bool DirectServo::createRTOSObjects()
 void DirectServo::update()
 {
   servo_handler_.update();
-  sendData(true);
+  publishCommStatus();
 }
 
-void DirectServo::sendData(bool flag_send_asap)
+void DirectServo::publishCommStatus()
 {
   uint32_t now_time = HAL_GetTick();
-
-  const uint16_t feedback_frequency =
-    servo_handler_.getServoFeedbackFrequency();
-  const uint32_t publish_interval =
-    feedback_frequency == 0 ? UINT32_MAX :
-    (1000U + feedback_frequency - 1U) / feedback_frequency;
-  if ((!flag_send_asap || servo_handler_.getROSCommFlag()) &&
-      now_time - servo_last_pub_time_ >= publish_interval)
-    {
-	  servo_state_msg_.stamp = nh_->now();
-      for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
-        const ServoData& s = servo_handler_.getServo()[i];
-        if (s.send_data_flag_ != 0) {
-          spinal::ServoState servo;
-          servo.index = i;
-          servo.angle = s.present_position_;
-          servo.velocity = s.present_velocity;
-          servo.temp = s.present_temp_;
-          servo.load = s.present_current_;
-          servo.error = s.hardware_error_status_;
-          servo_state_msg_.servos[i] = servo;
-        }
-      }
-      servo_state_pub_.publish(&servo_state_msg_);
-      servo_last_pub_time_ = now_time;
-      servo_handler_.setROSCommFlag(false);
-    }
-
-  if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
-    {
-      for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
-        const ServoData& s = servo_handler_.getServo()[i];
-        if (s.send_data_flag_ != 0) {
-          servo_torque_state_msg_.torque_enable[i] = s.torque_enable_;
-        }
-      }
-      servo_torque_state_pub_.publish(&servo_torque_state_msg_);
-      servo_torque_last_pub_time_= now_time;
-    }  
 
   const bool bus_map_valid = servo_handler_.busMapValid();
   const bool status_changed =
@@ -222,80 +165,65 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
     }
 }
 
-void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
+bool DirectServo::setGoalTargets(
+  uint8_t index,
+  bool has_position, int32_t position,
+  bool has_velocity, int32_t velocity,
+  bool has_current, int16_t current)
 {
-  const uint32_t count = control_msg.index_length;
-  const bool has_position = control_msg.position_length != 0;
-  const bool has_velocity = control_msg.velocity_length != 0;
-  const bool has_current = control_msg.current_length != 0;
-  if (count == 0 || (!has_position && !has_velocity && !has_current) ||
-      (has_position && control_msg.position_length != count) ||
-      (has_velocity && control_msg.velocity_length != count) ||
-      (has_current && control_msg.current_length != count)) {
-    nh_->logerror("Invalid ServoControlCmd array lengths");
-    return;
+  if (!servo_handler_.setGoalTargets(
+        index, has_position, position, has_velocity, velocity,
+        has_current, current)) {
+    return false;
   }
-
-  for (uint32_t i = 0; i < count; ++i) {
-    if (control_msg.index[i] >= servo_handler_.getServoNum()) {
-      nh_->logerror("Invalid servo index in ServoControlCmd");
-      return;
-    }
+  ServoData& servo = servo_handler_.getServo()[index];
+  if (!servo.torque_enable_) {
+    servo.torque_enable_ = true;
+    servo_handler_.setTorque(index);
   }
-
-  for (uint32_t i = 0; i < count; ++i) {
-    const uint8_t servo_index = control_msg.index[i];
-    if (!servo_handler_.setGoalTargets(
-          servo_index,
-          has_position, has_position ? control_msg.position[i] : 0,
-          has_velocity, has_velocity ? control_msg.velocity[i] : 0,
-          has_current, has_current ? control_msg.current[i] : 0)) {
-      nh_->logerror("Failed to update ServoControlCmd cache");
-      return;
-    }
-    ServoData& servo = servo_handler_.getServo()[servo_index];
-    if (!servo.torque_enable_) {
-      servo.torque_enable_ = true;
-      servo_handler_.setTorque(servo_index);
-    }
-  }
+  return true;
 }
 
-void DirectServo::servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
+bool DirectServo::setTorqueEnable(uint8_t index, bool enable)
 {
-  if (control_msg.index_length != control_msg.torque_enable_length) return;
-  for (unsigned int i = 0; i < control_msg.index_length; i++) {
-    uint8_t index = control_msg.index[i];
-    if(index >= servo_handler_.getServoNum())
-      {
-        nh_->logerror("Invalid Servo ID!");
-        return;
-      }
-    ServoData& s = servo_handler_.getServo()[index];
-    s.torque_enable_ = control_msg.torque_enable[i] != 0;
-    servo_handler_.setTorqueFromPresetnPos(index);
-
-  }
+  if (index >= servo_handler_.getServoNum()) return false;
+  ServoData& servo = servo_handler_.getServo()[index];
+  servo.torque_enable_ = enable;
+  servo_handler_.setTorqueFromPresetnPos(index);
+  return true;
 }
 
-void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Request& req, spinal::SetDirectServoConfig::Response& res)
+bool DirectServo::requestConfig(
+  uint8_t command, const int32_t* data, uint8_t data_length)
 {
-  res.success = false;
-  res.data_length = 0;
-  if (req.data_length > SERVO_SERVICE_DATA_CAPACITY) {
-    return;
-  }
-
-  res.success = servo_handler_.requestConfig(
-    req.command, req.data, static_cast<uint8_t>(req.data_length),
-    SERVO_SERVICE_TIMEOUT_MS) == SERVO_RESULT_OK;
+  if (!connected_ || data_length > SERVO_SERVICE_DATA_CAPACITY) return false;
+  return servo_handler_.requestConfig(
+    command, data, data_length, SERVO_SERVICE_TIMEOUT_MS) == SERVO_RESULT_OK;
 }
 
-void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
+bool DirectServo::requestConfigByIndex(
+  uint8_t servo_index, uint8_t command,
+  const int32_t* data, uint8_t data_length)
 {
-  //TODO: Bad implementation. This features should not be located in servo interface.
-  spinal::BoardInfo& board = board_info_res_.boards[0];
+  if (servo_index >= servo_handler_.getServoNum() ||
+      data_length >= SERVO_SERVICE_DATA_CAPACITY ||
+      (data_length > 0 && data == nullptr)) return false;
+
+  int32_t driver_data[SERVO_SERVICE_DATA_CAPACITY] = {};
+  driver_data[0] = servo_handler_.getServo()[servo_index].id_;
+  for (uint8_t i = 0; i < data_length; ++i) {
+    driver_data[i + 1] = data[i];
+  }
+  return requestConfig(command, driver_data, data_length + 1);
+}
+
+void DirectServo::fillBoardInfo(spinal::BoardInfo& board) const
+{
   board.imu_send_data_flag = 1;
+  board.dynamixel_ttl_rs485_mixed = 0;
+  board.servo_pulley_skip_thresh = 0;
+  board.servo_feedback_frequency = 0;
+  board.servo_target_watchdog_timeout = 0.0f;
 #if DYNAMIXEL
   board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
   board.servo_feedback_frequency =
@@ -326,7 +254,6 @@ void DirectServo::boardInfoCallback(const spinal::GetBoardInfo::Request& req, sp
     board.servos[i].joint_resolution = s.joint_resolution_;
     board.servos[i].servo_resolution = s.servo_resolution_;
   }
-  res = board_info_res_;
 }
 
 void DirectServo::jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg)

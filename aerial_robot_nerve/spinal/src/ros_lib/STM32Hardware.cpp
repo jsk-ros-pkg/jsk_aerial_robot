@@ -20,6 +20,7 @@ namespace
 
 #if SUPPORT_RTOS
   osSemaphoreId *tx_semaphore_;
+  UART_HandleTypeDef *tx_huart_;
 #endif
 
 #if SUPPORT_LWIP
@@ -32,12 +33,15 @@ namespace
 // DMA + RTOS using in UART TX
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-  osSemaphoreRelease (*tx_semaphore_);
+  if (huart == tx_huart_ && tx_semaphore_ != NULL && *tx_semaphore_ != NULL)
+    osSemaphoreRelease(*tx_semaphore_);
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-  if ((huart->ErrorCode & HAL_UART_ERROR_DMA) != 0U)
+  if (huart == tx_huart_ && tx_semaphore_ != NULL &&
+      *tx_semaphore_ != NULL &&
+      (huart->ErrorCode & HAL_UART_ERROR_DMA) != 0U)
     {
       osSemaphoreRelease (*tx_semaphore_); // force relase semaphore if DMA TX fails
     }
@@ -62,6 +66,9 @@ void STM32Hardware::init(UART_HandleTypeDef *huart, osMutexId *mutex, osSemaphor
   /* tx */
   tx_mutex_ = mutex;
   tx_semaphore_ = semaphore;
+  tx_huart_ = huart;
+  tx_mutex_owner_ = NULL;
+  tx_mutex_depth_ = 0;
 
   uart_tx_subscript_in_progress_ = 0;
   uart_tx_subscript_to_add_ = 0;
@@ -71,6 +78,46 @@ void STM32Hardware::init(UART_HandleTypeDef *huart, osMutexId *mutex, osSemaphor
       uart_tx_buffer_unit_[i].tx_len_ = 1;
       memset(uart_tx_buffer_unit_[i].tx_data_, 0, TX_BUFFER_WIDTH);
     }
+}
+
+bool STM32Hardware::lock()
+{
+  if (!rtos_mode_ || tx_mutex_ == NULL)
+    return true;
+
+  if (*tx_mutex_ == NULL)
+    return false;
+
+  const osThreadId current_thread = osThreadGetId();
+  if (tx_mutex_owner_ == current_thread && tx_mutex_depth_ > 0)
+    {
+      ++tx_mutex_depth_;
+      return true;
+    }
+
+  if (osMutexWait(*tx_mutex_, osWaitForever) != osOK)
+    return false;
+
+  tx_mutex_owner_ = current_thread;
+  tx_mutex_depth_ = 1;
+  return true;
+}
+
+void STM32Hardware::unlock()
+{
+  if (!rtos_mode_ || tx_mutex_ == NULL || *tx_mutex_ == NULL)
+    return;
+
+  const osThreadId current_thread = osThreadGetId();
+  if (tx_mutex_owner_ != current_thread || tx_mutex_depth_ == 0)
+    return;
+
+  --tx_mutex_depth_;
+  if (tx_mutex_depth_ > 0)
+    return;
+
+  tx_mutex_owner_ = NULL;
+  osMutexRelease(*tx_mutex_);
 }
 #endif
 
@@ -187,17 +234,24 @@ int STM32Hardware::publish()
           else
             {
               // use DMA with semaphore
-              osSemaphoreWait(*tx_semaphore_, osWaitForever);
+              if (osSemaphoreWait(*tx_semaphore_, osWaitForever) != osOK)
+                return HAL_TIMEOUT;
               status = HAL_UART_Transmit_DMA(huart_, uart_tx_buffer_unit_[uart_tx_subscript_in_progress_].tx_data_, uart_tx_buffer_unit_[uart_tx_subscript_in_progress_].tx_len_);
+              if (status != HAL_OK)
+                osSemaphoreRelease(*tx_semaphore_);
             }
 
+          if (status != HAL_OK)
+            return status;
+
           /* mutex to avoid access from task of higher priority running "write" */
-          if(tx_mutex_ != NULL) osMutexWait(*tx_mutex_, osWaitForever);
+          if (!lock())
+            return HAL_ERROR;
 
           uart_tx_subscript_in_progress_++;
           uart_tx_subscript_in_progress_ %= TX_BUFFER_SIZE;
 
-          if(tx_mutex_ != NULL)  osMutexRelease(*tx_mutex_);
+          unlock();
 
           return status;
         }
@@ -217,7 +271,8 @@ void STM32Hardware::write(uint8_t * new_data, uint16_t new_size)
   if (rtos_mode_)
     {
       /* mutex to avoid access from task with higher priority to call "write" or "publish" */
-      if(tx_mutex_ != NULL) osMutexWait(*tx_mutex_, osWaitForever);
+      if (!lock())
+        return;
 
       /* if subscript comes around and get to one in progress_, skip */
       uint8_t packet_num = new_size / TX_BUFFER_WIDTH + (new_size % TX_BUFFER_WIDTH > 0?1:0);
@@ -255,7 +310,7 @@ void STM32Hardware::write(uint8_t * new_data, uint16_t new_size)
             }
         }
 
-      if(tx_mutex_ != NULL) osMutexRelease(*tx_mutex_);
+      unlock();
 
     }
 #endif
@@ -270,5 +325,3 @@ void STM32Hardware::write(uint8_t * new_data, uint16_t new_size)
     }
 #endif
 }
-
-

@@ -61,6 +61,7 @@
 
 /* util */
 #include <string>
+#include <functional>
 #include <boost/algorithm/clamp.hpp>
 
 using namespace std;
@@ -169,7 +170,9 @@ public:
   {
     if(value_type == ValueType::BIT)
       {
-        return boost::algorithm::clamp(curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
+        return boost::algorithm::clamp(
+          curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_,
+          static_cast<double>(INT32_MIN), static_cast<double>(INT32_MAX));
       }
     else // ValueType::RADIAN
       {
@@ -181,7 +184,9 @@ public:
   {
     if(value_type == ValueType::BIT)
       {
-        return boost::algorithm::clamp(target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
+        return boost::algorithm::clamp(
+          target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_,
+          static_cast<double>(INT32_MIN), static_cast<double>(INT32_MAX));
       }
     else // ValueType::RADIAN
       {
@@ -211,12 +216,12 @@ public:
       }
   }
 
-  int16_t getTargetVelocityRaw() const
+  int32_t getTargetVelocityRaw() const
   {
     if (velocity_scale_ == 0.0) return 0;
-    return static_cast<int16_t>(boost::algorithm::clamp(
+    return static_cast<int32_t>(boost::algorithm::clamp(
       target_velocity_val_ * angle_sgn_ / velocity_scale_,
-      static_cast<double>(INT16_MIN), static_cast<double>(INT16_MAX)));
+      static_cast<double>(INT32_MIN), static_cast<double>(INT32_MAX)));
   }
 
   int16_t getTargetCurrentRaw() const
@@ -293,7 +298,8 @@ protected:
   bool simulation_mode_;
   bool use_mujoco_;
   bool auto_configure_direct_servo_;
-  bool direct_servo_config_ready_;
+  ros::WallTimer direct_servo_config_timer_;
+  std::function<bool()> direct_servo_configure_;
   int send_init_joint_pose_cnt_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
@@ -301,6 +307,7 @@ protected:
   void servoTorqueCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
   bool servoEnableCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name);
   void uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg);
+  void directServoConfigTimerCallback(const ros::WallTimerEvent& event);
 
 public:
   ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp);

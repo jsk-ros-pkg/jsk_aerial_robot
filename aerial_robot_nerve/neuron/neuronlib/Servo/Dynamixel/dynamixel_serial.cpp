@@ -1,17 +1,41 @@
 #include "dynamixel_serial.h"
 
+namespace
+{
+int16_t clampGoalCurrent(int64_t current, uint16_t configured_limit)
+{
+  const int32_t limit =
+    configured_limit > INT16_MAX ? INT16_MAX : configured_limit;
+  if (current > limit) return static_cast<int16_t>(limit);
+  if (current < -limit) return static_cast<int16_t>(-limit);
+  return static_cast<int16_t>(current);
+}
+
+int64_t symmetricDivide(int64_t value, int64_t divisor)
+{
+  return value >= 0 ? (value + divisor / 2) / divisor
+                    : (value - divisor / 2) / divisor;
+}
+}
+
 
 void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex)
 {
 	huart_ = huart;
-        mutex_ = mutex;
-	servo_num_ = 0;
+  mutex_ = mutex;
+  servo_num_ = 0;
+  servo_feedback_frequency_hz_ = NEURON_SERVO_FEEDBACK_FREQUENCY_HZ;
+  target_watchdog_timeout_ms_ = NEURON_DEFAULT_TARGET_WATCHDOG_MS;
 	set_command_tick_ = 0;
 	get_pos_tick_ = 0;
 	get_load_tick_ = 0;
 	get_temp_tick_ = 0;
 	get_move_tick_ = 0;
 	get_error_tick_ = 0;
+#ifdef STM32G4
+	target_cycle_pending_ = false;
+	target_cycle_complete_ = false;
+#endif
 
 
         /* rx */
@@ -21,7 +45,8 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
         rd_ptr_ = 0;
         memset(rx_buf_, 0, sizeof(rx_buf_));
 
-	std::fill(servo_.begin(), servo_.end(), ServoData(255));
+		std::fill(servo_.begin(), servo_.end(), ServoData(255));
+		servo_flash_configs_.fill(NeuronServoFlashConfig());
 
 	//initialize servo motors
 	HAL_Delay(500);
@@ -48,32 +73,46 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 	cmdSyncWriteReturnDelayTime();
 	cmdSyncWriteTemperatureLimit();
 
-	for (int i = 0; i < MAX_SERVO_NUM; i++) {
-		Flashmemory::addValue(&(servo_[i].p_gain_), 2);
-		Flashmemory::addValue(&(servo_[i].i_gain_), 2);
-		Flashmemory::addValue(&(servo_[i].d_gain_), 2);
-		Flashmemory::addValue(&(servo_[i].profile_velocity_), 2);
-		Flashmemory::addValue(&(servo_[i].send_data_flag_), 2);
-                Flashmemory::addValue(&(servo_[i].external_encoder_flag_), 2);
-                Flashmemory::addValue(&(servo_[i].joint_resolution_), 2);
-                Flashmemory::addValue(&(servo_[i].servo_resolution_), 2);
-                Flashmemory::addValue(&(servo_[i].joint_offset_), 4);
-	}
+		for (int i = 0; i < MAX_SERVO_NUM; i++) {
+			Flashmemory::addValue(&(servo_flash_configs_[i]),
+			                      sizeof(NeuronServoFlashConfig));
+		}
 	Flashmemory::addValue(&(ttl_rs485_mixed_), 2);
         Flashmemory::addValue(&(pulley_skip_thresh_), 2);
 
 	Flashmemory::read();
 
-	cmdSyncWritePositionGains();
-	cmdSyncWriteProfileVelocity();
-
-	getHomingOffset(); // This operation always fails after the servo motor is ignited first
+		getHomingOffset(); // This operation always fails after the servo motor is ignited first
 	getHomingOffset(); // So this line is necessary
 	getCurrentLimit();
 	getPositionGains();
 	getProfileVelocity();
-        getModelNumber();
-        getOperatingMode();
+	        getModelNumber();
+	        getOperatingMode();
+		getPositionGains();
+		getProfileVelocity();
+
+		for (uint8_t i = 0; i < servo_num_; ++i) {
+		  ServoData& servo = servo_[i];
+		  servo.bus_type_ = NEURON_SERVO_BUS_UNKNOWN;
+		  servo.mode_ = NEURON_SERVO_MODE_UNKNOWN;
+		  servo.send_data_flag_ = 1;
+		  servo.external_encoder_flag_ = 0;
+		  servo.configured_ = false;
+		  NeuronServoFlashConfig* config = findServoFlashConfig(servo.id_);
+		  if (config == nullptr) continue;
+		  copyFlashConfigToServo(*config, servo);
+		  if (!validPersistentMode(servo.mode_)) continue;
+		  const uint8_t operating_mode = expectedOperatingMode(servo.mode_);
+		  if (servo.operating_mode_ != operating_mode) {
+		    cmdWriteOperatingMode(i, operating_mode);
+		    cmdReadOperatingMode(i);
+		    (void)readStatusPacket(INST_GET_OPERATING_MODE);
+		  }
+		  cmdWritePositionGains(i);
+		  cmdWriteProfileVelocity(i);
+		  updateConfigurationState(servo);
+		}
 
 
         //initialize encoder: only can support one encoder
@@ -109,6 +148,10 @@ void DynamixelSerial::ping()
 	for (int i = 0; i < PING_TRIAL_NUM; ++i) {
 		readStatusPacket(INST_PING);
 	}
+	std::sort(servo_.begin(), servo_.begin() + servo_num_,
+	          [](const ServoData& lhs, const ServoData& rhs) {
+	            return lhs.id_ < rhs.id_;
+	          });
 }
 
 void DynamixelSerial::reboot(uint8_t servo_index)
@@ -119,7 +162,14 @@ void DynamixelSerial::reboot(uint8_t servo_index)
 
 void DynamixelSerial::setTorque(uint8_t servo_index, bool torque_enable)
 {
-  if(servo_[servo_index].force_servo_off_) return;
+	  if (servo_index >= servo_num_) return;
+	  if (servo_[servo_index].force_servo_off_ && torque_enable) return;
+	  if (torque_enable &&
+	      (!servo_[servo_index].configured() ||
+	       servo_[servo_index].mode_ == NEURON_SERVO_MODE_EM)) {
+	    servo_[servo_index].torque_enable_ = false;
+	    return;
+	  }
 
   if (servo_[servo_index].torque_enable_ == torque_enable) return;
   if (torque_enable) {
@@ -130,6 +180,28 @@ void DynamixelSerial::setTorque(uint8_t servo_index, bool torque_enable)
   servo_[servo_index].torque_enable_ = torque_enable;
 
   instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
+}
+
+void DynamixelSerial::startTargetCycle()
+{
+#ifdef STM32G4
+  taskENTER_CRITICAL();
+  target_cycle_pending_ = true;
+  taskEXIT_CRITICAL();
+#endif
+}
+
+bool DynamixelSerial::takeTargetCycleComplete()
+{
+#ifdef STM32G4
+  taskENTER_CRITICAL();
+  const bool complete = target_cycle_complete_;
+  target_cycle_complete_ = false;
+  taskEXIT_CRITICAL();
+  return complete;
+#else
+  return false;
+#endif
 }
 
 void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
@@ -143,8 +215,9 @@ void DynamixelSerial::setRoundOffset(uint8_t servo_index, int32_t ref_value)
   if (diff < -2047) s.internal_offset_ -= 4096;
 }
 
-void DynamixelSerial::setHomingOffset(uint8_t servo_index)
+bool DynamixelSerial::setHomingOffset(uint8_t servo_index)
 {
+  if (servo_index >= servo_num_) return false;
   if(servo_[servo_index].external_encoder_flag_){
 	 int32_t joint_offset = servo_[servo_index].calib_value_ + servo_[servo_index].joint_offset_ - servo_[servo_index].present_position_;
 	 if(joint_offset >= 0){
@@ -154,73 +227,649 @@ void DynamixelSerial::setHomingOffset(uint8_t servo_index)
 		 servo_[servo_index].joint_offset_ = joint_offset % -4096;
 	 }
 	// servo_[servo_index].joint_offset_ = servo_[servo_index].calib_value_; // debug
-	encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
-	servo_[servo_index].first_get_pos_flag_ = true;
-	Flashmemory::erase();
-	Flashmemory::write();
-  }
-  else{
-    if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
+		encoder_handler_.setOffset(servo_[servo_index].joint_offset_);
+		servo_[servo_index].first_get_pos_flag_ = true;
+		return true;
+	  }
+	  else{
+	    if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
+	    bool success = true;
 
-    // reset homing offset and internal offset
-    servo_[servo_index].homing_offset_ = 0;
-    servo_[servo_index].internal_offset_ = 0;
-    cmdWriteHomingOffset(servo_index);
-    cmdReadHomingOffset(servo_index);
-    readStatusPacket(INST_GET_HOMING_OFFSET);
+	    // reset homing offset and internal offset
+	    servo_[servo_index].homing_offset_ = 0;
+	    servo_[servo_index].internal_offset_ = 0;
+	    cmdWriteHomingOffset(servo_index);
+	    cmdReadHomingOffset(servo_index);
+	    success = readStatusPacket(INST_GET_HOMING_OFFSET) == 0 &&
+	              servo_[servo_index].homing_offset_ == 0;
 
-    // read updated position
-    cmdReadPresentPosition(servo_index);
-    readStatusPacket(INST_GET_PRESENT_POS);
+	    // read updated position
+	    if (success) {
+	      cmdReadPresentPosition(servo_index);
+	      success = readStatusPacket(INST_GET_PRESENT_POS) == 0;
+	    }
 
-    // set new homing offset
-    servo_[servo_index].updateHomingOffset();
-    cmdWriteHomingOffset(servo_index);
-    cmdReadHomingOffset(servo_index);
-    readStatusPacket(INST_GET_HOMING_OFFSET);
+	    // set new homing offset
+	    int32_t expected_homing_offset = 0;
+	    if (success) {
+	      servo_[servo_index].updateHomingOffset();
+	      expected_homing_offset = servo_[servo_index].homing_offset_;
+	      cmdWriteHomingOffset(servo_index);
+	      cmdReadHomingOffset(servo_index);
+	      success = readStatusPacket(INST_GET_HOMING_OFFSET) == 0 &&
+	                servo_[servo_index].homing_offset_ == expected_homing_offset;
+	    }
 
-    // read updated position
-    cmdReadPresentPosition(servo_index);
-    readStatusPacket(INST_GET_PRESENT_POS);
+	    // read updated position
+	    if (success) {
+	      cmdReadPresentPosition(servo_index);
+	      success = readStatusPacket(INST_GET_PRESENT_POS) == 0;
+	    }
 
-    if (mutex_ != NULL) osMutexRelease(*mutex_);
-  }
+	    if (mutex_ != NULL) osMutexRelease(*mutex_);
+	    return success;
+	  }
 }
 
-void DynamixelSerial::setPositionGains(uint8_t servo_index)
+bool DynamixelSerial::setPositionGains(uint8_t servo_index)
 {
+  if (servo_index >= servo_num_) return false;
+  const uint16_t expected_p = servo_[servo_index].p_gain_;
+  const uint16_t expected_i = servo_[servo_index].i_gain_;
+  const uint16_t expected_d = servo_[servo_index].d_gain_;
   if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
   cmdWritePositionGains(servo_index);
-  getPositionGains();
+  cmdReadPositionGains(servo_index);
+  const bool success = readStatusPacket(INST_GET_POSITION_GAINS) == 0 &&
+                       servo_[servo_index].p_gain_ == expected_p &&
+                       servo_[servo_index].i_gain_ == expected_i &&
+                       servo_[servo_index].d_gain_ == expected_d;
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
+  return success;
 }
 
-void DynamixelSerial::setProfileVelocity(uint8_t servo_index)
+bool DynamixelSerial::setProfileVelocity(uint8_t servo_index)
 {
+  if (servo_index >= servo_num_) return false;
+  const uint16_t expected = servo_[servo_index].profile_velocity_;
   if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
   cmdWriteProfileVelocity(servo_index);
-  getProfileVelocity();
+  cmdReadProfileVelocity(servo_index);
+  const bool success = readStatusPacket(INST_GET_PROFILE_VELOCITY) == 0 &&
+                       servo_[servo_index].profile_velocity_ == expected;
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
+  return success;
 }
 
-void DynamixelSerial::setCurrentLimit(uint8_t servo_index)
+bool DynamixelSerial::setCurrentLimit(uint8_t servo_index)
 {
+  if (servo_index >= servo_num_) return false;
+  const uint16_t expected = servo_[servo_index].current_limit_;
   if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
   cmdWriteCurrentLimit(servo_index);
-  getCurrentLimit();
+  cmdReadCurrentLimit(servo_index);
+  const bool success = readStatusPacket(INST_GET_CURRENT_LIMIT) == 0 &&
+                       servo_[servo_index].current_limit_ == expected;
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
+  return success;
+}
+
+bool DynamixelSerial::setGoalTargets(uint8_t servo_index,
+                                     bool has_position, int32_t position,
+                                     bool has_velocity, int32_t velocity,
+                                     bool has_current, int16_t current)
+{
+  if (servo_index >= servo_num_) return false;
+  ServoData& servo = servo_[servo_index];
+  if (has_position) servo.setGoalPosition(position);
+  if (has_velocity) servo.setGoalVelocity(velocity);
+  if (has_current) servo.setGoalCurrent(current);
+  if (servo.mode_ == NEURON_SERVO_MODE_MIT) {
+    if (!has_velocity) servo.setGoalVelocity(0);
+    if (!has_current) servo.setGoalCurrent(0);
+  }
+
+  bool relevant_target = false;
+  switch (servo.mode_) {
+  case NEURON_SERVO_MODE_DP:
+  case NEURON_SERVO_MODE_DEP:
+    relevant_target = has_position;
+    break;
+  case NEURON_SERVO_MODE_DV:
+    relevant_target = has_velocity;
+    break;
+  case NEURON_SERVO_MODE_DC:
+    relevant_target = has_current;
+    break;
+  case NEURON_SERVO_MODE_MIT:
+    relevant_target = has_position || has_velocity || has_current;
+    break;
+  default:
+    break;
+  }
+  if (relevant_target) {
+    servo.last_target_tick_ = HAL_GetTick();
+    servo.target_received_ = true;
+    servo.watchdog_timed_out_ = false;
+  }
+  return true;
+}
+
+bool DynamixelSerial::findServoIndex(uint8_t servo_id,
+                                     uint8_t& servo_index) const
+{
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if (servo_[i].id_ == servo_id) {
+      servo_index = i;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool DynamixelSerial::validPersistentMode(uint8_t mode)
+{
+  return mode == NEURON_SERVO_MODE_DP ||
+         mode == NEURON_SERVO_MODE_DEP ||
+         mode == NEURON_SERVO_MODE_DV ||
+         mode == NEURON_SERVO_MODE_DC ||
+         mode == NEURON_SERVO_MODE_MIT;
+}
+
+uint8_t DynamixelSerial::expectedOperatingMode(uint8_t mode)
+{
+  switch (mode) {
+  case NEURON_SERVO_MODE_DP: return POSITION_CONTROL_MODE;
+  case NEURON_SERVO_MODE_DEP: return EXTENDED_POSITION_CONTROL_MODE;
+  case NEURON_SERVO_MODE_DV: return VELOCITY_CONTROL_MODE;
+  case NEURON_SERVO_MODE_DC:
+  case NEURON_SERVO_MODE_MIT: return CURRENT_CONTROL_MODE;
+  default: return 0xFF;
+  }
+}
+
+bool DynamixelSerial::validFlashConfig(
+  const NeuronServoFlashConfig& config)
+{
+  return config.id <= 252 &&
+         (config.bus_type == NEURON_SERVO_BUS_RS485 ||
+          config.bus_type == NEURON_SERVO_BUS_TTL ||
+          config.bus_type == NEURON_SERVO_BUS_UNKNOWN) &&
+         (validPersistentMode(config.mode) ||
+          config.mode == NEURON_SERVO_MODE_UNKNOWN) &&
+         (config.flags &
+          static_cast<uint8_t>(~NEURON_SERVO_FLASH_FLAG_MASK)) == 0;
+}
+
+NeuronServoFlashConfig* DynamixelSerial::findServoFlashConfig(
+  uint8_t servo_id)
+{
+  NeuronServoFlashConfig* match = nullptr;
+  for (uint8_t slot = 0; slot < MAX_SERVO_NUM; ++slot) {
+    NeuronServoFlashConfig& config = servo_flash_configs_[slot];
+    if (!validFlashConfig(config) || config.id != servo_id) continue;
+    if (match != nullptr) return nullptr;
+    match = &config;
+  }
+  return match;
+}
+
+void DynamixelSerial::copyFlashConfigToServo(
+  const NeuronServoFlashConfig& config, ServoData& servo)
+{
+  servo.p_gain_ = config.p_gain;
+  servo.i_gain_ = config.i_gain;
+  servo.d_gain_ = config.d_gain;
+  servo.profile_velocity_ = config.profile_velocity;
+  servo.bus_type_ = config.bus_type;
+  servo.mode_ = config.mode;
+  servo.send_data_flag_ =
+    (config.flags & NEURON_SERVO_FLASH_FLAG_SEND_DATA) != 0;
+  servo.external_encoder_flag_ =
+    (config.flags & NEURON_SERVO_FLASH_FLAG_EXTERNAL_ENCODER) != 0;
+  servo.joint_resolution_ = config.joint_resolution;
+  servo.servo_resolution_ = config.servo_resolution;
+  servo.joint_offset_ = config.joint_offset;
+  servo.configured_ = false;
+}
+
+void DynamixelSerial::copyServoToFlashConfig(
+  const ServoData& servo, NeuronServoFlashConfig& config)
+{
+  config.p_gain = servo.p_gain_;
+  config.i_gain = servo.i_gain_;
+  config.d_gain = servo.d_gain_;
+  config.profile_velocity = servo.profile_velocity_;
+  config.id = servo.id_;
+  config.bus_type = servo.bus_type_;
+  config.mode = servo.mode_;
+  config.flags =
+    (servo.send_data_flag_ ? NEURON_SERVO_FLASH_FLAG_SEND_DATA : 0) |
+    (servo.external_encoder_flag_
+       ? NEURON_SERVO_FLASH_FLAG_EXTERNAL_ENCODER : 0);
+  config.joint_resolution = servo.joint_resolution_;
+  config.servo_resolution = servo.servo_resolution_;
+  config.joint_offset = servo.joint_offset_;
+}
+
+NeuronServoFlashConfig* DynamixelSerial::findOrCreateServoFlashConfig(
+  uint8_t servo_index)
+{
+  if (servo_index >= servo_num_) return nullptr;
+
+  ServoData& servo = servo_[servo_index];
+  NeuronServoFlashConfig* selected = findServoFlashConfig(servo.id_);
+  if (selected == nullptr) {
+    for (uint8_t slot = 0; slot < MAX_SERVO_NUM; ++slot) {
+      NeuronServoFlashConfig& candidate = servo_flash_configs_[slot];
+      uint8_t detected_index = 0;
+      if (!validFlashConfig(candidate) ||
+          !findServoIndex(candidate.id, detected_index)) {
+        selected = &candidate;
+        break;
+      }
+    }
+  }
+  if (selected == nullptr) return nullptr;
+
+  copyServoToFlashConfig(servo, *selected);
+  return selected;
+}
+
+void DynamixelSerial::updateConfigurationState(ServoData& servo)
+{
+  servo.configured_ =
+    (servo.bus_type_ == NEURON_SERVO_BUS_RS485 ||
+     servo.bus_type_ == NEURON_SERVO_BUS_TTL) &&
+    validPersistentMode(servo.mode_) &&
+    servo.operating_mode_ == expectedOperatingMode(servo.mode_);
+  if (!servo.configured_ && servo.torque_enable_) {
+    servo.torque_enable_ = false;
+  }
+}
+
+bool DynamixelSerial::busMapValid() const
+{
+  if (servo_num_ == 0) return false;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if (!servo_[i].configured()) return false;
+  }
+  return true;
+}
+
+uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
+                                   uint8_t data_length)
+{
+  uint8_t expected_length = 0;
+  switch (command) {
+  case CAN::SERVO_CONFIG_SET_TTL_RS485_MIXED:
+  case CAN::SERVO_CONFIG_SET_FEEDBACK_FREQUENCY:
+  case CAN::SERVO_CONFIG_SET_TARGET_WATCHDOG:
+    expected_length = 1;
+    break;
+  case CAN::SERVO_CONFIG_SET_HOMING_OFFSET:
+  case CAN::SERVO_CONFIG_SET_PROFILE_VELOCITY:
+  case CAN::SERVO_CONFIG_SET_SEND_DATA_FLAG:
+  case CAN::SERVO_CONFIG_SET_CURRENT_LIMIT:
+  case CAN::SERVO_CONFIG_SET_EXTERNAL_ENCODER_FLAG:
+  case CAN::SERVO_CONFIG_SET_CONTROL_MODE:
+  case CAN::SERVO_CONFIG_SET_BUS_TYPE:
+    expected_length = 2;
+    break;
+  case CAN::SERVO_CONFIG_SET_RESOLUTION_RATIO:
+    expected_length = 3;
+    break;
+  case CAN::SERVO_CONFIG_SET_PID_GAIN:
+    expected_length = 4;
+    break;
+  case CAN::SERVO_CONFIG_SET_MIT_PD:
+    expected_length = 5;
+    break;
+  default:
+    return CAN::SERVO_CONFIG_RESULT_INVALID;
+  }
+  if (data == nullptr || data_length != expected_length) {
+    return CAN::SERVO_CONFIG_RESULT_INVALID;
+  }
+
+  if (command == CAN::SERVO_CONFIG_SET_TTL_RS485_MIXED) {
+    if ((data[0] != 0 && data[0] != 1)) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    for (uint8_t i = 0; i < servo_num_; ++i) {
+      if (servo_[i].torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    }
+    ttl_rs485_mixed_ = data[0];
+    Flashmemory::erase();
+    Flashmemory::write();
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  }
+  if (command == CAN::SERVO_CONFIG_SET_FEEDBACK_FREQUENCY) {
+    if (data[0] <= 0 || data[0] > 200) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    servo_feedback_frequency_hz_ = data[0];
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  }
+  if (command == CAN::SERVO_CONFIG_SET_TARGET_WATCHDOG) {
+    if (data[0] < 0 || data[0] > 60000) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    target_watchdog_timeout_ms_ = data[0];
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  }
+
+  uint8_t servo_index = 0;
+  if (data[0] < 0 || data[0] > UINT8_MAX ||
+      !findServoIndex(static_cast<uint8_t>(data[0]), servo_index)) {
+    return CAN::SERVO_CONFIG_RESULT_INVALID;
+  }
+  ServoData& servo = servo_[servo_index];
+  NeuronServoFlashConfig* config =
+    findOrCreateServoFlashConfig(servo_index);
+  if (config == nullptr) {
+    return CAN::SERVO_CONFIG_RESULT_INVALID;
+  }
+
+  if (command == CAN::SERVO_CONFIG_SET_BUS_TYPE) {
+    if (servo.torque_enable_ ||
+        (data[1] != NEURON_SERVO_BUS_RS485 &&
+         data[1] != NEURON_SERVO_BUS_TTL)) {
+      return servo.torque_enable_ ? CAN::SERVO_CONFIG_RESULT_BUSY
+                                  : CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    servo.bus_type_ = static_cast<uint8_t>(data[1]);
+    updateConfigurationState(servo);
+    copyServoToFlashConfig(servo, *config);
+    Flashmemory::erase();
+    Flashmemory::write();
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  }
+
+  switch (command) {
+  case CAN::SERVO_CONFIG_SET_CONTROL_MODE:
+  {
+    if (servo.torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    const uint8_t mode = static_cast<uint8_t>(data[1]);
+    if (data[1] < 0 || data[1] > UINT8_MAX ||
+        !validPersistentMode(mode)) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    const uint8_t old_mode = servo.mode_;
+    const uint8_t old_operating_mode = servo.operating_mode_;
+    const uint8_t operating_mode = expectedOperatingMode(mode);
+    if (servo.operating_mode_ != operating_mode) {
+      cmdWriteOperatingMode(servo_index, operating_mode);
+      cmdReadOperatingMode(servo_index);
+      if (readStatusPacket(INST_GET_OPERATING_MODE) != 0 ||
+          servo.operating_mode_ != operating_mode) {
+        servo.mode_ = old_mode;
+        servo.operating_mode_ = old_operating_mode;
+        servo.configured_ = false;
+        return CAN::SERVO_CONFIG_RESULT_INVALID;
+      }
+    }
+    servo.mode_ = mode;
+    servo.target_received_ = false;
+    servo.watchdog_timed_out_ = false;
+    servo.goal_velocity_ = 0;
+    servo.goal_current_ = 0;
+    if (!setPositionGains(servo_index) ||
+        !setProfileVelocity(servo_index)) {
+      servo.mode_ = old_mode;
+      servo.configured_ = false;
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    updateConfigurationState(servo);
+    copyServoToFlashConfig(servo, *config);
+    Flashmemory::erase();
+    Flashmemory::write();
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  }
+  case CAN::SERVO_CONFIG_SET_MIT_PD:
+    if (servo.torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    if (data[1] < 0 || data[1] > INT16_MAX ||
+        data[2] < 0 || data[2] >= NEURON_MIT_GAIN_SCALE ||
+        data[3] < 0 || data[3] > INT16_MAX ||
+        data[4] < 0 || data[4] >= NEURON_MIT_GAIN_SCALE) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    servo.kp_integer_ = data[1];
+    servo.kp_decimal_ = data[2];
+    servo.kd_integer_ = data[3];
+    servo.kd_decimal_ = data[4];
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  case CAN::SERVO_CONFIG_SET_HOMING_OFFSET:
+    if (servo.torque_enable_ || data[1] < -1044479 || data[1] > 1044479) {
+      return servo.torque_enable_ ? CAN::SERVO_CONFIG_RESULT_BUSY
+                                  : CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    {
+      const int32_t old_calib_value = servo.calib_value_;
+      const int32_t old_homing_offset = servo.homing_offset_;
+      const int32_t old_internal_offset = servo.internal_offset_;
+      const int32_t old_joint_offset = servo.joint_offset_;
+      const bool old_first_get_pos = servo.first_get_pos_flag_;
+      servo.calib_value_ = data[1];
+      if (!setHomingOffset(servo_index)) {
+        servo.calib_value_ = old_calib_value;
+        servo.homing_offset_ = old_homing_offset;
+        servo.internal_offset_ = old_internal_offset;
+        servo.joint_offset_ = old_joint_offset;
+        servo.first_get_pos_flag_ = old_first_get_pos;
+        if (servo.external_encoder_flag_) {
+          encoder_handler_.setOffset(old_joint_offset);
+        }
+        return CAN::SERVO_CONFIG_RESULT_INVALID;
+      }
+    }
+    copyServoToFlashConfig(servo, *config);
+    Flashmemory::erase();
+    Flashmemory::write();
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  case CAN::SERVO_CONFIG_SET_PID_GAIN:
+    if (servo.torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    if (data[1] < 0 || data[1] > UINT16_MAX || data[2] < 0 ||
+        data[2] > UINT16_MAX || data[3] < 0 || data[3] > UINT16_MAX) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    {
+      const uint16_t old_p_gain = servo.p_gain_;
+      const uint16_t old_i_gain = servo.i_gain_;
+      const uint16_t old_d_gain = servo.d_gain_;
+      servo.p_gain_ = data[1];
+      servo.i_gain_ = data[2];
+      servo.d_gain_ = data[3];
+      if (!setPositionGains(servo_index)) {
+        servo.p_gain_ = old_p_gain;
+        servo.i_gain_ = old_i_gain;
+        servo.d_gain_ = old_d_gain;
+        return CAN::SERVO_CONFIG_RESULT_INVALID;
+      }
+    }
+    break;
+  case CAN::SERVO_CONFIG_SET_PROFILE_VELOCITY:
+    if (data[1] < 0 || data[1] > UINT16_MAX) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    {
+      const uint16_t old_profile_velocity = servo.profile_velocity_;
+      servo.profile_velocity_ = data[1];
+      if (!setProfileVelocity(servo_index)) {
+        servo.profile_velocity_ = old_profile_velocity;
+        return CAN::SERVO_CONFIG_RESULT_INVALID;
+      }
+    }
+    break;
+  case CAN::SERVO_CONFIG_SET_SEND_DATA_FLAG:
+    if (data[1] != 0 && data[1] != 1) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    servo.send_data_flag_ = data[1];
+    break;
+  case CAN::SERVO_CONFIG_SET_CURRENT_LIMIT:
+    if (servo.torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    if (data[1] < 0 || data[1] > UINT16_MAX) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    {
+      const uint16_t old_current_limit = servo.current_limit_;
+      servo.current_limit_ = data[1];
+      if (!setCurrentLimit(servo_index)) {
+        servo.current_limit_ = old_current_limit;
+        return CAN::SERVO_CONFIG_RESULT_INVALID;
+      }
+    }
+    return CAN::SERVO_CONFIG_RESULT_OK;
+  case CAN::SERVO_CONFIG_SET_EXTERNAL_ENCODER_FLAG:
+    if (servo.torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    if (data[1] != 0 && data[1] != 1) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    servo.external_encoder_flag_ = data[1];
+    servo.first_get_pos_flag_ = true;
+    if (!servo.external_encoder_flag_) {
+      servo.joint_resolution_ = 1;
+      servo.servo_resolution_ = 1;
+      servo.resolution_ratio_ = 1;
+    }
+    break;
+  case CAN::SERVO_CONFIG_SET_RESOLUTION_RATIO:
+    if (servo.torque_enable_) return CAN::SERVO_CONFIG_RESULT_BUSY;
+    if (data[1] <= 0 || data[1] >= UINT16_MAX ||
+        data[2] <= 0 || data[2] >= UINT16_MAX) {
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+    servo.joint_resolution_ = data[1];
+    servo.servo_resolution_ = data[2];
+    servo.resolution_ratio_ = static_cast<float>(servo.servo_resolution_) /
+                              servo.joint_resolution_;
+    servo.hardware_error_status_ &= ~(1U << RESOLUTION_RATIO_ERROR);
+    servo.first_get_pos_flag_ = true;
+    break;
+  default:
+    return CAN::SERVO_CONFIG_RESULT_INVALID;
+  }
+
+  copyServoToFlashConfig(servo, *config);
+  Flashmemory::erase();
+  Flashmemory::write();
+  return CAN::SERVO_CONFIG_RESULT_OK;
+}
+
+void DynamixelSerial::updateTargetWatchdogs(uint32_t now_ms)
+{
+  if (target_watchdog_timeout_ms_ == 0) return;
+
+  bool zero_write_required = false;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    ServoData& servo = servo_[i];
+    const bool watched_mode =
+      servo.mode_ == NEURON_SERVO_MODE_DV ||
+      servo.mode_ == NEURON_SERVO_MODE_DC ||
+      servo.mode_ == NEURON_SERVO_MODE_MIT;
+    if (!watched_mode || !servo.target_received_ ||
+        now_ms - servo.last_target_tick_ < target_watchdog_timeout_ms_ ||
+        servo.watchdog_timed_out_) continue;
+
+    servo.watchdog_timed_out_ = true;
+    servo.goal_velocity_ = 0;
+    servo.goal_current_ = 0;
+    zero_write_required = true;
+  }
+#ifdef STM32G4
+  if (zero_write_required) {
+    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_COMMAND, 0));
+  }
+#else
+  (void)zero_write_required;
+#endif
+}
+
+int16_t DynamixelSerial::calculateMITGoalCurrent(
+  const ServoData& servo) const
+{
+  if (servo.first_get_pos_flag_ || !servo.target_received_ ||
+      servo.watchdog_timed_out_) return 0;
+
+  const int64_t kp_scaled =
+    static_cast<int64_t>(servo.kp_integer_) * NEURON_MIT_GAIN_SCALE +
+    servo.kp_decimal_;
+  const int64_t kd_scaled =
+    static_cast<int64_t>(servo.kd_integer_) * NEURON_MIT_GAIN_SCALE +
+    servo.kd_decimal_;
+  const int64_t current_scaled =
+    static_cast<int64_t>(servo.goal_current_) * NEURON_MIT_GAIN_SCALE +
+    kp_scaled * (static_cast<int64_t>(servo.goal_position_) -
+                 servo.present_position_) +
+    kd_scaled * (static_cast<int64_t>(servo.goal_velocity_) -
+                 servo.present_velocity_);
+  return clampGoalCurrent(
+    symmetricDivide(current_scaled, NEURON_MIT_GAIN_SCALE),
+    servo.current_limit_);
 }
 
 void DynamixelSerial::update()
 {
   uint32_t current_time = HAL_GetTick();
+  updateTargetWatchdogs(current_time);
 
+#ifdef STM32G4
+  bool run_target_cycle = false;
+  taskENTER_CRITICAL();
+  if (target_cycle_pending_) {
+    target_cycle_pending_ = false;
+    run_target_cycle = true;
+  }
+  taskEXIT_CRITICAL();
+
+  if (run_target_cycle) {
+    if (mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+
+    // The CAN target is the external 200 Hz time base. Read the feedback
+    // used by this cycle first, then compute/write the mode-aware goal.
+    if (ttl_rs485_mixed_ != 0) {
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        cmdReadPresentCVP(i);
+        readStatusPacket(INST_GET_PRESENT_CVP);
+      }
+    } else {
+      cmdSyncReadPresentCVP(true);
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        readStatusPacket(INST_GET_PRESENT_CVP);
+      }
+    }
+    cmdBulkWriteGoalStates();
+
+    if (mutex_ != NULL) osMutexRelease(*mutex_);
+    get_pos_tick_ = HAL_GetTick();
+
+    taskENTER_CRITICAL();
+    target_cycle_complete_ = true;
+    taskEXIT_CRITICAL();
+    return;
+  }
+
+  // Keep monitoring before targets start and after the 200 Hz clock stops.
+  if (current_time - get_pos_tick_ > CONTROL_CYCLE_DU) {
+    get_pos_tick_ = current_time;
+    if (ttl_rs485_mixed_ != 0) {
+      for (unsigned int i = 0; i < servo_num_; ++i) {
+        instruction_buffer_.push(
+          std::make_pair(INST_GET_PRESENT_CVP, i));
+      }
+    } else {
+      instruction_buffer_.push(
+        std::make_pair(INST_GET_PRESENT_CVP, 0));
+    }
+  }
+#else
   /* send position command to servo */
   if(current_time >= set_command_tick_ + SET_COMMAND_DU && SET_COMMAND_DU > 0) {
     if (set_command_tick_ == 0) set_command_tick_ = current_time + SET_COMMAND_OFFSET; // init
@@ -242,6 +891,7 @@ void DynamixelSerial::update()
       instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_POS, 0));
     }
   }
+#endif
 
   /* read servo load */
   if(current_time >= get_load_tick_ + GET_LOAD_DU && GET_LOAD_DU > 0) {
@@ -334,13 +984,18 @@ void DynamixelSerial::update()
       if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
       /* set command */
-      switch (instruction.first) {
-      case INST_SET_GOAL_COMMAND: /* send angle and current command to servo */
-        cmdSyncWriteGoalPosition();
-        cmdSyncWriteGoalCurrent();
-        break;
+	      switch (instruction.first) {
+	      case INST_SET_GOAL_COMMAND: /* send position and current */
+#ifdef STM32G4
+	        cmdBulkWriteGoalStates();
+#else
+	        cmdSyncWriteGoalPosition();
+	        cmdSyncWriteGoalCurrent();
+#endif
+	        break;
       case INST_SET_TORQUE: /* send torque enable flag */
-        cmdWriteTorqueEnable(servo_index);
+        cmdWriteTorqueEnableWithLED(
+          servo_index, servo_[servo_index].torque_enable_);
         break;
       case INST_SET_HOMING_OFFSET:
         cmdWriteHomingOffset(servo_index);
@@ -361,6 +1016,12 @@ void DynamixelSerial::update()
       /* get command */
       if (ttl_rs485_mixed_ != 0) {
         switch (instruction.first) {
+        case INST_GET_PRESENT_CVP:
+          if(!servo_[servo_index].send_data_flag_ &&
+             !servo_[servo_index].first_get_pos_flag_) break;
+          cmdReadPresentCVP(servo_index);
+          readStatusPacket(instruction.first);
+          break;
         case INST_GET_PRESENT_POS: /* read servo position(angle) */
           if(!servo_[servo_index].send_data_flag_ && !servo_[servo_index].first_get_pos_flag_) break;
           cmdReadPresentPosition(servo_index);
@@ -415,6 +1076,10 @@ void DynamixelSerial::update()
         }
       } else {
         switch (instruction.first) {
+        case INST_GET_PRESENT_CVP:
+          cmdSyncReadPresentCVP(false);
+          read_status_packet_flag = true;
+          break;
         case INST_GET_PRESENT_POS: /* read servo position(angle) */
           cmdSyncReadPresentPosition(false);
           read_status_packet_flag = true;
@@ -532,11 +1197,11 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	uint8_t rx_data;
 	int header_match_count = 0;
 	uint16_t parameter_len = 0;
-	uint8_t parameters[STATUS_PACKET_SIZE];
+	uint8_t parameters[STATUS_PACKET_SIZE] = {};
 	int parameter_index = 0;
 	int parameter_loop_count = 0;
 	uint16_t checksum = 0;
-	uint8_t receive_data[STATUS_PACKET_SIZE];
+	uint8_t receive_data[STATUS_PACKET_SIZE] = {};
 	bool read_end_flag = false;
 	int loop_count = 0;
 	uint8_t servo_id;
@@ -585,6 +1250,8 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			break;
 		case READ_LENH:
 			parameter_len |= ((rx_data << 8) & 0xFF00);
+			if (parameter_len < 4 ||
+			    parameter_len > STATUS_PACKET_SIZE - 2) return -1;
 			status_stage++;
 			break;
 		case READ_INSTRUCTION:
@@ -602,6 +1269,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			}
 			break;
 		case READ_PARAMETER:
+			if (parameter_index >= STATUS_PACKET_SIZE) return -1;
 			//process for exception
 			if (header_match_count == 0) {
 				if (rx_data == HEADER0) header_match_count++;
@@ -646,6 +1314,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			return -1;
 		}
 		if (status_stage > READ_HEADER0 && status_stage != READ_CHECKSUMH) {
+			if (loop_count >= STATUS_PACKET_SIZE) return -1;
 			receive_data[loop_count] = rx_data;
 			loop_count++;
 		}
@@ -662,11 +1331,37 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	/* read success */
 	switch (status_packet_instruction) {
 	case INST_PING:
+		if (s != servo_.end()) return 0;
+		if (servo_num_ >= MAX_SERVO_NUM) return -1;
 		servo_[servo_num_++].id_ = servo_id;
 	    return 0;
+	case INST_GET_PRESENT_CVP:
 	case INST_GET_PRESENT_POS:
 	{
-		int32_t present_position = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
+                const uint8_t position_offset =
+                  status_packet_instruction == INST_GET_PRESENT_CVP ? 6 : 0;
+		if (parameter_index < position_offset + PRESENT_POSITION_BYTE_LEN) {
+		  return -1;
+		}
+		if (s != servo_.end() &&
+                    status_packet_instruction == INST_GET_PRESENT_CVP) {
+                  s->present_current_ =
+                    static_cast<int16_t>(
+                      static_cast<uint16_t>(parameters[0]) |
+                      (static_cast<uint16_t>(parameters[1]) << 8));
+                  s->present_velocity_ =
+                    static_cast<int32_t>(
+                      static_cast<uint32_t>(parameters[2]) |
+                      (static_cast<uint32_t>(parameters[3]) << 8) |
+                      (static_cast<uint32_t>(parameters[4]) << 16) |
+                      (static_cast<uint32_t>(parameters[5]) << 24));
+                }
+		int32_t present_position =
+                  static_cast<int32_t>(
+                    static_cast<uint32_t>(parameters[position_offset]) |
+                    (static_cast<uint32_t>(parameters[position_offset + 1]) << 8) |
+                    (static_cast<uint32_t>(parameters[position_offset + 2]) << 16) |
+                    (static_cast<uint32_t>(parameters[position_offset + 3]) << 24));
 		if (s != servo_.end()) {
                   s->hardware_error_status_ &= ((1 << ENCODER_CONNECT_ERROR) - 1); // &= 0b01111111
                   if(s->external_encoder_flag_) {
@@ -720,51 +1415,63 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                   if (!s->torque_enable_) {
                     s->goal_position_ = (present_position + s->internal_offset_) / s->resolution_ratio_;
                   }
+                  if (status_packet_instruction == INST_GET_PRESENT_CVP) {
+                    ++s->pvc_update_count_;
+                  }
 		}
                 return 0;
 	}
 	case INST_GET_PRESENT_CURRENT:
+		if (parameter_index < PRESENT_CURRENT_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->present_current_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
 		return 0;
 	case INST_GET_PRESENT_TEMPERATURE:
+		if (parameter_index < PRESENT_TEMPERATURE_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->present_temp_ = parameters[0];
 		}
 		return 0;
 	case INST_GET_PRESENT_MOVING:
+		if (parameter_index < MOVING_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->moving_ = parameters[0];
 		}
 		return 0;
 	case INST_GET_MODEL_NUMBER:
+		if (parameter_index < MODEL_NUMBER_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->model_number_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
 		return 0;
 	case INST_GET_OPERATING_MODE:
+		if (parameter_index < OPERATING_MODE_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->operating_mode_ = parameters[0];
 		}
 		return 0;
 	case INST_GET_HOMING_OFFSET:
+		if (parameter_index < HOMING_OFFSET_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->homing_offset_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
 		return 0;
 	case INST_GET_HARDWARE_ERROR_STATUS:
+		if (parameter_index < HARDWARE_ERROR_STATUS_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
                   s->hardware_error_status_ &=  ((1 << PULLEY_SKIP_ERROR) + (1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000010;
                   s->hardware_error_status_ |= parameters[0];
 		}
 		return 0;
 	case INST_GET_CURRENT_LIMIT:
+		if (parameter_index < CURRENT_LIMIT_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->current_limit_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
 		return 0;
 	case INST_GET_POSITION_GAINS:
+		if (parameter_index < POSITION_GAINS_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->d_gain_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 			s->i_gain_ = ((parameters[3] << 8) & 0xFF00) | (parameters[2] & 0xFF);
@@ -772,6 +1479,7 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 		}
 		return 0;
 	case INST_GET_PROFILE_VELOCITY:
+		if (parameter_index < PROFILE_VELOCITY_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->profile_velocity_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
@@ -890,6 +1598,11 @@ void DynamixelSerial::cmdReadPresentPosition(uint8_t servo_index)
 	cmdRead(servo_[servo_index].id_, CTRL_PRESENT_POSITION, PRESENT_POSITION_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdReadPresentCVP(uint8_t servo_index)
+{
+	cmdRead(servo_[servo_index].id_, CTRL_PRESENT_CURRENT, PRESENT_CVP_BYTE_LEN);
+}
+
 void DynamixelSerial::cmdReadPresentTemperature(uint8_t servo_index)
 {
 	cmdRead(servo_[servo_index].id_, CTRL_PRESENT_TEMPERATURE, PRESENT_TEMPERATURE_BYTE_LEN);
@@ -945,6 +1658,13 @@ void DynamixelSerial::cmdWriteProfileVelocity(uint8_t servo_index)
 	cmdWrite(servo_[servo_index].id_, CTRL_PROFILE_VELOCITY, parameters, PROFILE_VELOCITY_BYTE_LEN);
 }
 
+void DynamixelSerial::cmdWriteOperatingMode(uint8_t servo_index,
+                                            uint8_t operating_mode)
+{
+	cmdWrite(servo_[servo_index].id_, CTRL_OPERATING_MODE, &operating_mode,
+	         OPERATING_MODE_BYTE_LEN);
+}
+
 void DynamixelSerial::cmdWriteStatusReturnLevel(uint8_t id, uint8_t set)
 {
 	uint8_t param = set;
@@ -955,6 +1675,16 @@ void DynamixelSerial::cmdWriteTorqueEnable(uint8_t servo_index)
 {
 	uint8_t	parameter = (uint8_t)((servo_[servo_index].torque_enable_) ? 1 : 0);
 	cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, &parameter, TORQUE_ENABLE_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdWriteTorqueEnableWithLED(uint8_t servo_index,
+                                                  bool torque_enable)
+{
+  const uint8_t enable_value = torque_enable ? 1U : 0U;
+  uint8_t parameters[TORQUE_LED_BYTE_LEN] = {enable_value, enable_value};
+  servo_[servo_index].led_ = torque_enable;
+  cmdWrite(servo_[servo_index].id_, CTRL_TORQUE_ENABLE, parameters,
+           TORQUE_LED_BYTE_LEN);
 }
 
 void DynamixelSerial::cmdWriteGoalCurrent(uint8_t servo_index)
@@ -1011,6 +1741,11 @@ void DynamixelSerial::cmdSyncReadPresentPosition(bool send_all)
 	cmdSyncRead(CTRL_PRESENT_POSITION, PRESENT_POSITION_BYTE_LEN, send_all);
 }
 
+void DynamixelSerial::cmdSyncReadPresentCVP(bool send_all)
+{
+	cmdSyncRead(CTRL_PRESENT_CURRENT, PRESENT_CVP_BYTE_LEN, send_all);
+}
+
 void DynamixelSerial::cmdSyncReadPresentTemperature(bool send_all)
 {
 	cmdSyncRead(CTRL_PRESENT_TEMPERATURE, PRESENT_TEMPERATURE_BYTE_LEN, send_all);
@@ -1034,6 +1769,67 @@ void DynamixelSerial::cmdSyncWriteGoalPosition()
 	}
 
 	cmdSyncWrite(CTRL_GOAL_POSITION, parameters, GOAL_POSITION_BYTE_LEN);
+}
+
+void DynamixelSerial::cmdBulkWriteGoalStates()
+{
+	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
+	int param_idx = 0;
+	auto appendValue = [&parameters, &param_idx](
+	  uint8_t id, uint16_t address, uint16_t data_length, uint32_t value) {
+	  if (param_idx + 5 + data_length > INSTRUCTION_PACKET_SIZE) return false;
+	  parameters[param_idx++] = id;
+	  parameters[param_idx++] = address & 0xFF;
+	  parameters[param_idx++] = (address >> 8) & 0xFF;
+	  parameters[param_idx++] = data_length & 0xFF;
+	  parameters[param_idx++] = (data_length >> 8) & 0xFF;
+	  for (uint16_t byte = 0; byte < data_length; ++byte) {
+	    parameters[param_idx++] = (value >> (8 * byte)) & 0xFF;
+	  }
+	  return true;
+	};
+
+	for (uint8_t i = 0; i < servo_num_; ++i) {
+	  ServoData& servo = servo_[i];
+	  if (!servo.configured()) continue;
+	  bool appended = false;
+	  switch (servo.mode_) {
+	  case NEURON_SERVO_MODE_DP:
+	  case NEURON_SERVO_MODE_DEP:
+	    appended = appendValue(
+	      servo.id_, CTRL_GOAL_POSITION, GOAL_POSITION_BYTE_LEN,
+	      static_cast<uint32_t>(servo.getInternalGoalPosition()));
+	    break;
+	  case NEURON_SERVO_MODE_DV:
+	    appended = appendValue(
+	      servo.id_, CTRL_GOAL_VELOCITY, GOAL_VELOCITY_BYTE_LEN,
+	      static_cast<uint32_t>(
+	        (!servo.target_received_ || servo.watchdog_timed_out_)
+	          ? 0 : servo.goal_velocity_));
+	    break;
+	  case NEURON_SERVO_MODE_DC:
+	    appended = appendValue(
+	      servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
+	      static_cast<uint16_t>(
+	        (!servo.target_received_ || servo.watchdog_timed_out_)
+	          ? 0 : clampGoalCurrent(servo.goal_current_,
+	                                 servo.current_limit_)));
+	    break;
+	  case NEURON_SERVO_MODE_MIT:
+	    appended = appendValue(
+	      servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
+	      static_cast<uint16_t>(calculateMITGoalCurrent(servo)));
+	    break;
+	  default:
+	    return;
+	  }
+	  if (!appended) return;
+	}
+
+	if (param_idx != 0) {
+	  transmitInstructionPacket(
+	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);
+	}
 }
 
 void DynamixelSerial::cmdSyncWriteGoalCurrent()
