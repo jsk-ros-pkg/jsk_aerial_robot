@@ -17,6 +17,15 @@ H7_NODE_HANDLE = (
 H7_V2_NODE_HANDLE = (
     SPINAL_DIR / 'mcu_project/boards/stm32H7_v2/ros_lib/ros/node_handle.h'
 ).read_text()
+H7_MAIN = (
+    SPINAL_DIR / 'mcu_project/boards/stm32H7/Src/main.c'
+).read_text()
+H7_V2_MAIN = (
+    SPINAL_DIR / 'mcu_project/boards/stm32H7_v2/Src/main.c'
+).read_text()
+DIRECT_SERVO_HEADER = (
+    SPINAL_DIR / 'mcu_project/lib/Jsk_Lib/servo/servo.h'
+).read_text()
 SERVO_BRIDGE_CPP = (
     SPINAL_DIR.parents[1] /
     'aerial_robot_model/src/servo_bridge/servo_bridge.cpp'
@@ -51,8 +60,25 @@ class UnifiedServoRosOwnerTest(unittest.TestCase):
             'req.board_id == CAN::MASTER_ID', SPINE_CPP)
         self.assertIn('requestConfigByIndex', SPINE_CPP)
 
-    def test_empty_spinal_board_accepts_board_level_configuration(self):
-        self.assertIn('configureEmptyDirectServoBoard', SPINE_CPP)
+    def test_empty_spinal_board_reports_startup_snapshot(self):
+        self.assertIn('DirectServoBoardSettings', DIRECT_SERVO_HEADER)
+        self.assertIn('getBoardSettings()', DIRECT_SERVO_HEADER)
+        self.assertIn('direct_servo_settings_', SPINE_CPP)
+        for main in (H7_MAIN, H7_V2_MAIN):
+            self.assertIn('servo_.getBoardSettings()', main)
+            self.assertIn('&direct_servo_settings', main)
+
+    def test_empty_spinal_board_rejects_configuration(self):
+        self.assertNotIn('configureEmptyDirectServoBoard', SPINE_CPP)
+        callback = SPINE_CPP.split('void servoConfigCallback', 1)[1]
+        callback = callback.split('\n  bool init(', 1)[0]
+        self.assertIn('if (direct_servo_ == nullptr) return;', callback)
+
+    def test_startup_configuration_skips_boards_without_servos(self):
+        self.assertGreaterEqual(
+            SERVO_BRIDGE_CPP.count(
+                'if (detected_board.servos.empty()) continue;'),
+            3)
 
     def test_neuron_servo_configuration_does_not_pause_all_can_tx(self):
         callback = SPINE_CPP.split('void servoConfigCallback', 1)[1]
@@ -83,9 +109,14 @@ class UnifiedServoRosOwnerTest(unittest.TestCase):
         self.assertIn('direct_servo_config_timer_', SERVO_BRIDGE_CPP)
         self.assertNotIn('direct_servo_config_retry_interval',
                          SERVO_BRIDGE_CPP)
-        self.assertIn('direct_servo_config_call_interval', SERVO_BRIDGE_CPP)
-        self.assertIn('ros::WallDuration(call_interval).sleep()',
+        self.assertIn('DIRECT_SERVO_CONFIG_CALL_INTERVAL = 0.02',
                       SERVO_BRIDGE_CPP)
+        self.assertIn('DIRECT_SERVO_CONFIG_STARTUP_DELAY = 1.0',
+                      SERVO_BRIDGE_CPP)
+        self.assertNotIn('param("direct_servo_config_call_interval"',
+                         SERVO_BRIDGE_CPP)
+        self.assertNotIn('param("direct_servo_config_startup_delay"',
+                         SERVO_BRIDGE_CPP)
 
     def test_startup_configuration_does_not_gate_control(self):
         self.assertNotIn('disableServoTorqueForConfiguration',

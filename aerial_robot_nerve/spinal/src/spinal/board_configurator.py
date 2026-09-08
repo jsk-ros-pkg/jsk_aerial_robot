@@ -1,5 +1,5 @@
 import os
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 import rospy
 import rospkg
@@ -23,12 +23,14 @@ SERVO_MODE_NAMES = {
     ServoInfo.MODE_MIT: 'MIT',
     ServoInfo.MODE_EM: 'EM',
     ServoInfo.MODE_DEP: 'DEP',
+    ServoInfo.MODE_CBP: 'CbP',
 }
 SERVO_INTERNAL_MODE_NAMES = {
     ServoInfo.SERVO_MODE_CURRENT: 'Current',
     ServoInfo.SERVO_MODE_VELOCITY: 'Velocity',
     ServoInfo.SERVO_MODE_POSITION: 'Position',
     ServoInfo.SERVO_MODE_EXTENDED_POSITION: 'Extended Position',
+    ServoInfo.SERVO_MODE_CURRENT_BASED_POSITION: 'Current-based Position',
     ServoInfo.SERVO_MODE_UNKNOWN: 'Unknown',
 }
 SERVO_BUS_NAMES = {
@@ -44,7 +46,7 @@ ADDRESSED_SERVO_CONFIG_PARAMS = {
     'servo_target_watchdog',
     'bus_type',
     'mode',
-    'mit_pd',
+    'mit_pd_si',
     'pid_gain',
     'profile_velocity',
     'send_data_flag',
@@ -57,7 +59,7 @@ ADDRESSED_SERVO_CONFIG_PARAMS = {
 TORQUE_OFF_SERVO_CONFIG_PARAMS = {
     'bus_type',
     'mode',
-    'mit_pd',
+    'mit_pd_si',
     'pid_gain',
     'current_limit',
     'external_encoder_flag',
@@ -67,10 +69,11 @@ TORQUE_OFF_SERVO_CONFIG_PARAMS = {
 
 def parse_servo_mode(text):
     mode = text.strip().upper()
-    values = {name: value for value, name in SERVO_MODE_NAMES.items()
+    values = {name.upper(): value
+              for value, name in SERVO_MODE_NAMES.items()
               if value != ServoInfo.MODE_EM}
     if mode not in values:
-        raise ValueError('Input one of DP, DEP, DV, DC or MIT')
+        raise ValueError('Input one of DP, DEP, DV, DC, MIT or CbP')
     return values[mode]
 
 
@@ -83,32 +86,85 @@ def parse_servo_bus(text):
     raise ValueError('Input R/RS485 or T/TTL')
 
 
-def parse_mit_gain(text):
+def parse_non_negative_decimal(text, name):
     try:
-        gain = Decimal(text.strip())
-    except InvalidOperation:
-        raise ValueError('Input a non-negative gain with at most 4 decimals')
-    if not gain.is_finite() or gain < 0:
-        raise ValueError('Input a non-negative finite gain')
-    scaled = gain * ServoInfo.GAIN_DECIMAL_SCALE
-    if scaled != scaled.to_integral_value():
-        raise ValueError('MIT gain supports at most 4 decimal places')
-    scaled = int(scaled)
+        value = Decimal(str(text).strip())
+    except (InvalidOperation, ValueError):
+        raise ValueError('{} must be a number'.format(name))
+    if not value.is_finite() or value < 0:
+        raise ValueError('{} must be non-negative and finite'.format(name))
+    return value
+
+
+def encode_mit_raw_gain(raw_gain, name):
+    raw_gain = parse_non_negative_decimal(raw_gain, name)
+    scale = ServoInfo.GAIN_DECIMAL_SCALE
+    scaled = int((raw_gain * scale).to_integral_value(
+        rounding=ROUND_HALF_UP))
+    maximum = 32767 * scale + scale - 1
+    if scaled > maximum:
+        raise ValueError('{} exceeds the MCU MIT gain range'.format(name))
     integer = scaled // ServoInfo.GAIN_DECIMAL_SCALE
     decimal = scaled % ServoInfo.GAIN_DECIMAL_SCALE
-    if integer > 32767:
-        raise ValueError('MIT gain integer part exceeds int16 range')
     return integer, decimal
 
 
-def format_mit_gain(integer, decimal):
-    return '{}.{:04d}'.format(integer, decimal)
+def controller_mit_scales(controller, group):
+    def inherited_value(name, default=None):
+        if name in controller:
+            return controller[name]
+        return group.get(name, default)
 
-def parse_mit_pd(text):
+    angle_scale = inherited_value('angle_scale')
+    velocity_scale = inherited_value('velocity_scale')
+    torque_scale = inherited_value('torque_scale', 1.0)
+    if angle_scale is None or velocity_scale is None:
+        return None
+    try:
+        scales = {
+            'angle': Decimal(str(angle_scale)),
+            'velocity': Decimal(str(velocity_scale)),
+            'torque': Decimal(str(torque_scale)),
+        }
+    except (InvalidOperation, ValueError):
+        return None
+    if any(not value.is_finite() or value <= 0
+           for value in scales.values()):
+        return None
+    return scales
+
+
+def mit_pd_raw_to_si(kp_integer, kp_decimal, kd_integer, kd_decimal,
+                     scales):
+    # BoardInfo transports the raw current/position and current/velocity
+    # gains used by the MCU.  Board Configurator presents the equivalent
+    # joint-side SI gains using the same scales as servo_bridge.
+    gain_scale = Decimal(ServoInfo.GAIN_DECIMAL_SCALE)
+    kp_raw = ((Decimal(kp_integer) * gain_scale + Decimal(kp_decimal)) /
+              gain_scale)
+    kd_raw = ((Decimal(kd_integer) * gain_scale + Decimal(kd_decimal)) /
+              gain_scale)
+    return (kp_raw * scales['torque'] / scales['angle'],
+            kd_raw * scales['torque'] / scales['velocity'])
+
+
+def format_mit_pd_si(kp_integer, kp_decimal, kd_integer, kd_decimal,
+                     scales):
+    kp_si, kd_si = mit_pd_raw_to_si(
+        kp_integer, kp_decimal, kd_integer, kd_decimal, scales)
+    return '{:.4f}, {:.4f}'.format(kp_si, kd_si)
+
+
+def parse_mit_pd_si(text, scales):
     values = text.split(',')
     if len(values) != 2:
-        raise ValueError('Input MIT Kp and Kd separated by a comma')
-    return parse_mit_gain(values[0]), parse_mit_gain(values[1])
+        raise ValueError('Input MIT Kp_si and Kd_si separated by a comma')
+    kp_si = parse_non_negative_decimal(values[0], 'MIT Kp_si')
+    kd_si = parse_non_negative_decimal(values[1], 'MIT Kd_si')
+    return (encode_mit_raw_gain(
+                kp_si * scales['angle'] / scales['torque'], 'MIT Kp_raw'),
+            encode_mit_raw_gain(
+                kd_si * scales['velocity'] / scales['torque'], 'MIT Kd_raw'))
 
 
 class BoardConfigurator(Plugin):
@@ -180,13 +236,20 @@ class BoardConfigurator(Plugin):
         context.add_widget(self._widget)
 
         self.joint_id_name_map = {}
+        self.joint_id_mit_scale_map = {}
         try:
             param_tree = rospy.get_param(robot_ns + "/servo_controller")
 
             for key in param_tree.keys():
                 if isinstance(param_tree[key], dict):
                     for elem in [l for l in param_tree[key].keys() if 'controller' in l]:
-                        self.joint_id_name_map[param_tree[key][elem]['id']] = param_tree[key][elem]['name']
+                        controller = param_tree[key][elem]
+                        servo_id = controller['id']
+                        self.joint_id_name_map[servo_id] = controller['name']
+                        scales = controller_mit_scales(
+                            controller, param_tree[key])
+                        if scales is not None:
+                            self.joint_id_mit_scale_map[servo_id] = scales
         except:
             rospy.loginfo("robot info not found")
 
@@ -233,6 +296,8 @@ class BoardConfigurator(Plugin):
                 board.appendRow([QStandardItem('servo_target_watchdog'), QStandardItem(str(b.servo_target_watchdog_timeout))])
                 servos = QStandardItem('servo (' + str(len(b.servos)) + ')')
                 for j, s in enumerate(b.servos):
+                    mit_scales = self.joint_id_mit_scale_map.get(
+                        servo_serial_index)
                     servo = QStandardItem(str(j))
                     servo.appendRow([QStandardItem('servo_id'), QStandardItem(str(s.id))])
                     servo.appendRow([QStandardItem('servo_serial_index'), QStandardItem(str(servo_serial_index))])
@@ -243,9 +308,12 @@ class BoardConfigurator(Plugin):
                     servo.appendRow([QStandardItem('mode'), QStandardItem(SERVO_MODE_NAMES.get(s.mode, 'Unknown'))])
                     servo.appendRow([QStandardItem('servo_mode'), QStandardItem(SERVO_INTERNAL_MODE_NAMES.get(s.servo_mode, 'Unknown'))])
                     servo.appendRow([
-                        QStandardItem('mit_pd'),
-                        QStandardItem('{}, {}'.format(
-                            format_mit_gain(s.kp_integer, s.kp_decimal), format_mit_gain(s.kd_integer, s.kd_decimal)))])
+                        QStandardItem('mit_pd_si'),
+                        QStandardItem(
+                            format_mit_pd_si(
+                                s.kp_integer, s.kp_decimal,
+                                s.kd_integer, s.kd_decimal, mit_scales)
+                            if mit_scales is not None else 'N/A')])
                     servo.appendRow([QStandardItem('pid_gain'), QStandardItem(str(s.p_gain) + ', ' + str(s.i_gain) + ', ' + str(s.d_gain))])
                     servo.appendRow([QStandardItem('profile_velocity'), QStandardItem(str(s.profile_velocity))])
                     servo.appendRow([QStandardItem('send_data_flag'), QStandardItem(str(bool(s.send_data_flag)))])
@@ -276,7 +344,7 @@ class BoardConfigurator(Plugin):
                             'servo_pulley_skip_thresh',
                             'servo_feedback_frequency',
                             'servo_target_watchdog']
-        servo_param_list = ['bus_type', 'mode', 'mit_pd',
+        servo_param_list = ['bus_type', 'mode', 'mit_pd_si',
                             'pid_gain', 'profile_velocity',
                             'current_limit', 'send_data_flag',
                             'external_encoder_flag',
@@ -391,9 +459,16 @@ class BoardConfigurator(Plugin):
                 rospy.logerr(str(e))
                 return
             req.command = req.SET_SERVO_CONTROL_MODE
-        elif self._command == 'mit_pd':
+        elif self._command == 'mit_pd_si':
             try:
-                kp, kd = parse_mit_pd(self._widget.lineEdit.text())
+                mit_scales = self.joint_id_mit_scale_map.get(
+                    self._current_servo_serial_index)
+                if mit_scales is None:
+                    raise ValueError(
+                        'MIT SI conversion requires positive angle_scale, '
+                        'velocity_scale and torque_scale')
+                kp, kd = parse_mit_pd_si(
+                    self._widget.lineEdit.text(), mit_scales)
                 req.data.extend([
                     kp[0], kp[1], kd[0], kd[1]])
             except ValueError as e:

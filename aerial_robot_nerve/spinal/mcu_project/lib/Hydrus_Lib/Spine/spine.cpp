@@ -19,9 +19,7 @@ namespace Spine
     CANInitializer can_initializer_(neuron_);
     std::vector<float> imu_weight_;
     DirectServo* direct_servo_ = nullptr;
-    uint8_t master_servo_mixed_ = 0;
-    uint16_t master_servo_feedback_frequency_ = 0;
-    uint32_t master_servo_watchdog_ms_ = 0;
+    DirectServoBoardSettings direct_servo_settings_;
 
     uint8_t slave_num_ = 0;
     uint8_t direct_servo_num_ = 0;
@@ -74,36 +72,16 @@ namespace Spine
     {
       board.slave_id = CAN::MASTER_ID;
       board.imu_send_data_flag = 1;
-      board.dynamixel_ttl_rs485_mixed = master_servo_mixed_;
+      board.dynamixel_ttl_rs485_mixed =
+        direct_servo_settings_.dynamixel_ttl_rs485_mixed;
       board.servo_pulley_skip_thresh = 0;
-      board.servo_feedback_frequency = master_servo_feedback_frequency_;
+      board.servo_feedback_frequency =
+        direct_servo_settings_.servo_feedback_frequency;
       board.servo_target_watchdog_timeout =
-        static_cast<float>(master_servo_watchdog_ms_) / 1000.0f;
+        static_cast<float>(
+          direct_servo_settings_.servo_target_watchdog_timeout_ms) /
+        1000.0f;
       if (direct_servo_ != nullptr) direct_servo_->fillBoardInfo(board);
-    }
-
-    bool configureEmptyDirectServoBoard(
-      const spinal::SetDirectServoConfig::Request& req)
-    {
-      if (req.data_length != 1) return false;
-
-      switch (req.command) {
-      case spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED:
-        if (req.data[0] != 0 && req.data[0] != 1) return false;
-        master_servo_mixed_ = static_cast<uint8_t>(req.data[0]);
-        return true;
-      case spinal::SetDirectServoConfig::Request::SET_SERVO_FEEDBACK_FREQUENCY:
-        if (req.data[0] <= 0 || req.data[0] > 200) return false;
-        master_servo_feedback_frequency_ =
-          static_cast<uint16_t>(req.data[0]);
-        return true;
-      case spinal::SetDirectServoConfig::Request::SET_SERVO_TARGET_WATCHDOG_TIMEOUT:
-        if (req.data[0] < 0 || req.data[0] > 60000) return false;
-        master_servo_watchdog_ms_ = static_cast<uint32_t>(req.data[0]);
-        return true;
-      default:
-        return false;
-      }
     }
 
     bool setDirectServoTargets(
@@ -286,20 +264,17 @@ namespace Spine
 	    const bool board_command =
 	      req.command == spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED ||
 	      req.command == spinal::SetDirectServoConfig::Request::SET_SERVO_FEEDBACK_FREQUENCY ||
-	      req.command == spinal::SetDirectServoConfig::Request::SET_SERVO_TARGET_WATCHDOG_TIMEOUT;
+      req.command == spinal::SetDirectServoConfig::Request::SET_SERVO_TARGET_WATCHDOG_TIMEOUT;
 
       if (req.board_id == CAN::MASTER_ID) {
-        if (direct_servo_ != nullptr) {
-          res.success = board_command
-            ? direct_servo_->requestConfig(
-                req.command, req.data,
-                static_cast<uint8_t>(req.data_length))
-            : direct_servo_->requestConfigByIndex(
-                req.servo_index, req.command, req.data,
-                static_cast<uint8_t>(req.data_length));
-        } else {
-          res.success = board_command && configureEmptyDirectServoBoard(req);
-        }
+        if (direct_servo_ == nullptr) return;
+        res.success = board_command
+          ? direct_servo_->requestConfig(
+              req.command, req.data,
+              static_cast<uint8_t>(req.data_length))
+          : direct_servo_->requestConfigByIndex(
+              req.servo_index, req.command, req.data,
+              static_cast<uint8_t>(req.data_length));
         return;
       }
 
@@ -325,7 +300,8 @@ namespace Spine
   bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh,
             StateEstimate* estimator, FlightControl* controller,
             GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin,
-            DirectServo* direct_servo)
+            DirectServo* direct_servo,
+            const DirectServoBoardSettings* direct_servo_settings)
   {
     /* CAN */
     CANDeviceManager::init(hcan, GPIOx, GPIO_Pin);
@@ -336,6 +312,8 @@ namespace Spine
     /* Control */
     controller_ = controller;
     direct_servo_ = direct_servo;
+    direct_servo_settings_ = direct_servo_settings == nullptr
+      ? DirectServoBoardSettings() : *direct_servo_settings;
     direct_servo_num_ = direct_servo_ == nullptr
       ? 0 : direct_servo_->getServoNum();
 

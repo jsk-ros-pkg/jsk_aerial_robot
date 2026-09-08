@@ -40,10 +40,10 @@ def make_neuron_response():
         bus_type=ServoInfo.BUS_TTL,
         mode=ServoInfo.MODE_MIT,
         servo_mode=ServoInfo.SERVO_MODE_CURRENT,
-        kp_integer=3,
-        kp_decimal=2500,
+        kp_integer=1,
+        kp_decimal=786,
         kd_integer=0,
-        kd_decimal=5000,
+        kd_decimal=2998,
         p_gain=1200,
         i_gain=0,
         d_gain=500,
@@ -75,12 +75,36 @@ def item_children(item):
 
 
 class NeuronServoConfigurationUiTest(unittest.TestCase):
+    def test_cbp_mode_names_and_parser(self):
+        self.assertEqual(
+            board_configurator.parse_servo_mode('CbP'),
+            ServoInfo.MODE_CBP)
+        self.assertEqual(
+            board_configurator.SERVO_MODE_NAMES[ServoInfo.MODE_CBP], 'CbP')
+        self.assertEqual(
+            board_configurator.SERVO_INTERNAL_MODE_NAMES[
+                ServoInfo.SERVO_MODE_CURRENT_BASED_POSITION],
+            'Current-based Position')
+        self.assertEqual(
+            servo_monitor.CONTROL_MODE_NAMES[ServoInfo.MODE_CBP], 'CbP')
+        self.assertEqual(
+            servo_monitor.EXPECTED_SERVO_MODE['CbP'],
+            'Current-based Position')
+
     def test_board_configurator_displays_neuron_configuration(self):
         tree = FakeTreeView()
         fake = SimpleNamespace(
             get_board_info_client_=make_neuron_response,
             _widget=SimpleNamespace(boardInfoTreeView=tree),
             joint_id_name_map={},
+            joint_id_mit_scale_map={
+                0: board_configurator.controller_mit_scales(
+                    {}, {
+                        'angle_scale': 0.001533981,
+                        'velocity_scale': 0.02398082,
+                        'torque_scale': 0.00064,
+                    })
+            },
         )
 
         board_configurator.BoardConfigurator.updateButtonCallback(fake)
@@ -100,11 +124,11 @@ class NeuronServoConfigurationUiTest(unittest.TestCase):
         self.assertEqual(servo_values['bus_type'], 'T')
         self.assertEqual(servo_values['mode'], 'MIT')
         self.assertEqual(servo_values['servo_mode'], 'Current')
-        self.assertEqual(servo_values['mit_pd'], '3.2500, 0.5000')
+        self.assertEqual(servo_values['mit_pd_si'], '0.4500, 0.0080')
 
     def test_servo_monitor_displays_neuron_configuration(self):
         headers = [
-            'torque', 'configured', 'bus', 'mode', 'servo_mode', 'mit_pd',
+            'torque', 'configured', 'bus', 'mode', 'servo_mode', 'mit_pd_raw',
             'joint name', 'board', 'index', 'id', 'angle', 'temperature',
             'load', 'error', 'pid_gains', 'profile_velocity',
             'current_limit', 'send_data_flag'
@@ -122,7 +146,8 @@ class NeuronServoConfigurationUiTest(unittest.TestCase):
         self.assertEqual(row[headers.index('bus')], 'T')
         self.assertEqual(row[headers.index('mode')], 'MIT')
         self.assertEqual(row[headers.index('servo_mode')], 'Current')
-        self.assertEqual(row[headers.index('mit_pd')], 'Kp=3.2500, Kd=0.5000')
+        self.assertEqual(
+            row[headers.index('mit_pd_raw')], 'Kp=1.0786, Kd=0.2998')
 
     def test_neuron_servo_configuration_uses_addressed_service(self):
         cases = [
@@ -130,8 +155,10 @@ class NeuronServoConfigurationUiTest(unittest.TestCase):
              [ServoInfo.BUS_TTL]),
             ('mode', 'MIT', 'SET_SERVO_CONTROL_MODE',
              [ServoInfo.MODE_MIT]),
-            ('mit_pd', '3.25, 0.5', 'SET_SERVO_MIT_PD',
-             [3, 2500, 0, 5000]),
+            ('mode', 'CbP', 'SET_SERVO_CONTROL_MODE',
+             [ServoInfo.MODE_CBP]),
+            ('mit_pd_si', '0.45, 0.008', 'SET_SERVO_MIT_PD',
+             [1, 786, 0, 2998]),
             ('pid_gain', '1200, 0, 500', 'SET_SERVO_PID_GAIN',
              [1200, 0, 500]),
             ('profile_velocity', '10', 'SET_SERVO_PROFILE_VEL', [10]),
@@ -168,6 +195,14 @@ class NeuronServoConfigurationUiTest(unittest.TestCase):
                     _raw_servo_id='2',
                     _current_servo_serial_index=0,
                     _command=command,
+                    joint_id_mit_scale_map={
+                        0: board_configurator.controller_mit_scales(
+                            {}, {
+                                'angle_scale': 0.001533981,
+                                'velocity_scale': 0.02398082,
+                                'torque_scale': 0.00064,
+                            })
+                    },
                     _widget=SimpleNamespace(
                         lineEdit=SimpleNamespace(text=lambda: text)
                     ),
@@ -220,7 +255,7 @@ class NeuronServoConfigurationUiTest(unittest.TestCase):
 
     def test_servo_monitor_neuron_calibration_uses_addressed_service(self):
         headers = [
-            'torque', 'configured', 'bus', 'mode', 'servo_mode', 'mit_pd',
+            'torque', 'configured', 'bus', 'mode', 'servo_mode', 'mit_pd_raw',
             'joint name', 'board', 'index', 'id', 'angle', 'temperature',
             'load', 'error', 'pid_gains', 'profile_velocity',
             'current_limit', 'send_data_flag'

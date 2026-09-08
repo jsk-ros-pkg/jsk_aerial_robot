@@ -27,6 +27,13 @@ namespace
     return static_cast<int16_t>(current);
   }
 
+  int16_t clampGoalCurrentMagnitude(int64_t current,
+                                    uint16_t configured_limit)
+  {
+    const int64_t magnitude = current < 0 ? -current : current;
+    return clampGoalCurrent(magnitude, configured_limit);
+  }
+
   int64_t symmetricDivide(int64_t value, int64_t divisor)
   {
     return value >= 0
@@ -388,6 +395,9 @@ bool DynamixelSerial::setGoalTargets(uint8_t servo_index,
   case DIRECT_SERVO_MODE_DEP:
     relevant_target = has_position;
     break;
+  case DIRECT_SERVO_MODE_CBP:
+    relevant_target = has_position || has_current;
+    break;
   case DIRECT_SERVO_MODE_DV:
     relevant_target = has_velocity;
     break;
@@ -575,6 +585,7 @@ bool DynamixelSerial::validPersistentMode(uint8_t mode)
 {
   return mode == DIRECT_SERVO_MODE_DP ||
          mode == DIRECT_SERVO_MODE_DEP ||
+         mode == DIRECT_SERVO_MODE_CBP ||
          mode == DIRECT_SERVO_MODE_DV ||
          mode == DIRECT_SERVO_MODE_DC ||
          mode == DIRECT_SERVO_MODE_MIT;
@@ -587,6 +598,8 @@ uint8_t DynamixelSerial::expectedOperatingMode(uint8_t mode)
     return DYNAMIXEL_POSITION_CONTROL_MODE;
   case DIRECT_SERVO_MODE_DEP:
     return DYNAMIXEL_EXTENDED_POSITION_CONTROL_MODE;
+  case DIRECT_SERVO_MODE_CBP:
+    return DYNAMIXEL_CURRENT_BASED_POSITION_CONTROL_MODE;
   case DIRECT_SERVO_MODE_DV:
     return DYNAMIXEL_VELOCITY_CONTROL_MODE;
   case DIRECT_SERVO_MODE_DC:
@@ -2080,6 +2093,7 @@ void DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
   };
 
   ServoMask written_mask = 0;
+  ServoMask cbp_mask = 0;
   for (uint8_t i = 0; i < servo_num_; ++i) {
     const ServoMask bit = servoBit(i);
     if ((servo_mask & bit) == 0) continue;
@@ -2092,6 +2106,14 @@ void DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
       appended = append_value(
         servo.id_, CTRL_GOAL_POSITION, GOAL_POSITION_BYTE_LEN,
         static_cast<uint32_t>(servo.goal_position_));
+      break;
+    case DIRECT_SERVO_MODE_CBP:
+      servo.goal_current_ = clampGoalCurrentMagnitude(
+        servo.target_current_, servo.current_limit_);
+      appended = append_value(
+        servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
+        static_cast<uint16_t>(servo.goal_current_));
+      cbp_mask |= bit;
       break;
     case DIRECT_SERVO_MODE_DV:
       servo.goal_velocity_ =
@@ -2135,6 +2157,28 @@ void DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
   }
   transmitInstructionPacket(
     DX_BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);
+  if (last_tx_status_ != HAL_OK) return;
+
+  // Protocol 2.0 Bulk Write permits each ID only once per packet. Send the
+  // CbP positions in a second packet instead of repeating an ID after its
+  // Goal Current entry above.
+  param_idx = 0;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    const ServoMask bit = servoBit(i);
+    if ((cbp_mask & bit) == 0) continue;
+    const ServoData& servo = servo_[i];
+    if (!append_value(
+          servo.id_, CTRL_GOAL_POSITION, GOAL_POSITION_BYTE_LEN,
+          static_cast<uint32_t>(servo.goal_position_))) {
+      last_tx_status_ = HAL_ERROR;
+      return;
+    }
+  }
+  if (param_idx != 0) {
+    transmitInstructionPacket(
+      DX_BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);
+    if (last_tx_status_ != HAL_OK) return;
+  }
   recordGoalWrite(written_mask);
 }
 
@@ -2705,6 +2749,10 @@ ServoResult DynamixelSerial::executeServiceRequest(
     const ServoResult result = applyCurrentLimit(servo_index);
     if (result != SERVO_RESULT_OK) {
       servo.current_limit_ = old_current_limit;
+    } else if (servo.mode_ == DIRECT_SERVO_MODE_CBP) {
+      servo.target_current_ = clampGoalCurrent(
+        servo.current_limit_, servo.current_limit_);
+      servo.goal_current_ = servo.target_current_;
     }
     return result;
   }

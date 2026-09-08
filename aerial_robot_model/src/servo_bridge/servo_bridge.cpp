@@ -49,6 +49,9 @@
 
 namespace
 {
+constexpr double DIRECT_SERVO_CONFIG_CALL_INTERVAL = 0.02;
+constexpr double DIRECT_SERVO_CONFIG_STARTUP_DELAY = 1.0;
+
 struct OptionalInt
 {
   bool set = false;
@@ -133,7 +136,8 @@ uint8_t parseModeName(std::string mode)
   if (mode == "DV") return spinal::ServoInfo::MODE_DV;
   if (mode == "DC") return spinal::ServoInfo::MODE_DC;
   if (mode == "MIT") return spinal::ServoInfo::MODE_MIT;
-  throw std::runtime_error("mode must be DP, DEP, DV, DC or MIT");
+  if (mode == "CBP") return spinal::ServoInfo::MODE_CBP;
+  throw std::runtime_error("mode must be DP, DEP, DV, DC, MIT or CbP");
 }
 
 bool parseDirectServoMode(XmlRpc::XmlRpcValue& controller,
@@ -209,6 +213,8 @@ uint8_t expectedDynamixelMode(uint8_t mode)
   case spinal::ServoInfo::MODE_DC:
   case spinal::ServoInfo::MODE_MIT:
     return spinal::ServoInfo::SERVO_MODE_CURRENT;
+  case spinal::ServoInfo::MODE_CBP:
+    return spinal::ServoInfo::SERVO_MODE_CURRENT_BASED_POSITION;
   default:
     return spinal::ServoInfo::SERVO_MODE_UNKNOWN;
   }
@@ -226,21 +232,6 @@ DirectServoStartupConfig makeDirectServoConfig(
   DirectServoStartupConfig config;
   config.global_index = static_cast<uint8_t>(index);
   config.name = name;
-  XmlRpc::XmlRpcValue board_id;
-  if (!getInheritedValue(controller, group, "board_id", board_id))
-    throw std::runtime_error(name + ": board_id is required");
-  const int32_t parsed_board_id = xmlRpcInteger(board_id, name + ".board_id");
-  if (parsed_board_id < 0 || parsed_board_id >= 15)
-    throw std::runtime_error(name + ": board_id must be within 0..14");
-  config.board_id = static_cast<uint8_t>(parsed_board_id);
-  XmlRpc::XmlRpcValue servo_index;
-  if (!getInheritedValue(controller, group, "servo_index", servo_index))
-    throw std::runtime_error(name + ": servo_index is required");
-  const int32_t parsed_servo_index =
-    xmlRpcInteger(servo_index, name + ".servo_index");
-  if (parsed_servo_index < 0 || parsed_servo_index > UINT8_MAX)
-    throw std::runtime_error(name + ": servo_index must fit in uint8");
-  config.servo_index = static_cast<uint8_t>(parsed_servo_index);
   config.bus_type = parseBusType(controller, group);
   config.mode_set = parseDirectServoMode(controller, group, config.mode);
   config.p_gain = inheritedOptionalInt(
@@ -293,19 +284,30 @@ const spinal::ServoInfo* findServoInfo(
 }
 
 bool getServoBoards(ros::ServiceClient& client,
-                    std::vector<spinal::BoardInfo>& boards,
-                    double call_interval)
+                    std::vector<spinal::BoardInfo>& boards)
 {
   spinal::GetBoardInfo srv;
   const bool called = client.call(srv);
-  if (call_interval > 0.0) ros::WallDuration(call_interval).sleep();
+  ros::WallDuration(DIRECT_SERVO_CONFIG_CALL_INTERVAL).sleep();
   if (!called) return false;
   boards = srv.response.boards;
-  std::sort(boards.begin(), boards.end(),
-            [](const spinal::BoardInfo& lhs, const spinal::BoardInfo& rhs) {
-              return lhs.slave_id < rhs.slave_id;
-            });
   return !boards.empty();
+}
+
+const spinal::ServoInfo* resolveGlobalServoAddress(
+  const std::vector<spinal::BoardInfo>& boards, uint8_t global_index,
+  uint8_t& board_id, uint8_t& servo_index)
+{
+  size_t remaining_index = global_index;
+  for (const spinal::BoardInfo& board : boards) {
+    if (remaining_index < board.servos.size()) {
+      board_id = board.slave_id;
+      servo_index = static_cast<uint8_t>(remaining_index);
+      return &board.servos[remaining_index];
+    }
+    remaining_index -= board.servos.size();
+  }
+  return nullptr;
 }
 
 const spinal::BoardInfo* findBoardInfo(
@@ -321,7 +323,7 @@ bool configureDirectServos(
   ros::NodeHandle& nh,
   const DirectServoBoardConfig& board_config,
   const std::vector<DirectServoStartupConfig>& requested_configs,
-  double timeout, double call_interval)
+  double timeout)
 {
   std::vector<DirectServoStartupConfig> configs = requested_configs;
   ros::ServiceClient config_client =
@@ -335,7 +337,7 @@ bool configureDirectServos(
     return false;
   }
 
-  auto write_config = [&config_client, call_interval](
+  auto write_config = [&config_client](
     uint8_t board_id, uint8_t servo_index, uint8_t command,
     const std::vector<int32_t>& data,
     const std::string& description) {
@@ -345,7 +347,7 @@ bool configureDirectServos(
     srv.request.command = command;
     srv.request.data = data;
     const bool called = config_client.call(srv);
-    if (call_interval > 0.0) ros::WallDuration(call_interval).sleep();
+    ros::WallDuration(DIRECT_SERVO_CONFIG_CALL_INTERVAL).sleep();
     if (!called || !srv.response.success) {
       ROS_ERROR("DirectServo board %u rejected %s",
                 static_cast<unsigned int>(board_id), description.c_str());
@@ -355,8 +357,7 @@ bool configureDirectServos(
   };
 
   std::vector<spinal::BoardInfo> boards;
-  if (!getServoBoards(
-        board_info_client, boards, call_interval)) {
+  if (!getServoBoards(board_info_client, boards)) {
     ROS_ERROR("No servo board was present in get_board_info");
     return false;
   }
@@ -367,19 +368,19 @@ bool configureDirectServos(
     return write_config(config.board_id, config.servo_index, command,
                         data, description);
   };
-  for (const auto& config : configs) {
-    const spinal::BoardInfo* board = findBoardInfo(boards, config.board_id);
-    if (board == nullptr ||
-        findServoInfo(*board, config.servo_index) == nullptr) {
-      ROS_ERROR("%s maps to missing board %u servo %u",
+  for (auto& config : configs) {
+    if (resolveGlobalServoAddress(
+          boards, config.global_index, config.board_id,
+          config.servo_index) == nullptr) {
+      ROS_ERROR("%s maps to missing global servo id %u",
                 config.name.c_str(),
-                static_cast<unsigned int>(config.board_id),
-                static_cast<unsigned int>(config.servo_index));
+                static_cast<unsigned int>(config.global_index));
       return false;
     }
   }
 
   for (const auto& detected_board : boards) {
+    if (detected_board.servos.empty()) continue;
     if (detected_board.servo_feedback_frequency !=
           board_config.feedback_frequency &&
         !write_config(
@@ -408,8 +409,8 @@ bool configureDirectServos(
     const spinal::ServoInfo* servo = config_board == nullptr
       ? nullptr : findServoInfo(*config_board, config.servo_index);
     if (servo == nullptr) {
-      ROS_ERROR("YAML DirectServo index %u was not detected",
-                static_cast<unsigned int>(config.servo_index));
+      ROS_ERROR("YAML global servo id %u was not detected",
+                static_cast<unsigned int>(config.global_index));
       return false;
     }
     if (config.bus_type == spinal::ServoInfo::BUS_UNKNOWN) {
@@ -433,6 +434,7 @@ bool configureDirectServos(
 
   if (board_config.mixed_set) {
     for (const auto& detected_board : boards) {
+      if (detected_board.servos.empty()) continue;
       if (detected_board.dynamixel_ttl_rs485_mixed != board_config.mixed &&
           !write_config(
             detected_board.slave_id,
@@ -444,8 +446,7 @@ bool configureDirectServos(
     }
   }
 
-  if (!getServoBoards(
-        board_info_client, boards, call_interval)) {
+  if (!getServoBoards(board_info_client, boards)) {
     ROS_ERROR("Failed to read servo configuration after bus setup");
     return false;
   }
@@ -457,8 +458,8 @@ bool configureDirectServos(
     const spinal::ServoInfo* servo = config_board == nullptr
       ? nullptr : findServoInfo(*config_board, config.servo_index);
     if (servo == nullptr) {
-      ROS_ERROR("YAML DirectServo index %u was not detected",
-                static_cast<unsigned int>(config.servo_index));
+      ROS_ERROR("YAML global servo id %u was not detected",
+                static_cast<unsigned int>(config.global_index));
       return false;
     }
     const uint8_t expected_mode = expectedDynamixelMode(config.mode);
@@ -473,8 +474,7 @@ bool configureDirectServos(
     }
   }
 
-  if (!getServoBoards(
-        board_info_client, boards, call_interval)) {
+  if (!getServoBoards(board_info_client, boards)) {
     ROS_ERROR("Failed to read servo configuration after mode setup");
     return false;
   }
@@ -570,12 +570,12 @@ bool configureDirectServos(
     }
   }
 
-  if (!getServoBoards(
-        board_info_client, boards, call_interval)) {
+  if (!getServoBoards(board_info_client, boards)) {
     ROS_ERROR("Failed to read final servo configuration");
     return false;
   }
   for (const auto& detected_board : boards) {
+    if (detected_board.servos.empty()) continue;
     const int final_watchdog_ms = static_cast<int>(
       std::lround(
         detected_board.servo_target_watchdog_timeout * 1000.0));
@@ -678,22 +678,12 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   double direct_servo_config_timeout = 10.0;
   nh_controller.param("direct_servo_config_timeout",
                       direct_servo_config_timeout, 10.0);
-  double direct_servo_config_call_interval = 0.02;
-  nh_controller.param("direct_servo_config_call_interval",
-                      direct_servo_config_call_interval, 0.02);
-  double direct_servo_config_startup_delay = 1.0;
-  nh_controller.param("direct_servo_config_startup_delay",
-                      direct_servo_config_startup_delay, 1.0);
   const bool configure_direct_servo =
     auto_configure_direct_servo_ && !simulation_mode_ && !use_mujoco_;
   bool direct_servo_params_valid = true;
   if (!std::isfinite(direct_servo_config_timeout) ||
-      direct_servo_config_timeout <= 0.0 ||
-      !std::isfinite(direct_servo_config_call_interval) ||
-      direct_servo_config_call_interval < 0.0 ||
-      !std::isfinite(direct_servo_config_startup_delay) ||
-      direct_servo_config_startup_delay < 0.0) {
-    ROS_FATAL("DirectServo configuration timing parameters are invalid");
+      direct_servo_config_timeout <= 0.0) {
+    ROS_FATAL("DirectServo configuration timeout is invalid");
     direct_servo_params_valid = false;
   }
 
@@ -748,7 +738,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   nh_.getParam("servo_controller", all_servos_params);
   std::vector<DirectServoStartupConfig> direct_servo_configs;
   std::set<uint8_t> direct_servo_global_indices;
-  std::set<uint16_t> direct_servo_addresses;
   spinal::JointProfiles joint_profiles_msg;
   for(auto servo_group_params: all_servos_params)
     {
@@ -832,13 +821,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
                         config.global_index).second) {
                     throw std::runtime_error(
                       "duplicate global servo id in DirectServo YAML");
-                  }
-                  const uint16_t address =
-                    (static_cast<uint16_t>(config.board_id) << 8) |
-                    config.servo_index;
-                  if (!direct_servo_addresses.insert(address).second) {
-                    throw std::runtime_error(
-                      "duplicate board_id/servo_index in DirectServo YAML");
                   }
                   direct_servo_configs.push_back(config);
                 } catch (const std::exception& error) {
@@ -928,13 +910,13 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   if (configure_direct_servo && direct_servo_params_valid) {
     direct_servo_configure_ =
       [this, direct_board_config, direct_servo_configs,
-       direct_servo_config_timeout, direct_servo_config_call_interval]() {
+       direct_servo_config_timeout]() {
         return configureDirectServos(
           nh_, direct_board_config, direct_servo_configs,
-          direct_servo_config_timeout, direct_servo_config_call_interval);
+          direct_servo_config_timeout);
       };
     direct_servo_config_timer_ = nh_.createWallTimer(
-      ros::WallDuration(direct_servo_config_startup_delay),
+      ros::WallDuration(DIRECT_SERVO_CONFIG_STARTUP_DELAY),
       &ServoBridge::directServoConfigTimerCallback, this, true, true);
   }
 

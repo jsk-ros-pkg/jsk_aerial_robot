@@ -11,6 +11,13 @@ int16_t clampGoalCurrent(int64_t current, uint16_t configured_limit)
   return static_cast<int16_t>(current);
 }
 
+int16_t clampGoalCurrentMagnitude(int64_t current,
+                                  uint16_t configured_limit)
+{
+  const int64_t magnitude = current < 0 ? -current : current;
+  return clampGoalCurrent(magnitude, configured_limit);
+}
+
 int64_t symmetricDivide(int64_t value, int64_t divisor)
 {
   return value >= 0 ? (value + divisor / 2) / divisor
@@ -131,12 +138,15 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
           }
 	}
 
-	//  set initial goal current if necessary
+        // Match the DYNAMIXEL mode-switch default: in CbP, Goal Current
+        // starts at Current Limit until a host current-limit target arrives.
         for (unsigned int i = 0; i < servo_num_; i++) {
           uint8_t operating_mode = servo_[i].operating_mode_;
           uint16_t current_limit = servo_[i].current_limit_;
-          if (operating_mode == CURRENT_BASE_POSITION_CONTROL_MODE) {
-            servo_[i].goal_current_ = current_limit * 0.8; // workaround: set 80% of the overload threshold
+          if (servo_[i].mode_ == NEURON_SERVO_MODE_CBP &&
+              operating_mode == CURRENT_BASE_POSITION_CONTROL_MODE) {
+            servo_[i].goal_current_ =
+              clampGoalCurrent(current_limit, current_limit);
             cmdWriteGoalCurrent(i);
           }
 	}
@@ -341,6 +351,9 @@ bool DynamixelSerial::setGoalTargets(uint8_t servo_index,
   case NEURON_SERVO_MODE_DEP:
     relevant_target = has_position;
     break;
+  case NEURON_SERVO_MODE_CBP:
+    relevant_target = has_position || has_current;
+    break;
   case NEURON_SERVO_MODE_DV:
     relevant_target = has_velocity;
     break;
@@ -377,6 +390,7 @@ bool DynamixelSerial::validPersistentMode(uint8_t mode)
 {
   return mode == NEURON_SERVO_MODE_DP ||
          mode == NEURON_SERVO_MODE_DEP ||
+         mode == NEURON_SERVO_MODE_CBP ||
          mode == NEURON_SERVO_MODE_DV ||
          mode == NEURON_SERVO_MODE_DC ||
          mode == NEURON_SERVO_MODE_MIT;
@@ -387,6 +401,7 @@ uint8_t DynamixelSerial::expectedOperatingMode(uint8_t mode)
   switch (mode) {
   case NEURON_SERVO_MODE_DP: return POSITION_CONTROL_MODE;
   case NEURON_SERVO_MODE_DEP: return EXTENDED_POSITION_CONTROL_MODE;
+  case NEURON_SERVO_MODE_CBP: return CURRENT_BASE_POSITION_CONTROL_MODE;
   case NEURON_SERVO_MODE_DV: return VELOCITY_CONTROL_MODE;
   case NEURON_SERVO_MODE_DC:
   case NEURON_SERVO_MODE_MIT: return CURRENT_CONTROL_MODE;
@@ -619,7 +634,8 @@ uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
     servo.target_received_ = false;
     servo.watchdog_timed_out_ = false;
     servo.goal_velocity_ = 0;
-    servo.goal_current_ = 0;
+    servo.goal_current_ = mode == NEURON_SERVO_MODE_CBP
+      ? clampGoalCurrent(servo.current_limit_, servo.current_limit_) : 0;
     if (!setPositionGains(servo_index) ||
         !setProfileVelocity(servo_index)) {
       servo.mode_ = old_mode;
@@ -724,6 +740,10 @@ uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
       if (!setCurrentLimit(servo_index)) {
         servo.current_limit_ = old_current_limit;
         return CAN::SERVO_CONFIG_RESULT_INVALID;
+      }
+      if (servo.mode_ == NEURON_SERVO_MODE_CBP) {
+        servo.goal_current_ = clampGoalCurrent(
+          servo.current_limit_, servo.current_limit_);
       }
     }
     return CAN::SERVO_CONFIG_RESULT_OK;
@@ -1789,6 +1809,7 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	  return true;
 	};
 
+	uint8_t cbp_mask = 0;
 	for (uint8_t i = 0; i < servo_num_; ++i) {
 	  ServoData& servo = servo_[i];
 	  if (!servo.configured()) continue;
@@ -1799,6 +1820,13 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	    appended = appendValue(
 	      servo.id_, CTRL_GOAL_POSITION, GOAL_POSITION_BYTE_LEN,
 	      static_cast<uint32_t>(servo.getInternalGoalPosition()));
+	    break;
+	  case NEURON_SERVO_MODE_CBP:
+	    appended = appendValue(
+	      servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
+	      static_cast<uint16_t>(clampGoalCurrentMagnitude(
+	        servo.goal_current_, servo.current_limit_)));
+	    cbp_mask |= static_cast<uint8_t>(1U << i);
 	    break;
 	  case NEURON_SERVO_MODE_DV:
 	    appended = appendValue(
@@ -1826,6 +1854,24 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	  if (!appended) return;
 	}
 
+	if (param_idx != 0) {
+	  transmitInstructionPacket(
+	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);
+	}
+
+	// Protocol 2.0 Bulk Write permits each ID only once per packet. Keep the
+	// current and position registers separate without overwriting the profile
+	// registers located between them in the control table.
+	param_idx = 0;
+	for (uint8_t i = 0; i < servo_num_; ++i) {
+	  if ((cbp_mask & static_cast<uint8_t>(1U << i)) == 0) continue;
+	  const ServoData& servo = servo_[i];
+	  if (!appendValue(
+	        servo.id_, CTRL_GOAL_POSITION, GOAL_POSITION_BYTE_LEN,
+	        static_cast<uint32_t>(servo.getInternalGoalPosition()))) {
+	    return;
+	  }
+	}
 	if (param_idx != 0) {
 	  transmitInstructionPacket(
 	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);

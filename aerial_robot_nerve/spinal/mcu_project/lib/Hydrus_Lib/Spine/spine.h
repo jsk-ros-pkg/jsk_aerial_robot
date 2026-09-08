@@ -55,7 +55,8 @@ namespace Spine
   bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh,
             StateEstimate* estimator, FlightControl* controller,
             GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin,
-            DirectServo* direct_servo = nullptr);
+            DirectServo* direct_servo = nullptr,
+            const DirectServoBoardSettings* direct_servo_settings = nullptr);
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
   bool connected();

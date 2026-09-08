@@ -25,6 +25,7 @@ enum DirectServoMode : uint8_t
   DIRECT_SERVO_MODE_MIT = 3,
   DIRECT_SERVO_MODE_EM = 4,
   DIRECT_SERVO_MODE_DEP = 5,
+  DIRECT_SERVO_MODE_CBP = 6,
   DIRECT_SERVO_MODE_UNKNOWN = 0xFF,
 };
 
@@ -152,11 +153,14 @@ public:
   void resetGoalTargets() {
     target_position_ = present_position_;
     target_velocity_ = 0;
-    target_current_ = 0;
+    target_current_ = mode_ == DIRECT_SERVO_MODE_CBP
+      ? static_cast<int16_t>(current_limit_ > INT16_MAX
+          ? INT16_MAX : current_limit_)
+      : 0;
     goal_position_ = static_cast<int32_t>(
       resolution_ratio_ * target_position_) - internal_offset_;
     goal_velocity_ = 0;
-    goal_current_ = 0;
+    goal_current_ = target_current_;
     target_received_ = false;
     watchdog_timed_out_ = false;
   }

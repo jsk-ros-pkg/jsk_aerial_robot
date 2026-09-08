@@ -217,21 +217,32 @@ bool DirectServo::requestConfigByIndex(
   return requestConfig(command, driver_data, data_length + 1);
 }
 
+DirectServoBoardSettings DirectServo::getBoardSettings() const
+{
+  DirectServoBoardSettings settings;
+  settings.servo_feedback_frequency =
+    servo_handler_.getServoFeedbackFrequency();
+#if DYNAMIXEL
+  settings.dynamixel_ttl_rs485_mixed =
+    servo_handler_.getTTLRS485Mixed() ? 1 : 0;
+  settings.servo_target_watchdog_timeout_ms =
+    servo_handler_.getTargetWatchdogTimeoutMs();
+#endif
+  return settings;
+}
+
 void DirectServo::fillBoardInfo(spinal::BoardInfo& board) const
 {
+  const DirectServoBoardSettings settings = getBoardSettings();
   board.imu_send_data_flag = 1;
-  board.dynamixel_ttl_rs485_mixed = 0;
+  board.dynamixel_ttl_rs485_mixed =
+    settings.dynamixel_ttl_rs485_mixed;
   board.servo_pulley_skip_thresh = 0;
-  board.servo_feedback_frequency = 0;
-  board.servo_target_watchdog_timeout = 0.0f;
-#if DYNAMIXEL
-  board.dynamixel_ttl_rs485_mixed = servo_handler_.getTTLRS485Mixed();
   board.servo_feedback_frequency =
-    servo_handler_.getServoFeedbackFrequency();
+    settings.servo_feedback_frequency;
   board.servo_target_watchdog_timeout =
-    static_cast<float>(servo_handler_.getTargetWatchdogTimeoutMs()) /
+    static_cast<float>(settings.servo_target_watchdog_timeout_ms) /
     1000.0f;
-#endif
   board.slave_id = 0;
   for (unsigned int i = 0; i < servo_handler_.getServoNum(); i++) {
     const ServoData& s = servo_handler_.getServo()[i];

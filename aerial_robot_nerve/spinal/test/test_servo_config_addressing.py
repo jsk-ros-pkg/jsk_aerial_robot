@@ -44,6 +44,17 @@ class ServoConfigAddressingTest(unittest.TestCase):
             self.assertNotIn("srv.request.slave_id", source)
             self.assertNotIn("req.slave_id", source)
 
+    def test_startup_yaml_global_id_is_resolved_from_board_info_order(self):
+        self.assertIn("resolveGlobalServoAddress", self.bridge)
+        self.assertIn("remaining_index -= board.servos.size()", self.bridge)
+        self.assertNotIn("std::sort(boards.begin(), boards.end()", self.bridge)
+        self.assertNotIn(
+            'getInheritedValue(controller, group, "board_id"', self.bridge
+        )
+        self.assertNotIn(
+            'getInheritedValue(controller, group, "servo_index"', self.bridge
+        )
+
     def test_board_info_order_is_stable_when_send_flag_is_false(self):
         self.assertIn("for (unsigned int j = 0;", self.spine)
         self.assertIn("servo_.push_back", self.spine)

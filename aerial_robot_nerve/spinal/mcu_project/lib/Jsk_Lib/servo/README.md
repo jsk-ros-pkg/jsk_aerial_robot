@@ -4,10 +4,10 @@ This is a universal interface for servo motor drivers.
 ## How to use
 ### Dynamixel
 #### Setting
-The YAML keeps `id` as the global ROS control index and addresses configuration
-with `board_id + servo_index`. `servo_index` is the stable board-local slot in
-`BoardInfo.servos`; it is not the physical Dynamixel ID. The MCU resolves that
-ID internally, and its Flash remains keyed by the discovered hardware ID.
+The YAML keeps `id` as the global ROS control index. At startup, ServoBridge
+uses the ordered `BoardInfo.servos` arrays to resolve it to the internal
+`board_id + servo_index` service address. The physical Dynamixel ID is resolved
+inside the MCU, and its Flash remains keyed by the discovered hardware ID.
 
 ```yaml
 servo_controller:
@@ -17,16 +17,14 @@ servo_controller:
   dynamixel_ttl_rs485_mixed: true
 
   joints:
-    board_id: 1                   # 0: Spinal, 1..14: Neuron CAN ID
     angle_sgn: 1
     angle_scale: 0.001533981
     velocity_scale: 0.02398082
     torque_scale: 0.0008
     controller1:
       id: 0                        # global ServoControlCmd index
-      servo_index: 0               # board-local BoardInfo.servos slot
       bus_type: R                  # optional if valid MCU Flash data exists
-      mode: MIT                    # optional; DP, DEP, DV, DC, or MIT
+      mode: MIT                    # optional; DP, DEP, DV, DC, MIT, or CbP
       mit_kp_si: 0.45
       mit_kd_si: 0.008
       current_limit: 100
@@ -38,10 +36,28 @@ servo_controller:
 For DirectServo, `servo_bridge` converts `sensor_msgs/JointState` into
 `spinal/ServoControlCmd` on `servo/target_states`. Empty velocity/current
 arrays are allowed; in MIT mode they mean zero target velocity and zero
-feed-forward current. MIT Kp/Kd are RAM-only values supplied together by YAML
-or RQT; no separate readiness flag is used. `auto_configure_direct_servo`
-enables the same host startup check/write sequence for either DirectServo or
-the discovered Neuron boards.
+feed-forward current. MIT Kp/Kd are RAM-only values supplied together; no
+separate readiness flag is used. YAML (`mit_kp_si`/`mit_kd_si`) and RQT Board
+Configurator (`mit_pd_si`) express them as joint-side SI gains, while Servo
+Monitor (`mit_pd_raw`) and the MCU service payload expose the raw gains
+actually used by the firmware.
+
+`CbP` selects Dynamixel Operating Mode 5 (Current-based Position Control).
+The `position` field remains a joint-side position target. When the incoming
+`sensor_msgs/JointState` also contains `effort`, ServoBridge converts that
+joint torque through `torque_scale` and sends it as `Goal Current`, which is
+the current/torque limit magnitude in CbP; its sign is ignored. On startup or
+after selecting CbP, the default Goal Current is the configured
+`current_limit`. Later commands with an omitted `effort` field retain the last
+Goal Current, following the sparse-field behavior of `ServoControlCmd`.
+Unlike DV, DC, and MIT, CbP follows position-mode hold behavior and is not
+cleared by `ServoTargetWatchdog`.
+
+`auto_configure_direct_servo` enables the same host startup check/write
+sequence for either DirectServo or the discovered Neuron boards.
+Boards with no enumerated servos are skipped by this write sequence. Board 0
+still reports the settings captured during DirectServo initialization, even
+when no DirectServo was found, but rejects writes while its UART is inactive.
 
 All configuration calls include `board_id` and `servo_index`: use board `0` for
 DirectServo and `1..14` for a Neuron. Board-level commands ignore
@@ -88,7 +104,7 @@ Please follow these steps **in order**.
   - Range: 0 ~ 1,193
   - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 5 data: [value(current)]" ``
 - Persistent logical mode (torque must be disabled)
-  - Values: DP=0, DV=1, DC=2, MIT=3, DEP=5. EM=4 remains a runtime-only safety state.
+  - Values: DP=0, DV=1, DC=2, MIT=3, DEP=5, CbP=6. EM=4 remains a runtime-only safety state.
   - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 9 data: [mode]" ``
 - MIT PD gains (RAM only; torque must be disabled)
   - Gain is encoded as `integer + decimal / 10000`.

@@ -30,12 +30,14 @@ CONTROL_MODE_NAMES = {
     ServoInfo.MODE_MIT: 'MIT',
     ServoInfo.MODE_EM: 'EM',
     ServoInfo.MODE_DEP: 'DEP',
+    ServoInfo.MODE_CBP: 'CbP',
 }
 SERVO_MODE_NAMES = {
     ServoInfo.SERVO_MODE_CURRENT: 'Current',
     ServoInfo.SERVO_MODE_VELOCITY: 'Velocity',
     ServoInfo.SERVO_MODE_POSITION: 'Position',
     ServoInfo.SERVO_MODE_EXTENDED_POSITION: 'Extended Position',
+    ServoInfo.SERVO_MODE_CURRENT_BASED_POSITION: 'Current-based Position',
     ServoInfo.SERVO_MODE_UNKNOWN: 'Unknown',
 }
 BUS_NAMES = {
@@ -49,6 +51,7 @@ EXPECTED_SERVO_MODE = {
     'DV': 'Velocity',
     'DC': 'Current',
     'MIT': 'Current',
+    'CbP': 'Current-based Position',
 }
 
 def format_mit_gain(integer, decimal):
@@ -128,7 +131,7 @@ class ServoMonitor(Plugin):
         # Add widget to the user interface
         context.add_widget(self._widget)
         self._headers = ["torque", "configured", "bus", "mode",
-                         "servo_mode", "mit_pd", "joint name", "board", "index",
+                         "servo_mode", "mit_pd_raw", "joint name", "board", "index",
                          "id", "angle", "temperature", "load", "error",
                          "pid_gains", "profile_velocity", "current_limit",
                          "send_data_flag"]

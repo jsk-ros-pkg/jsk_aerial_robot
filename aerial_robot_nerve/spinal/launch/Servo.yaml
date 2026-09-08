@@ -1,18 +1,14 @@
 servo_controller:
-  # ServoControlCmd uses the global id. Configuration uses board_id plus the
-  # board-local servo_index; the MCU resolves the physical Dynamixel ID.
+  # ServoControlCmd and startup configuration use the same global servo id.
+  # ServoBridge resolves it to the detected board and board-local servo slot.
   auto_configure_direct_servo: true
   direct_servo_config_timeout: 10.0
-  # Keep calls serialized and leave time for low-level state/flash processing.
-  direct_servo_config_call_interval: 0.02
-  direct_servo_config_startup_delay: 1.0
   servo_feedback_frequency: 200
   servo_target_watchdog: 0.1
   dynamixel_ttl_rs485_mixed: true
 
   gimbals:
     no_real_state: false
-    board_id: 1
     bus_type: T
 
     # Beetle omni gimbal servo: Dynamixel XC330-T181.
@@ -31,26 +27,55 @@ servo_controller:
     joint_resolution: 1
     servo_resolution: 1
 
-    # id remains the global ServoControlCmd index.
+    # id is the global index shared by feedback, control, and configuration.
     controller1:
       id: 0
-      servo_index: 0
+      mode: DP
       name: gimbal1
-      mode: MIT
-      mit_kp_si: 0.45
-      mit_kd_si: 0.008
+      bus_type: R
+      # Dynamixel XM430-W350-R
+      angle_scale: 0.00076699
+      # 0.229 rev/min
+      velocity_scale: 0.01199041
+      # 0.7142857 Nm/ A * 0.00296 A/bit * 2 = 0.0042285714 Nm/bit
+      torque_scale: 0.0106
+      zero_point_offset: 2047
+      p_gain: 800
+      i_gain: 0
+      d_gain: 4000
+      mit_kp_si: 4.8309
+      mit_kd_si: 0.3075
+      profile_velocity: 0
+      current_limit: 1193
 
     controller2:
       id: 1
-      servo_index: 1
       name: gimbal2
-      mode: DP
+      mode: MIT
+      # XH430-V350-R with an AS5600 on the joint side and a 2:1 pulley.
+      bus_type: R
+      angle_scale: 0.00076699
+      # 0.229 rev/min
+      velocity_scale: 0.01199041
+      # 0.7142857 Nm/ A * 0.00296 A/bit * 2 = 0.0042285714 Nm/bit
+      torque_scale: 0.0106
+      zero_point_offset: 2047
+      p_gain: 800
+      i_gain: 0
+      d_gain: 4000
+      mit_kp_si: 2.8309
+      mit_kd_si: 0.03075
+      profile_velocity: 0
+      current_limit: 1193
+      external_encoder_flag: false
+      joint_resolution: 1
+      servo_resolution: 1
 
     controller3:
       id: 2
-      servo_index: 2
       name: gimbal3
       mode: MIT
+      bus_type: T
       mit_kp_si: 0.45
       mit_kd_si: 0.008
 
@@ -58,16 +83,8 @@ servo_controller:
     # RS485 branch. Its scaling and register configuration differ from XC330.
     controller4:
       id: 3
-      servo_index: 3
-      mode: DP
       name: gimbal4
-      bus_type: R
-      angle_scale: 0.00076699
-      velocity_scale: 0.01199041
-      torque_scale: 0.0106
-      zero_point_offset: 2047
-      p_gain: 800
-      i_gain: 0
-      d_gain: 0
-      profile_velocity: 0
-      current_limit: 1193
+      mode: DP
+      bus_type: T
+      mit_kp_si: 0.45
+      mit_kd_si: 0.008

@@ -259,6 +259,9 @@ int main(void)
 
   FlashMemory::read(); //IMU calib data (including IMU in neurons)
 
+  const DirectServoBoardSettings direct_servo_settings =
+    servo_.getBoardSettings();
+
   DirectServo* servoptr = nullptr;
 
   if(servo_connect) servoptr = &servo_;
@@ -267,7 +270,7 @@ int main(void)
 
   bool nerve_connect = Spine::init(
     &hfdcan1, &nh_, &estimator_, &controller_,
-    LED1_GPIO_Port, LED1_Pin, servoptr);
+    LED1_GPIO_Port, LED1_Pin, servoptr, &direct_servo_settings);
 
   /* USER CODE END 2 */
 

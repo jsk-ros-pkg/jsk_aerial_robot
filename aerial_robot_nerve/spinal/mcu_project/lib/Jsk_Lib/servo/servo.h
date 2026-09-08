@@ -33,6 +33,13 @@ namespace ValueType
     {BIT = 0, RADIAN = 1};
 };
 
+struct DirectServoBoardSettings
+{
+  uint8_t dynamixel_ttl_rs485_mixed = 0;
+  uint16_t servo_feedback_frequency = 0;
+  uint32_t servo_target_watchdog_timeout_ms = 0;
+};
+
 class DirectServo
 {
 public:
@@ -66,6 +73,7 @@ public:
                       bool has_velocity, int32_t velocity,
                       bool has_current, int16_t current);
   bool setTorqueEnable(uint8_t index, bool enable);
+  DirectServoBoardSettings getBoardSettings() const;
   void fillBoardInfo(spinal::BoardInfo& board) const;
   void torqueEnable(const std::map<uint8_t, float>& servo_map);
   void setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_t value_type = 0);
