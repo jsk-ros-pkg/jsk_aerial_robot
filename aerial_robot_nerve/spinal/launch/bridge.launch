@@ -1,23 +1,8 @@
 <launch>
   <arg name="mode" default="serial" /> <!-- serial,udp -->
 
-  <!-- Opt-in because this launch is also included by robot bringup files that
-       already load their own Servo.yaml and start their own ServoBridge. -->
-  <arg name="load_direct_servo_config" default="true" />
-  <arg name="start_servo_bridge" default="$(arg load_direct_servo_config)" />
-  <arg name="direct_servo_config_file" default="$(find spinal)/launch/Servo.yaml" />
-  <arg name="direct_servo_robot_description_file"
-       default="$(find spinal)/launch/DirectServo.urdf" />
-  <rosparam command="load" file="$(arg direct_servo_config_file)" if="$(arg load_direct_servo_config)" />
-  <param name="robot_description"
-         textfile="$(arg direct_servo_robot_description_file)"
-         if="$(arg start_servo_bridge)" />
-
-  <node pkg="aerial_robot_model" type="servo_bridge_node" name="servo_bridge"
-        output="screen" if="$(arg start_servo_bridge)" />
-
   <arg name="serial_port" default="/dev/ttyUSB0" />
-  <arg name="serial_baud" default="921600" />
+  <arg name="serial_baud" default="2000000" />
 
   <arg name="udp_port" default="12345" />
   <arg name="udp_addr" default="192.168.25.238" />

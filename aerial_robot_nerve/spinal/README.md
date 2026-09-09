@@ -48,7 +48,7 @@ serial mode:
 roslaunch spinal bridge.launch \
   mode:=serial \
   serial_port:=/dev/flight_controller \
-  serial_baud:=921600
+  serial_baud:=2000000
 ```
 
 ### Ethernet/UDP

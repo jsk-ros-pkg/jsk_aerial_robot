@@ -28,8 +28,6 @@
   <run_depend>rqt_gui</run_depend>
   <run_depend>rqt_gui_py</run_depend>
 
-  <test_depend>python3-nose</test_depend>
-
   <export>
     <rqt_gui plugin="${prefix}/rqt_gui_plugin.xml" />
   </export>
