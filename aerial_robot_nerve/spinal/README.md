@@ -23,6 +23,9 @@ rosrun spinal cube_ide.sh stm32H7_v2
 # Other supported targets: stm32H7 and stm32F7
 ```
 
+> 💡 You can also use STM32CubeProgrammer to flash `.bin` or `.elf` files separately.  
+`st-flash write spinal.bin 0x08000000`
+
 Do not modify one board variant and flash another. The Ethernet and CAN FD
 instructions below apply to the STM32H7 and STM32H7 v2 projects; STM32F7 does
 not provide the same FDCAN path.

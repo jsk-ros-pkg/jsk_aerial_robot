@@ -3,6 +3,58 @@
 
 namespace
 {
+bool appendStuffedByte(uint8_t value, uint8_t* output,
+                       size_t capacity, size_t& output_size,
+                       size_t window_begin = 0)
+{
+  if (output == nullptr || output_size >= capacity) return false;
+  output[output_size++] = value;
+
+  if (output_size >= window_begin + 3 &&
+      output[output_size - 3] == 0xFF &&
+      output[output_size - 2] == 0xFF &&
+      output[output_size - 1] == 0xFD) {
+    if (output_size >= capacity) return false;
+    output[output_size++] = 0xFD;
+  }
+  return true;
+}
+
+class UnstuffState
+{
+public:
+  UnstuffState() : raw_window_{0, 0, 0}, raw_count_(0) {}
+
+  bool append(uint8_t value, uint8_t* output, size_t capacity,
+              size_t& output_size)
+  {
+    const bool stuffing_prefix =
+      raw_count_ >= 3 &&
+      raw_window_[0] == 0xFF &&
+      raw_window_[1] == 0xFF &&
+      raw_window_[2] == 0xFD;
+    if (stuffing_prefix && value != 0xFD) return false;
+    const bool stuffing_byte = stuffing_prefix;
+
+    if (raw_count_ < 3) {
+      raw_window_[raw_count_++] = value;
+    } else {
+      raw_window_[0] = raw_window_[1];
+      raw_window_[1] = raw_window_[2];
+      raw_window_[2] = value;
+    }
+
+    if (stuffing_byte) return true;
+    if (output == nullptr || output_size >= capacity) return false;
+    output[output_size++] = value;
+    return true;
+  }
+
+private:
+  uint8_t raw_window_[3];
+  uint8_t raw_count_;
+};
+
   constexpr uint8_t CONFIG_SET_HOMING_OFFSET = 1;
   constexpr uint8_t CONFIG_SET_PID_GAIN = 2;
   constexpr uint8_t CONFIG_SET_PROFILE_VELOCITY = 3;
@@ -66,7 +118,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
   feedback_received_mask_ = 0;
   servo_feedback_frequency_hz_ = DEFAULT_SERVO_FEEDBACK_FREQUENCY_HZ;
   target_watchdog_timeout_ms_ = DEFAULT_SERVO_TARGET_WATCHDOG_MS;
-  comm_counters_ = ServoCommCounters();
 
 	servo_num_ = 0;
 	get_pos_tick_ = 0;
@@ -124,12 +175,7 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
     servo.external_encoder_flag_ = 0;
     servo.configured_ = false;
 
-    bool duplicate = false;
-    ServoFlashConfig* config =
-      findServoFlashConfig(servo.id_, &duplicate);
-    if (duplicate) {
-      ++comm_counters_.configuration_error_count;
-    }
+    ServoFlashConfig* config = findServoFlashConfig(servo.id_);
     if (config != nullptr) {
       copyFlashConfigToServo(*config, servo);
       if (!validPersistentMode(config->mode)) {
@@ -141,7 +187,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
       servo.configured_ = result == SERVO_RESULT_OK;
       if (result != SERVO_RESULT_OK) {
         servo.configured_ = false;
-        ++comm_counters_.configuration_error_count;
       }
     } else {
       (void)readOneServoRegister(INST_GET_POSITION_GAINS, servo_index);
@@ -181,10 +226,6 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, osMutexId* mutex)
     servo_[i].angle_scale_ = 3.1416 / 2047;
   }
 
-  const uint32_t startup_configuration_errors =
-  comm_counters_.configuration_error_count;
-  comm_counters_ = ServoCommCounters();
-  comm_counters_.configuration_error_count = startup_configuration_errors;
   enforceConfigurationSafety();
 }
 
@@ -438,14 +479,12 @@ bool DynamixelSerial::enqueueInstructionBatch(
   }
   if (queue_mutex_ == nullptr ||
       osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
-    ++comm_counters_.queue_overflow_count;
     return false;
   }
 
   const uint16_t available_slots = static_cast<uint16_t>(
     instruction_buffer_.capacity() - instruction_buffer_.length());
   if (available_slots < instruction_count) {
-    ++comm_counters_.queue_overflow_count;
     osMutexRelease(queue_mutex_);
     return false;
   }
@@ -453,11 +492,6 @@ bool DynamixelSerial::enqueueInstructionBatch(
   bool queued = true;
   for (uint8_t i = 0; i < instruction_count; ++i) {
     queued = instruction_buffer_.push(instructions[i]) && queued;
-  }
-  if (queued) {
-    updateQueueHighWaterMark();
-  } else {
-    ++comm_counters_.queue_overflow_count;
   }
   osMutexRelease(queue_mutex_);
   return queued;
@@ -475,14 +509,6 @@ bool DynamixelSerial::popInstruction(ServoInstruction& instruction)
   return popped;
 }
 
-
-void DynamixelSerial::updateQueueHighWaterMark()
-{
-  const uint16_t depth = instruction_buffer_.length();
-  if (depth > comm_counters_.queue_high_water_mark) {
-    comm_counters_.queue_high_water_mark = depth;
-  }
-}
 
 DynamixelSerial::ServoMask DynamixelSerial::servoBit(uint8_t servo_index)
 {
@@ -680,7 +706,6 @@ void DynamixelSerial::updateTargetWatchdogs(uint32_t now_ms)
       continue;
     }
     if (!servo.watchdog_timed_out_) {
-      ++comm_counters_.watchdog_timeout_count;
       servo.watchdog_timed_out_ = true;
       servo.goal_velocity_ = 0;
       servo.goal_current_ = 0;
@@ -789,7 +814,6 @@ ServoResult DynamixelSerial::requestConfig(uint8_t command, const int32_t* data,
 
   const uint32_t wait_timeout_ms = timeout_ms == 0 ? SERVO_SERVICE_TIMEOUT_MS : timeout_ms;
   if (osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
-    ++comm_counters_.queue_overflow_count;
     return SERVO_RESULT_BUSY;
   }
   if (service_request_.active) {
@@ -836,11 +860,9 @@ ServoResult DynamixelSerial::requestConfig(uint8_t command, const int32_t* data,
   if (!queued) {
     service_request_.active = false;
     service_request_.callback_waiting = false;
-    ++comm_counters_.queue_overflow_count;
     osMutexRelease(queue_mutex_);
     return SERVO_RESULT_QUEUE_FULL;
   }
-  updateQueueHighWaterMark();
   osMutexRelease(queue_mutex_);
 
   const int32_t wait_result = osSemaphoreWait(service_completion_, wait_timeout_ms);
@@ -849,9 +871,8 @@ ServoResult DynamixelSerial::requestConfig(uint8_t command, const int32_t* data,
   }
 
   ServoResult result = SERVO_RESULT_TIMEOUT;
-  if (service_request_.generation != generation) {
-    ++comm_counters_.unexpected_completion_count;
-  } else if (wait_result == osOK && !service_request_.active) {
+  if (service_request_.generation == generation &&
+      wait_result == osOK && !service_request_.active) {
     result = service_request_.result;
   } else if (service_request_.active) {
     service_request_.callback_waiting = false;
@@ -864,14 +885,11 @@ void DynamixelSerial::completeServiceRequest(uint32_t generation, ServoResult re
 {
   if (queue_mutex_ == nullptr ||
       osMutexWait(queue_mutex_, SERVO_QUEUE_LOCK_TIMEOUT_MS) != osOK) {
-    ++comm_counters_.unexpected_completion_count;
     return;
   }
 
   bool notify_callback = false;
-  if (!service_request_.active || service_request_.generation != generation) {
-    ++comm_counters_.unexpected_completion_count;
-  } else {
+  if (service_request_.active && service_request_.generation == generation) {
     service_request_.result = result;
     service_request_.active = false;
     notify_callback = service_request_.callback_waiting;
@@ -894,13 +912,11 @@ bool DynamixelSerial::startPendingTransaction(const ServoInstruction& instructio
                                               uint32_t timeout_ms)
 {
   if (pending_transaction_.active) {
-    ++comm_counters_.unexpected_completion_count;
     return false;
   }
   const ServoMask invalid_mask = static_cast<ServoMask>(~allServoMask());
   if (instruction.servo_mask == 0 ||
       (instruction.servo_mask & invalid_mask) != 0) {
-    ++comm_counters_.invalid_packet_count;
     return false;
   }
 
@@ -915,14 +931,12 @@ bool DynamixelSerial::startPendingTransaction(const ServoInstruction& instructio
 ServoResult DynamixelSerial::completePendingTransaction()
 {
   if (!pending_transaction_.active) {
-    ++comm_counters_.unexpected_completion_count;
     return SERVO_RESULT_BUSY;
   }
 
   const PendingTransaction transaction = pending_transaction_;
   ServoResult result = SERVO_RESULT_OK;
   if (deadlineExpired(HAL_GetTick(), transaction.deadline_ms)) {
-    ++comm_counters_.deadline_miss_count;
     result = SERVO_RESULT_TIMEOUT;
   } else if (transaction.fast_sync) {
     result = readFastSyncStatusPacket(transaction.instruction.command,
@@ -934,7 +948,6 @@ ServoResult DynamixelSerial::completePendingTransaction()
   }
 
   pending_transaction_ = PendingTransaction();
-  recordTransactionResult(result);
   if (result != SERVO_RESULT_OK) {
     recoverRx();
   }
@@ -955,28 +968,6 @@ ServoResult DynamixelSerial::executeBlockingRead(const ServoInstruction& instruc
   return completePendingTransaction();
 }
 
-void DynamixelSerial::recordTransactionResult(ServoResult result)
-{
-  switch (result) {
-  case SERVO_RESULT_OK:
-    ++comm_counters_.transaction_success_count;
-    break;
-  case SERVO_RESULT_TIMEOUT:
-    ++comm_counters_.timeout_count;
-    break;
-  case SERVO_RESULT_CRC_ERROR:
-    ++comm_counters_.crc_error_count;
-    break;
-  case SERVO_RESULT_INVALID_RESPONSE:
-  case SERVO_RESULT_UART_ERROR:
-  case SERVO_RESULT_INVALID_ARGUMENT:
-    ++comm_counters_.invalid_packet_count;
-    break;
-  default:
-    break;
-  }
-}
-
 ServoResult DynamixelSerial::lastTransmitResult()
 {
   if (last_tx_status_ == HAL_OK) {
@@ -985,15 +976,12 @@ ServoResult DynamixelSerial::lastTransmitResult()
 
   const ServoResult result = last_tx_status_ == HAL_TIMEOUT
     ? SERVO_RESULT_TIMEOUT : SERVO_RESULT_UART_ERROR;
-  recordTransactionResult(result);
   recoverRx();
   return result;
 }
 
 void DynamixelSerial::recoverRx()
 {
-  ++comm_counters_.recovery_count;
-
   HAL_UART_AbortReceive(huart_);
   __HAL_UART_CLEAR_FLAG(huart_, UART_CLEAR_PEF | UART_CLEAR_FEF |
                                 UART_CLEAR_NEF | UART_CLEAR_OREF);
@@ -1173,7 +1161,6 @@ void DynamixelSerial::processInstructionQueue()
     case INST_SET_CURRENT_LIMIT:
     case INST_SET_PROFILE_VELOCITY:
       if (!single_target) {
-        ++comm_counters_.invalid_packet_count;
         continue;
       }
       switch (instruction.command) {
@@ -1181,7 +1168,6 @@ void DynamixelSerial::processInstructionQueue()
         if (servo_[servo_index].torque_enable_ &&
             !canSendControl(instruction.servo_mask)) {
           servo_[servo_index].torque_enable_ = false;
-          ++comm_counters_.configuration_error_count;
           continue;
         }
         cmdWriteTorqueEnableWithLED(servo_index,
@@ -1220,18 +1206,12 @@ void DynamixelSerial::processInstructionQueue()
       }
 
       if (!request_valid) {
-        ++comm_counters_.unexpected_completion_count;
         continue;
       }
 
       ServoResult result = SERVO_RESULT_TIMEOUT;
-      if (deadlineExpired(HAL_GetTick(), request.deadline_ms)) {
-        ++comm_counters_.deadline_miss_count;
-      } else {
+      if (!deadlineExpired(HAL_GetTick(), request.deadline_ms)) {
         result = executeServiceRequest(request);
-      }
-      if (result != SERVO_RESULT_OK) {
-        ++comm_counters_.configuration_error_count;
       }
       completeServiceRequest(request.generation, result);
       return;
@@ -1241,7 +1221,6 @@ void DynamixelSerial::processInstructionQueue()
     case INST_GET_PRESENT_MOVING:
     case INST_GET_HARDWARE_ERROR_STATUS:
       if (servoCount(instruction.servo_mask) == 0) {
-        ++comm_counters_.invalid_packet_count;
         continue;
       }
 
@@ -1277,7 +1256,6 @@ void DynamixelSerial::processInstructionQueue()
       }
       return;
     default:
-      ++comm_counters_.invalid_packet_count;
       continue;
     }
   }
@@ -1334,6 +1312,10 @@ HAL_StatusTypeDef DynamixelSerial::transmitInstructionPacket(
   uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters)
 {
   uint8_t transmit_data[INSTRUCTION_PACKET_SIZE];
+  if (len < 3) {
+    last_tx_status_ = HAL_ERROR;
+    return last_tx_status_;
+  }
   /* headers */
   transmit_data[0] = HEADER0;
   transmit_data[1] = HEADER1;
@@ -1347,33 +1329,25 @@ HAL_StatusTypeDef DynamixelSerial::transmitInstructionPacket(
   /* instruction */
   transmit_data[7] = instruction;
   /* parameters */
-  int transmit_data_index = 8;
-  uint16_t stuffed_byte_count = 0;
-  for (int i = 0; i < len - 3; i++) {
+  const size_t parameter_count = len - 3U;
+  size_t transmit_data_index = 8;
+  for (size_t i = 0; i < parameter_count; ++i) {
     if (parameters == nullptr ||
-        transmit_data_index >= INSTRUCTION_PACKET_SIZE - 2) {
+        !appendStuffedByte(
+          parameters[i], transmit_data, INSTRUCTION_PACKET_SIZE - 2U,
+          transmit_data_index, 8U)) {
       last_tx_status_ = HAL_ERROR;
       return last_tx_status_;
     }
-    transmit_data[transmit_data_index++] = parameters[i];
-    if (transmit_data_index >= 3 &&
-        transmit_data[transmit_data_index - 3] == HEADER0 &&
-        transmit_data[transmit_data_index - 2] == HEADER1 &&
-        transmit_data[transmit_data_index - 1] == HEADER2) {
-      if (transmit_data_index >= INSTRUCTION_PACKET_SIZE - 2) {
-        last_tx_status_ = HAL_ERROR;
-        return last_tx_status_;
-      }
-      transmit_data[transmit_data_index++] = EXCEPTION_ADDITIONAL_BYTE;
-      ++stuffed_byte_count;
-    }
   }
-  const uint16_t stuffed_len = len + stuffed_byte_count;
+  const uint16_t stuffed_len = static_cast<uint16_t>(
+    len + (transmit_data_index - 8U - parameter_count));
   transmit_data[5] = stuffed_len & 0xFF;
   transmit_data[6] = (stuffed_len >> 8) & 0xFF;
 
   /* checksum */
-  uint16_t chksum = calcCRC16(0, transmit_data, transmit_data_index);
+  uint16_t chksum = calcCRC16(
+    0, transmit_data, static_cast<int>(transmit_data_index));
 
   transmit_data[transmit_data_index] = chksum & 0xFF; //CRC_L
   transmit_data_index++;
@@ -1384,7 +1358,8 @@ HAL_StatusTypeDef DynamixelSerial::transmitInstructionPacket(
   if(direct_ttl_mode_)  HAL_HalfDuplex_EnableTransmitter(huart_);
 
   last_tx_status_ = HAL_UART_Transmit(huart_, transmit_data,
-                                      transmit_data_index, 10);
+                                      static_cast<uint16_t>(transmit_data_index),
+                                      10);
   return last_tx_status_;
 }
 
@@ -1565,7 +1540,6 @@ ServoResult DynamixelSerial::readFastSyncStatusPacket(
         }
         servo_[i].setPresentPosition(present_position);
       }
-      ++servo_[i].cur_vel_pos_update_count_;
       break;
     }
     case INST_GET_PRESENT_TEMPERATURE:
@@ -1595,17 +1569,17 @@ ServoResult DynamixelSerial::readFastSyncStatusPacket(
 ServoResult DynamixelSerial::readStatusPacket(
   uint8_t status_packet_instruction, uint32_t deadline_ms)
 {
-	int status_stage = READ_HEADER0;
-	uint8_t rx_data;
-	int header_match_count = 0;
-	uint16_t parameter_len = 0;
-	uint8_t parameters[STATUS_PACKET_SIZE] = {0};
-	int parameter_index = 0;
-	int parameter_loop_count = 0;
-	uint16_t checksum = 0;
-	uint8_t receive_data[STATUS_PACKET_SIZE] = {0};
-	bool read_end_flag = false;
-	int loop_count = 0;
+		int status_stage = READ_HEADER0;
+		uint8_t rx_data;
+		uint16_t parameter_len = 0;
+		uint8_t parameters[STATUS_PACKET_SIZE] = {0};
+		size_t parameter_index = 0;
+		uint16_t parameter_loop_count = 0;
+		UnstuffState unstuff_state;
+		uint16_t checksum = 0;
+		uint8_t receive_data[STATUS_PACKET_SIZE] = {0};
+		bool read_end_flag = false;
+		size_t loop_count = 0;
 	uint8_t servo_id;
 
   if(direct_ttl_mode_) {
@@ -1662,7 +1636,8 @@ ServoResult DynamixelSerial::readStatusPacket(
 			break;
 		case READ_LENH:
 			parameter_len |= ((rx_data << 8) & 0xFF00);
-				if (parameter_len < 4 || parameter_len > STATUS_PACKET_SIZE) {
+				if (parameter_len < 4 ||
+				    parameter_len > STATUS_PACKET_SIZE - 5) {
 					return SERVO_RESULT_INVALID_RESPONSE;
 				}
 				status_stage++;
@@ -1682,31 +1657,10 @@ ServoResult DynamixelSerial::readStatusPacket(
 			}
 			break;
 		case READ_PARAMETER:
-			//process for exception
-			if (parameter_index >= STATUS_PACKET_SIZE) {
+			if (!unstuff_state.append(rx_data, parameters,
+			                          STATUS_PACKET_SIZE,
+			                          parameter_index)) {
 				return SERVO_RESULT_INVALID_RESPONSE;
-			}
-			if (header_match_count == 0) {
-				if (rx_data == HEADER0) header_match_count++;
-				else header_match_count = 0;
-				parameters[parameter_index] = rx_data;
-				parameter_index++;
-			} else if (header_match_count == 1) {
-				if (rx_data == HEADER1) header_match_count++;
-				else header_match_count = 0;
-				parameters[parameter_index] = rx_data;
-				parameter_index++;
-			} else if (header_match_count == 2) {
-				if (rx_data == HEADER2) header_match_count++;
-				else header_match_count = 0;
-				parameters[parameter_index] = rx_data;
-				parameter_index++;
-			} else if (header_match_count == 3) {
-				if (rx_data == EXCEPTION_ADDITIONAL_BYTE) {
-					header_match_count = 0;
-				} else {
-					return SERVO_RESULT_INVALID_RESPONSE;
-				}
 			}
 			parameter_loop_count++;
 			if (parameter_loop_count == parameter_len - 4) {
@@ -2188,7 +2142,6 @@ void DynamixelSerial::recordGoalWrite(ServoMask servo_mask)
 
 	for (unsigned int i = 0; i < servo_num_; ++i) {
 		if ((servo_mask & servoBit(i)) == 0) continue;
-		++servo_[i].goal_write_count_;
 	}
 }
 

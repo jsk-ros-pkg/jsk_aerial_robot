@@ -128,6 +128,7 @@
 #define COMMAND_FACTORY_RESET           0x06
 #define COMMAND_REBOOT					0x08
 #define COMMAND_SYNC_READ				0x82
+#define COMMAND_FAST_SYNC_READ            0x8A
 #define COMMAND_SYNC_WRITE          	0x83
 #define COMMAND_BULK_READ				0x92
 #define COMMAND_BULK_WRITE				0x93
@@ -149,6 +150,7 @@
 #define PRESENT_VELOCITY_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_CVP_BYTE_LEN			10
+#define SERVO_FAST_CVP_TIMEOUT_MS         5U
 #define PRESENT_TEMPERATURE_BYTE_LEN		1
 #define MOVING_BYTE_LEN 			1
 #define OPERATING_MODE_BYTE_LEN 		1
@@ -176,8 +178,8 @@
 #define HEADER3 				0x00
 #define EXCEPTION_ADDITIONAL_BYTE 0xFD
 
-#define INSTRUCTION_PACKET_SIZE 64
-#define STATUS_PACKET_SIZE 		64
+#define INSTRUCTION_PACKET_SIZE 160
+#define STATUS_PACKET_SIZE 		160
 
 #define MAX_SERVO_NUM			4
 #define PING_TRIAL_NUM			100
@@ -258,6 +260,19 @@ constexpr uint8_t NEURON_SERVO_FLASH_FLAG_MASK =
 constexpr int32_t NEURON_MIT_GAIN_SCALE = 10000;
 constexpr uint16_t NEURON_SERVO_FEEDBACK_FREQUENCY_HZ = 50;
 constexpr uint32_t NEURON_DEFAULT_TARGET_WATCHDOG_MS = 100;
+constexpr uint32_t NEURON_SERVO_RESPONSE_TIMEOUT_MS = 5U;
+
+enum NeuronServoResult : int8_t
+{
+  NEURON_SERVO_RESULT_OK = 0,
+  NEURON_SERVO_RESULT_BUSY = -1,
+  NEURON_SERVO_RESULT_QUEUE_FULL = -2,
+  NEURON_SERVO_RESULT_TIMEOUT = -3,
+  NEURON_SERVO_RESULT_INVALID_RESPONSE = -4,
+  NEURON_SERVO_RESULT_CRC_ERROR = -5,
+  NEURON_SERVO_RESULT_INVALID_ARGUMENT = -6,
+  NEURON_SERVO_RESULT_UART_ERROR = -7,
+};
 
 struct NeuronServoFlashConfig
 {
@@ -348,12 +363,17 @@ public:
     return true;
   }
 
-  uint16_t length()
+  uint16_t length() const
   {
     if(byte_to_add_ - byte_in_progress_ >= 0)
       return (byte_to_add_ - byte_in_progress_);
     else 
       return (byte_to_add_ + (buffer_length_ - byte_in_progress_));
+  }
+
+  uint16_t capacity() const
+  {
+    return buffer_length_ > 0 ? buffer_length_ - 1U : 0U;
   }
 
 private:
@@ -368,7 +388,8 @@ public:
   explicit ServoData(uint8_t id):
     id_(id), bus_type_(NEURON_SERVO_BUS_UNKNOWN),
     mode_(NEURON_SERVO_MODE_UNKNOWN), present_position_(0),
-    present_velocity_(0), goal_position_(0), goal_velocity_(0),
+    present_velocity_(0), delta_position_velocity_(0),
+    goal_position_(0), goal_velocity_(0),
     goal_current_(0), pvc_update_count_(0), last_target_tick_(0),
     target_received_(false), watchdog_timed_out_(false),
     configured_(false), kp_integer_(0), kp_decimal_(0),
@@ -391,6 +412,7 @@ public:
 	uint8_t mode_;
 	int32_t present_position_;
 	int32_t present_velocity_;
+	int32_t delta_position_velocity_;
 	int32_t goal_position_;
 	int32_t goal_velocity_;
 	int16_t goal_current_;
@@ -477,10 +499,19 @@ public:
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
 
 private:
+  using ServoMask = uint16_t;
+
+  struct ServoGroupMasks
+  {
+    ServoMask rs485_mask = 0;
+    ServoMask ttl_mask = 0;
+    bool valid = false;
+  };
+
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   osMutexId* mutex_; // for UART (RS485) I/O mutex
   MagEncoder encoder_handler_;
-  RingBuffer<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
+  RingBuffer<std::pair<uint8_t, ServoMask>, 64> instruction_buffer_;
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   std::array<NeuronServoFlashConfig, MAX_SERVO_NUM> servo_flash_configs_;
@@ -494,6 +525,9 @@ private:
   uint32_t get_temp_tick_;
   uint32_t get_move_tick_;
   uint32_t get_error_tick_;
+  volatile uint32_t torque_command_pending_mask_;
+  bool watchdog_goal_write_pending_;
+  HAL_StatusTypeDef last_tx_status_;
 #ifdef STM32G4
   bool target_cycle_pending_;
   bool target_cycle_complete_;
@@ -503,8 +537,30 @@ private:
   uint8_t rx_buf_[RX_BUFFER_SIZE];
   uint32_t rd_ptr_;
 
-  void transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters);
+  bool enqueueInstruction(uint8_t command, ServoMask servo_mask);
+  bool enqueueInstructionBatch(
+    const std::pair<uint8_t, ServoMask>* instructions,
+    uint8_t instruction_count);
+  bool popInstruction(std::pair<uint8_t, ServoMask>& instruction);
+  static ServoMask servoBit(uint8_t servo_index);
+  ServoMask allServoMask() const;
+  ServoMask activeServoMask() const;
+  ServoMask goalServoMask() const;
+  uint8_t servoCount(ServoMask servo_mask) const;
+  ServoGroupMasks configuredServoMasks(ServoMask selected_mask) const;
+  bool enqueueGroupedFeedbackRead(uint8_t command,
+                                  ServoMask selected_mask);
+  int8_t lastTransmitResult() const;
+  int8_t finishReadTransaction(int8_t result);
+  void recoverRx();
+  static bool deadlineExpired(uint32_t now_ms, uint32_t deadline_ms);
+  HAL_StatusTypeDef readUntil(uint8_t* data, uint32_t deadline_ms);
+  HAL_StatusTypeDef transmitInstructionPacket(uint8_t id, uint16_t len,
+                                              uint8_t instruction,
+                                              uint8_t* parameters);
   int8_t readStatusPacket(uint8_t status_packet_instruction);
+  int8_t parseStatusPacket(uint8_t status_packet_instruction,
+                           uint32_t deadline_ms);
   bool findServoIndex(uint8_t servo_id, uint8_t& servo_index) const;
   static bool validPersistentMode(uint8_t mode);
   static uint8_t expectedOperatingMode(uint8_t mode);
@@ -518,12 +574,25 @@ private:
   void updateConfigurationState(ServoData& servo);
   void updateTargetWatchdogs(uint32_t now_ms);
   int16_t calculateMITGoalCurrent(const ServoData& servo) const;
-  void cmdBulkWriteGoalStates();
+  bool readFastSyncGroups(uint8_t status_packet_instruction,
+                          uint16_t address, uint16_t byte_size,
+                          ServoMask selected_mask);
+  bool writeGoalGroups(ServoMask selected_mask);
+  bool cmdBulkWriteGoalStates(ServoMask servo_mask);
 
   void cmdPing(uint8_t id);
   void cmdReboot(uint8_t id);
   void cmdRead(uint8_t id, uint16_t address, uint16_t byte_size);
   void cmdWrite(uint8_t id, uint16_t address, uint8_t* param, int param_len);
+  void cmdFastSyncRead(uint16_t address, uint16_t byte_size,
+                       ServoMask servo_mask);
+  int8_t executeFastSyncRead(uint8_t status_packet_instruction,
+                             uint16_t address, uint16_t byte_size,
+                             ServoMask servo_mask);
+  int8_t readFastSyncStatusPacket(uint8_t status_packet_instruction,
+                                  ServoMask expected_servo_mask);
+  int8_t readFastSyncPresentCVP(ServoMask servo_mask);
+  void updatePresentPosition(ServoData* servo, int32_t present_position);
   void cmdSyncRead(uint16_t address, uint16_t byte_size, bool send_all);
   void cmdSyncWrite(uint16_t address, uint8_t* param, int param_len);
 

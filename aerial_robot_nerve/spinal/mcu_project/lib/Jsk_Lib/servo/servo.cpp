@@ -8,8 +8,6 @@
 
 #include "servo.h"
 
-#define SERVO_COMM_STATUS_PUB_INTERVAL 1000 // 1Hz
-
 bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexId* mutex = NULL) //TODO: support encoder
 {
   /*setup pin configuration*/
@@ -40,18 +38,6 @@ bool DirectServo::init(UART_HandleTypeDef* huart,  ros::NodeHandle* nh, osMutexI
 
   nh_ = nh;
   nh_->subscribe(joint_profiles_sub_);
-  nh_->advertise(servo_comm_status_pub_);
-
-  servo_comm_status_msg_.servo_ids_length = actual_servo_num;
-  servo_comm_status_msg_.servo_ids = new uint8_t[actual_servo_num];
-  servo_comm_status_msg_.cur_vel_pos_update_count_length = actual_servo_num;
-  servo_comm_status_msg_.cur_vel_pos_update_count = new uint32_t[actual_servo_num];
-  servo_comm_status_msg_.goal_write_count_length = actual_servo_num;
-  servo_comm_status_msg_.goal_write_count = new uint32_t[actual_servo_num];
-
-  servo_comm_status_last_pub_time_ = 0;
-  servo_comm_status_initialized_ = false;
-  last_bus_map_valid_ = false;
 
   connected_ = true;
   return true;
@@ -69,49 +55,6 @@ bool DirectServo::createRTOSObjects()
 void DirectServo::update()
 {
   servo_handler_.update();
-  publishCommStatus();
-}
-
-void DirectServo::publishCommStatus()
-{
-  uint32_t now_time = HAL_GetTick();
-
-  const bool bus_map_valid = servo_handler_.busMapValid();
-  const bool status_changed =
-    !servo_comm_status_initialized_ ||
-    bus_map_valid != last_bus_map_valid_;
-  if (status_changed ||
-      now_time - servo_comm_status_last_pub_time_ >=
-        SERVO_COMM_STATUS_PUB_INTERVAL)
-    {
-      const ServoCommCounters& counters = servo_handler_.getCommCounters();
-      servo_comm_status_msg_.stamp = nh_->now();
-      servo_comm_status_msg_.transaction_success_count = counters.transaction_success_count;
-      servo_comm_status_msg_.timeout_count = counters.timeout_count;
-      servo_comm_status_msg_.crc_error_count = counters.crc_error_count;
-      servo_comm_status_msg_.invalid_packet_count = counters.invalid_packet_count;
-      servo_comm_status_msg_.recovery_count = counters.recovery_count;
-      servo_comm_status_msg_.deadline_miss_count = counters.deadline_miss_count;
-      servo_comm_status_msg_.queue_overflow_count = counters.queue_overflow_count;
-      servo_comm_status_msg_.unexpected_completion_count = counters.unexpected_completion_count;
-      servo_comm_status_msg_.watchdog_timeout_count =
-        counters.watchdog_timeout_count;
-      servo_comm_status_msg_.configuration_error_count =
-        counters.configuration_error_count;
-      servo_comm_status_msg_.queue_high_water_mark = counters.queue_high_water_mark;
-      servo_comm_status_msg_.bus_map_valid = bus_map_valid;
-      for (unsigned int i = 0; i < servo_handler_.getServoNum(); ++i) {
-        const ServoData& servo = servo_handler_.getServo()[i];
-        servo_comm_status_msg_.servo_ids[i] = servo.id_;
-        servo_comm_status_msg_.cur_vel_pos_update_count[i] =
-          servo.cur_vel_pos_update_count_;
-        servo_comm_status_msg_.goal_write_count[i] = servo.goal_write_count_;
-      }
-      servo_comm_status_pub_.publish(&servo_comm_status_msg_);
-      servo_comm_status_last_pub_time_ = now_time;
-      servo_comm_status_initialized_ = true;
-      last_bus_map_valid_ = bus_map_valid;
-    }
 }
 
 void DirectServo::torqueEnable(const std::map<uint8_t, float>& servo_map)

@@ -71,21 +71,6 @@ enum ServoResult : int8_t
   SERVO_RESULT_UART_ERROR = -7,
 };
 
-struct ServoCommCounters
-{
-  uint32_t transaction_success_count = 0;
-  uint32_t timeout_count = 0;
-  uint32_t crc_error_count = 0;
-  uint32_t invalid_packet_count = 0;
-  uint32_t recovery_count = 0;
-  uint32_t deadline_miss_count = 0;
-  uint32_t queue_overflow_count = 0;
-  uint32_t unexpected_completion_count = 0;
-  uint32_t watchdog_timeout_count = 0;
-  uint32_t configuration_error_count = 0;
-  uint16_t queue_high_water_mark = 0;
-};
-
 class ServoData {
 public:
 	ServoData() = default;
@@ -132,8 +117,6 @@ public:
   bool configured_ = false;
   float angle_scale_ = 3.1416f / 2047.0f;
   uint16_t zero_point_offset_ = 2047;
-  uint32_t cur_vel_pos_update_count_ = 0;
-  uint32_t goal_write_count_ = 0;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
@@ -221,8 +204,6 @@ public:
   unsigned int getServoNum() const {return servo_num_;}
   std::array<ServoData, MAX_SERVO_NUM>& getServo() {return servo_;}
   const std::array<ServoData, MAX_SERVO_NUM>& getServo() const {return servo_;}
-  const ServoCommCounters& getCommCounters() const {return comm_counters_;}
-
   void setROSCommFlag(bool flag) {flag_send_ros_ = flag;}
   bool getROSCommFlag() const {return flag_send_ros_;}
 
@@ -239,8 +220,6 @@ protected:
   uint32_t get_move_tick_;
   uint32_t get_error_tick_;
   uint16_t ttl_rs485_mixed_;
-  ServoCommCounters comm_counters_;
-
   /* uart rx */
   uint32_t rd_ptr_;
 

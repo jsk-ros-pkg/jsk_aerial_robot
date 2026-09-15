@@ -2,6 +2,58 @@
 
 namespace
 {
+bool appendStuffedByte(uint8_t value, uint8_t* output,
+                       size_t capacity, size_t& output_size,
+                       size_t window_begin = 0)
+{
+  if (output == nullptr || output_size >= capacity) return false;
+  output[output_size++] = value;
+
+  if (output_size >= window_begin + 3 &&
+      output[output_size - 3] == 0xFF &&
+      output[output_size - 2] == 0xFF &&
+      output[output_size - 1] == 0xFD) {
+    if (output_size >= capacity) return false;
+    output[output_size++] = 0xFD;
+  }
+  return true;
+}
+
+class UnstuffState
+{
+public:
+  UnstuffState() : raw_window_{0, 0, 0}, raw_count_(0) {}
+
+  bool append(uint8_t value, uint8_t* output, size_t capacity,
+              size_t& output_size)
+  {
+    const bool stuffing_prefix =
+      raw_count_ >= 3 &&
+      raw_window_[0] == 0xFF &&
+      raw_window_[1] == 0xFF &&
+      raw_window_[2] == 0xFD;
+    if (stuffing_prefix && value != 0xFD) return false;
+    const bool stuffing_byte = stuffing_prefix;
+
+    if (raw_count_ < 3) {
+      raw_window_[raw_count_++] = value;
+    } else {
+      raw_window_[0] = raw_window_[1];
+      raw_window_[1] = raw_window_[2];
+      raw_window_[2] = value;
+    }
+
+    if (stuffing_byte) return true;
+    if (output == nullptr || output_size >= capacity) return false;
+    output[output_size++] = value;
+    return true;
+  }
+
+private:
+  uint8_t raw_window_[3];
+  uint8_t raw_count_;
+};
+
 int16_t clampGoalCurrent(int64_t current, uint16_t configured_limit)
 {
   const int32_t limit =
@@ -23,6 +75,32 @@ int64_t symmetricDivide(int64_t value, int64_t divisor)
   return value >= 0 ? (value + divisor / 2) / divisor
                     : (value - divisor / 2) / divisor;
 }
+
+int32_t clampInt32(int64_t value)
+{
+  if (value > INT32_MAX) return INT32_MAX;
+  if (value < INT32_MIN) return INT32_MIN;
+  return static_cast<int32_t>(value);
+}
+
+#ifdef STM32G4
+constexpr int64_t SERVO_POSITION_FEEDBACK_PERIOD_MS = CONTROL_CYCLE_DU;
+#else
+constexpr int64_t SERVO_POSITION_FEEDBACK_PERIOD_MS = GET_POS_DU;
+#endif
+
+// Dynamixel X-series units: 4096 position ticks per revolution and
+// 0.229 rpm per velocity unit.
+constexpr int64_t DYNAMIXEL_POSITION_RESOLUTION = 4096;
+constexpr int64_t DYNAMIXEL_VELOCITY_UNIT_MILLI_RPM = 229;
+constexpr int64_t POSITION_DELTA_VELOCITY_NUMERATOR = 60000000;
+constexpr int64_t POSITION_DELTA_VELOCITY_DENOMINATOR =
+  DYNAMIXEL_POSITION_RESOLUTION *
+  DYNAMIXEL_VELOCITY_UNIT_MILLI_RPM *
+  SERVO_POSITION_FEEDBACK_PERIOD_MS;
+static_assert(POSITION_DELTA_VELOCITY_DENOMINATOR > 0,
+              "Servo position feedback period must be positive");
+
 }
 
 
@@ -39,6 +117,9 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 	get_temp_tick_ = 0;
 	get_move_tick_ = 0;
 	get_error_tick_ = 0;
+  torque_command_pending_mask_ = 0;
+  watchdog_goal_write_pending_ = false;
+  last_tx_status_ = HAL_OK;
 #ifdef STM32G4
 	target_cycle_pending_ = false;
 	target_cycle_complete_ = false;
@@ -48,9 +129,11 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
         /* rx */
         __HAL_UART_DISABLE_IT(huart, UART_IT_PE);
         __HAL_UART_DISABLE_IT(huart, UART_IT_ERR);
-        HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE);
         rd_ptr_ = 0;
         memset(rx_buf_, 0, sizeof(rx_buf_));
+        if (HAL_UART_Receive_DMA(huart, rx_buf_, RX_BUFFER_SIZE) != HAL_OK) {
+          recoverRx();
+        }
 
 		std::fill(servo_.begin(), servo_.end(), ServoData(255));
 		servo_flash_configs_.fill(NeuronServoFlashConfig());
@@ -113,8 +196,10 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
 		  const uint8_t operating_mode = expectedOperatingMode(servo.mode_);
 		  if (servo.operating_mode_ != operating_mode) {
 		    cmdWriteOperatingMode(i, operating_mode);
-		    cmdReadOperatingMode(i);
-		    (void)readStatusPacket(INST_GET_OPERATING_MODE);
+		    if (lastTransmitResult() == NEURON_SERVO_RESULT_OK) {
+		      cmdReadOperatingMode(i);
+		      (void)readStatusPacket(INST_GET_OPERATING_MODE);
+		    }
 		  }
 		  cmdWritePositionGains(i);
 		  cmdWriteProfileVelocity(i);
@@ -156,7 +241,9 @@ void DynamixelSerial::ping()
 {
 	cmdPing(BROADCAST_ID);
 	for (int i = 0; i < PING_TRIAL_NUM; ++i) {
-		readStatusPacket(INST_PING);
+		const int8_t result = readStatusPacket(INST_PING);
+		if (result == NEURON_SERVO_RESULT_TIMEOUT ||
+		    result == NEURON_SERVO_RESULT_UART_ERROR) break;
 	}
 	std::sort(servo_.begin(), servo_.begin() + servo_num_,
 	          [](const ServoData& lhs, const ServoData& rhs) {
@@ -189,7 +276,8 @@ void DynamixelSerial::setTorque(uint8_t servo_index, bool torque_enable)
 
   servo_[servo_index].torque_enable_ = torque_enable;
 
-  instruction_buffer_.push(std::make_pair(INST_SET_TORQUE, servo_index));
+  __atomic_fetch_or(&torque_command_pending_mask_, 1UL << servo_index,
+                    __ATOMIC_RELEASE);
 }
 
 void DynamixelSerial::startTargetCycle()
@@ -245,13 +333,16 @@ bool DynamixelSerial::setHomingOffset(uint8_t servo_index)
 	    if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 	    bool success = true;
 
-	    // reset homing offset and internal offset
-	    servo_[servo_index].homing_offset_ = 0;
-	    servo_[servo_index].internal_offset_ = 0;
-	    cmdWriteHomingOffset(servo_index);
-	    cmdReadHomingOffset(servo_index);
-	    success = readStatusPacket(INST_GET_HOMING_OFFSET) == 0 &&
-	              servo_[servo_index].homing_offset_ == 0;
+    // reset homing offset and internal offset
+    servo_[servo_index].homing_offset_ = 0;
+    servo_[servo_index].internal_offset_ = 0;
+    cmdWriteHomingOffset(servo_index);
+    success = lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+    if (success) {
+      cmdReadHomingOffset(servo_index);
+      success = readStatusPacket(INST_GET_HOMING_OFFSET) == 0 &&
+                servo_[servo_index].homing_offset_ == 0;
+    }
 
 	    // read updated position
 	    if (success) {
@@ -261,13 +352,17 @@ bool DynamixelSerial::setHomingOffset(uint8_t servo_index)
 
 	    // set new homing offset
 	    int32_t expected_homing_offset = 0;
-	    if (success) {
-	      servo_[servo_index].updateHomingOffset();
-	      expected_homing_offset = servo_[servo_index].homing_offset_;
-	      cmdWriteHomingOffset(servo_index);
-	      cmdReadHomingOffset(servo_index);
-	      success = readStatusPacket(INST_GET_HOMING_OFFSET) == 0 &&
-	                servo_[servo_index].homing_offset_ == expected_homing_offset;
+    if (success) {
+      servo_[servo_index].updateHomingOffset();
+      expected_homing_offset = servo_[servo_index].homing_offset_;
+      cmdWriteHomingOffset(servo_index);
+      success = lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+      if (success) {
+        cmdReadHomingOffset(servo_index);
+        success = readStatusPacket(INST_GET_HOMING_OFFSET) == 0 &&
+                  servo_[servo_index].homing_offset_ ==
+                    expected_homing_offset;
+      }
 	    }
 
 	    // read updated position
@@ -290,11 +385,14 @@ bool DynamixelSerial::setPositionGains(uint8_t servo_index)
   if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
   cmdWritePositionGains(servo_index);
-  cmdReadPositionGains(servo_index);
-  const bool success = readStatusPacket(INST_GET_POSITION_GAINS) == 0 &&
-                       servo_[servo_index].p_gain_ == expected_p &&
-                       servo_[servo_index].i_gain_ == expected_i &&
-                       servo_[servo_index].d_gain_ == expected_d;
+  bool success = lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+  if (success) {
+    cmdReadPositionGains(servo_index);
+    success = readStatusPacket(INST_GET_POSITION_GAINS) == 0 &&
+              servo_[servo_index].p_gain_ == expected_p &&
+              servo_[servo_index].i_gain_ == expected_i &&
+              servo_[servo_index].d_gain_ == expected_d;
+  }
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
   return success;
@@ -307,9 +405,12 @@ bool DynamixelSerial::setProfileVelocity(uint8_t servo_index)
   if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
   cmdWriteProfileVelocity(servo_index);
-  cmdReadProfileVelocity(servo_index);
-  const bool success = readStatusPacket(INST_GET_PROFILE_VELOCITY) == 0 &&
-                       servo_[servo_index].profile_velocity_ == expected;
+  bool success = lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+  if (success) {
+    cmdReadProfileVelocity(servo_index);
+    success = readStatusPacket(INST_GET_PROFILE_VELOCITY) == 0 &&
+              servo_[servo_index].profile_velocity_ == expected;
+  }
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
   return success;
@@ -322,9 +423,12 @@ bool DynamixelSerial::setCurrentLimit(uint8_t servo_index)
   if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
   cmdWriteCurrentLimit(servo_index);
-  cmdReadCurrentLimit(servo_index);
-  const bool success = readStatusPacket(INST_GET_CURRENT_LIMIT) == 0 &&
-                       servo_[servo_index].current_limit_ == expected;
+  bool success = lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+  if (success) {
+    cmdReadCurrentLimit(servo_index);
+    success = readStatusPacket(INST_GET_CURRENT_LIMIT) == 0 &&
+              servo_[servo_index].current_limit_ == expected;
+  }
 
   if (mutex_ != NULL) osMutexRelease(*mutex_);
   return success;
@@ -621,8 +725,11 @@ uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
     const uint8_t operating_mode = expectedOperatingMode(mode);
     if (servo.operating_mode_ != operating_mode) {
       cmdWriteOperatingMode(servo_index, operating_mode);
-      cmdReadOperatingMode(servo_index);
-      if (readStatusPacket(INST_GET_OPERATING_MODE) != 0 ||
+      const bool write_success =
+        lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+      if (write_success) cmdReadOperatingMode(servo_index);
+      if (!write_success ||
+          readStatusPacket(INST_GET_OPERATING_MODE) != 0 ||
           servo.operating_mode_ != operating_mode) {
         servo.mode_ = old_mode;
         servo.operating_mode_ = old_operating_mode;
@@ -803,13 +910,239 @@ void DynamixelSerial::updateTargetWatchdogs(uint32_t now_ms)
     servo.goal_current_ = 0;
     zero_write_required = true;
   }
-#ifdef STM32G4
   if (zero_write_required) {
-    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_COMMAND, 0));
+    watchdog_goal_write_pending_ = true;
   }
-#else
-  (void)zero_write_required;
-#endif
+}
+
+bool DynamixelSerial::enqueueInstruction(uint8_t command,
+                                         ServoMask servo_mask)
+{
+  if (!instruction_buffer_.push(std::make_pair(command, servo_mask))) {
+    return false;
+  }
+  return true;
+}
+
+bool DynamixelSerial::enqueueInstructionBatch(
+  const std::pair<uint8_t, ServoMask>* instructions,
+  uint8_t instruction_count)
+{
+  if (instruction_count == 0) return true;
+  if (instructions == nullptr ||
+      instruction_buffer_.length() + instruction_count >
+        instruction_buffer_.capacity()) {
+    return false;
+  }
+  for (uint8_t i = 0; i < instruction_count; ++i) {
+    if (!instruction_buffer_.push(instructions[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool DynamixelSerial::popInstruction(
+  std::pair<uint8_t, ServoMask>& instruction)
+{
+  return instruction_buffer_.pop(instruction);
+}
+
+DynamixelSerial::ServoMask DynamixelSerial::servoBit(uint8_t servo_index)
+{
+  return servo_index < MAX_SERVO_NUM
+    ? static_cast<ServoMask>(1U << servo_index) : 0;
+}
+
+DynamixelSerial::ServoMask DynamixelSerial::allServoMask() const
+{
+  return servo_num_ == 0 ? 0
+    : static_cast<ServoMask>((1U << servo_num_) - 1U);
+}
+
+DynamixelSerial::ServoMask DynamixelSerial::activeServoMask() const
+{
+  ServoMask servo_mask = 0;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if (!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_ &&
+        servo_[i].mode_ == NEURON_SERVO_MODE_EM) {
+      continue;
+    }
+    servo_mask |= servoBit(i);
+  }
+  return servo_mask;
+}
+
+DynamixelSerial::ServoMask DynamixelSerial::goalServoMask() const
+{
+  ServoMask servo_mask = 0;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if (servo_[i].mode_ != NEURON_SERVO_MODE_EM) {
+      servo_mask |= servoBit(i);
+    }
+  }
+  return servo_mask;
+}
+
+uint8_t DynamixelSerial::servoCount(ServoMask servo_mask) const
+{
+  uint8_t count = 0;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if ((servo_mask & servoBit(i)) != 0) ++count;
+  }
+  return count;
+}
+
+DynamixelSerial::ServoGroupMasks DynamixelSerial::configuredServoMasks(
+  ServoMask selected_mask) const
+{
+  ServoGroupMasks groups;
+  const ServoMask invalid_mask = static_cast<ServoMask>(~allServoMask());
+  if (selected_mask == 0 || (selected_mask & invalid_mask) != 0) {
+    return groups;
+  }
+
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    const ServoMask bit = servoBit(i);
+    if ((selected_mask & bit) == 0) continue;
+    if (servo_[i].bus_type_ == NEURON_SERVO_BUS_RS485) {
+      groups.rs485_mask |= bit;
+    } else if (servo_[i].bus_type_ == NEURON_SERVO_BUS_TTL) {
+      groups.ttl_mask |= bit;
+    } else {
+      return groups;
+    }
+  }
+  groups.valid =
+    static_cast<ServoMask>(groups.rs485_mask | groups.ttl_mask) ==
+      selected_mask;
+  return groups;
+}
+
+bool DynamixelSerial::enqueueGroupedFeedbackRead(
+  uint8_t command, ServoMask selected_mask)
+{
+  if (selected_mask == 0) return true;
+
+  std::pair<uint8_t, ServoMask> instructions[2];
+  uint8_t instruction_count = 0;
+  if (ttl_rs485_mixed_ == 0) {
+    instructions[instruction_count++] =
+      std::make_pair(command, selected_mask);
+  } else {
+    const ServoGroupMasks groups = configuredServoMasks(selected_mask);
+    if (!groups.valid) {
+      return false;
+    }
+    if (groups.rs485_mask != 0) {
+      instructions[instruction_count++] =
+        std::make_pair(command, groups.rs485_mask);
+    }
+    if (groups.ttl_mask != 0) {
+      instructions[instruction_count++] =
+        std::make_pair(command, groups.ttl_mask);
+    }
+  }
+  return enqueueInstructionBatch(instructions, instruction_count);
+}
+
+int8_t DynamixelSerial::lastTransmitResult() const
+{
+  if (last_tx_status_ == HAL_OK) return NEURON_SERVO_RESULT_OK;
+  return last_tx_status_ == HAL_TIMEOUT
+    ? NEURON_SERVO_RESULT_TIMEOUT : NEURON_SERVO_RESULT_UART_ERROR;
+}
+
+int8_t DynamixelSerial::finishReadTransaction(int8_t result)
+{
+  if (result != NEURON_SERVO_RESULT_OK) recoverRx();
+  return result;
+}
+
+bool DynamixelSerial::deadlineExpired(uint32_t now_ms,
+                                      uint32_t deadline_ms)
+{
+  return static_cast<int32_t>(now_ms - deadline_ms) >= 0;
+}
+
+void DynamixelSerial::recoverRx()
+{
+  HAL_UART_AbortReceive(huart_);
+  __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
+  __HAL_UART_CLEAR_PEFLAG(huart_);
+  __HAL_UART_CLEAR_OREFLAG(huart_);
+  __HAL_UART_CLEAR_FEFLAG(huart_);
+  rd_ptr_ = 0;
+  memset(rx_buf_, 0, sizeof(rx_buf_));
+
+  HAL_StatusTypeDef restart_status =
+    HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+  if (restart_status != HAL_OK) {
+    HAL_UART_DMAStop(huart_);
+    restart_status = HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
+  }
+  if (restart_status != HAL_OK || huart_->hdmarx == nullptr) {
+    rd_ptr_ = 0;
+    return;
+  }
+  rd_ptr_ = (RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart_->hdmarx)) %
+            RX_BUFFER_SIZE;
+}
+
+bool DynamixelSerial::readFastSyncGroups(
+  uint8_t status_packet_instruction, uint16_t address, uint16_t byte_size,
+  ServoMask selected_mask)
+{
+  if (selected_mask == 0) return true;
+  if (ttl_rs485_mixed_ == 0) {
+    return executeFastSyncRead(status_packet_instruction, address, byte_size,
+                               selected_mask) == NEURON_SERVO_RESULT_OK;
+  }
+
+  const ServoGroupMasks groups = configuredServoMasks(selected_mask);
+  if (!groups.valid) {
+    return false;
+  }
+
+  bool success = true;
+  if (groups.rs485_mask != 0 &&
+      executeFastSyncRead(status_packet_instruction, address, byte_size,
+                          groups.rs485_mask) != NEURON_SERVO_RESULT_OK) {
+    success = false;
+  }
+  if (groups.ttl_mask != 0 &&
+      executeFastSyncRead(status_packet_instruction, address, byte_size,
+                          groups.ttl_mask) != NEURON_SERVO_RESULT_OK) {
+    success = false;
+  }
+  return success;
+}
+
+bool DynamixelSerial::writeGoalGroups(ServoMask selected_mask)
+{
+  if (selected_mask == 0) return true;
+  if (!busMapValid()) {
+    return false;
+  }
+  if (ttl_rs485_mixed_ == 0) {
+    return cmdBulkWriteGoalStates(selected_mask);
+  }
+
+  const ServoGroupMasks groups = configuredServoMasks(selected_mask);
+  if (!groups.valid) {
+    return false;
+  }
+
+  bool success = true;
+  if (groups.rs485_mask != 0 &&
+      !cmdBulkWriteGoalStates(groups.rs485_mask)) {
+    success = false;
+  }
+  if (groups.ttl_mask != 0 &&
+      !cmdBulkWriteGoalStates(groups.ttl_mask)) {
+    success = false;
+  }
+  return success;
 }
 
 int16_t DynamixelSerial::calculateMITGoalCurrent(
@@ -829,7 +1162,7 @@ int16_t DynamixelSerial::calculateMITGoalCurrent(
     kp_scaled * (static_cast<int64_t>(servo.goal_position_) -
                  servo.present_position_) +
     kd_scaled * (static_cast<int64_t>(servo.goal_velocity_) -
-                 servo.present_velocity_);
+                 servo.delta_position_velocity_);
   return clampGoalCurrent(
     symmetricDivide(current_scaled, NEURON_MIT_GAIN_SCALE),
     servo.current_limit_);
@@ -839,6 +1172,29 @@ void DynamixelSerial::update()
 {
   uint32_t current_time = HAL_GetTick();
   updateTargetWatchdogs(current_time);
+
+  const uint32_t torque_mask =
+    __atomic_load_n(&torque_command_pending_mask_, __ATOMIC_ACQUIRE);
+  if (torque_mask != 0U) {
+    for (uint8_t servo_index = 0; servo_index < servo_num_; ++servo_index) {
+      const uint32_t servo_mask = 1UL << servo_index;
+      if ((torque_mask & servo_mask) == 0U) continue;
+
+      __atomic_fetch_and(&torque_command_pending_mask_, ~servo_mask,
+                         __ATOMIC_ACQ_REL);
+      if (mutex_ != NULL) osMutexWait(*mutex_, osWaitForever);
+      cmdWriteTorqueEnableWithLED(
+        servo_index, servo_[servo_index].torque_enable_);
+      const bool success =
+        lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+      if (mutex_ != NULL) osMutexRelease(*mutex_);
+      if (!success) {
+        __atomic_fetch_or(&torque_command_pending_mask_, servo_mask,
+                          __ATOMIC_RELEASE);
+      }
+      return;
+    }
+  }
 
 #ifdef STM32G4
   bool run_target_cycle = false;
@@ -854,24 +1210,18 @@ void DynamixelSerial::update()
 
     // The CAN target is the external 200 Hz time base. Read the feedback
     // used by this cycle first, then compute/write the mode-aware goal.
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        cmdReadPresentCVP(i);
-        readStatusPacket(INST_GET_PRESENT_CVP);
-      }
-    } else {
-      cmdSyncReadPresentCVP(true);
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        readStatusPacket(INST_GET_PRESENT_CVP);
-      }
-    }
-    cmdBulkWriteGoalStates();
+    bool cycle_success = readFastSyncGroups(
+      INST_GET_PRESENT_CVP, CTRL_PRESENT_CURRENT, PRESENT_CVP_BYTE_LEN,
+      activeServoMask());
+    const bool goal_write_success = writeGoalGroups(goalServoMask());
+    cycle_success = goal_write_success && cycle_success;
+    watchdog_goal_write_pending_ = !goal_write_success;
 
     if (mutex_ != NULL) osMutexRelease(*mutex_);
     get_pos_tick_ = HAL_GetTick();
 
     taskENTER_CRITICAL();
-    target_cycle_complete_ = true;
+    target_cycle_complete_ = cycle_success;
     taskEXIT_CRITICAL();
     return;
   }
@@ -879,15 +1229,7 @@ void DynamixelSerial::update()
   // Keep monitoring before targets start and after the 200 Hz clock stops.
   if (current_time - get_pos_tick_ > CONTROL_CYCLE_DU) {
     get_pos_tick_ = current_time;
-    if (ttl_rs485_mixed_ != 0) {
-      for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(
-          std::make_pair(INST_GET_PRESENT_CVP, i));
-      }
-    } else {
-      instruction_buffer_.push(
-        std::make_pair(INST_GET_PRESENT_CVP, 0));
-    }
+    enqueueGroupedFeedbackRead(INST_GET_PRESENT_CVP, activeServoMask());
   }
 #else
   /* send position command to servo */
@@ -895,7 +1237,9 @@ void DynamixelSerial::update()
     if (set_command_tick_ == 0) set_command_tick_ = current_time + SET_COMMAND_OFFSET; // init
     else set_command_tick_ = current_time;
 
-    instruction_buffer_.push(std::make_pair(INST_SET_GOAL_COMMAND, 0)); // broadcast both target pos and current
+    if (enqueueInstruction(INST_SET_GOAL_COMMAND, 0)) {
+      watchdog_goal_write_pending_ = false;
+    }
   }
 
   /* read servo position(angle) */
@@ -905,13 +1249,24 @@ void DynamixelSerial::update()
 
     if (ttl_rs485_mixed_ != 0) {
       for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_POS, i));
+        enqueueInstruction(INST_GET_PRESENT_POS, i);
       }
     } else {
-      instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_POS, 0));
+      enqueueInstruction(INST_GET_PRESENT_POS, 0);
     }
   }
 #endif
+
+  if (watchdog_goal_write_pending_ &&
+      enqueueInstruction(INST_SET_GOAL_COMMAND,
+#ifdef STM32G4
+                         goalServoMask()
+#else
+                         0
+#endif
+                         )) {
+    watchdog_goal_write_pending_ = false;
+  }
 
   /* read servo load */
   if(current_time >= get_load_tick_ + GET_LOAD_DU && GET_LOAD_DU > 0) {
@@ -920,10 +1275,10 @@ void DynamixelSerial::update()
 
     if (ttl_rs485_mixed_ != 0) {
       for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_CURRENT, i));
+        enqueueInstruction(INST_GET_PRESENT_CURRENT, i);
       }
     } else {
-      instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_CURRENT, 0));
+      enqueueInstruction(INST_GET_PRESENT_CURRENT, 0);
     }
   }
 
@@ -932,13 +1287,18 @@ void DynamixelSerial::update()
     if (get_temp_tick_ == 0) get_temp_tick_ = current_time + GET_TEMP_OFFSET;  // init
     else get_temp_tick_ = current_time;
 
+#ifdef STM32G4
+    enqueueGroupedFeedbackRead(INST_GET_PRESENT_TEMPERATURE,
+                               activeServoMask());
+#else
     if (ttl_rs485_mixed_ != 0) {
       for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_TEMPERATURE, i));
+        enqueueInstruction(INST_GET_PRESENT_TEMPERATURE, i);
       }
     } else {
-      instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_TEMPERATURE, 0));
+      enqueueInstruction(INST_GET_PRESENT_TEMPERATURE, 0);
     }
+#endif
   }
 
   /* read servo movement */
@@ -946,13 +1306,18 @@ void DynamixelSerial::update()
     if (get_move_tick_ == 0) get_move_tick_ = current_time + GET_MOVE_OFFSET; // init
     else get_move_tick_ = current_time;
 
+#ifdef STM32G4
+    enqueueGroupedFeedbackRead(INST_GET_PRESENT_MOVING,
+                               activeServoMask());
+#else
     if (ttl_rs485_mixed_ != 0) {
       for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_MOVING, i));
+        enqueueInstruction(INST_GET_PRESENT_MOVING, i);
       }
     } else {
-      instruction_buffer_.push(std::make_pair(INST_GET_PRESENT_MOVING, 0));
+      enqueueInstruction(INST_GET_PRESENT_MOVING, 0);
     }
+#endif
   }
 
   /* read hardware error status */
@@ -960,13 +1325,18 @@ void DynamixelSerial::update()
     if (get_error_tick_ == 0) get_error_tick_ = current_time + GET_HARDWARE_ERROR_STATUS_OFFSET; // init
     else get_error_tick_ = current_time;
 
+#ifdef STM32G4
+    enqueueGroupedFeedbackRead(INST_GET_HARDWARE_ERROR_STATUS,
+                               activeServoMask());
+#else
     if (ttl_rs485_mixed_ != 0) {
       for (unsigned int i = 0; i < servo_num_; ++i) {
-        instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, i));
+        enqueueInstruction(INST_GET_HARDWARE_ERROR_STATUS, i);
       }
     } else {
-      instruction_buffer_.push(std::make_pair(INST_GET_HARDWARE_ERROR_STATUS, 0));
+      enqueueInstruction(INST_GET_HARDWARE_ERROR_STATUS, 0);
     }
+#endif
 
     // check the latest error status with original rule
     for (unsigned int i = 0; i < servo_num_; i++) {
@@ -995,24 +1365,67 @@ void DynamixelSerial::update()
 
 
   /* process the instruction from the instruction buffer */
-  std::pair<uint8_t, uint8_t> instruction;
-  while(instruction_buffer_.pop(instruction))
+  std::pair<uint8_t, ServoMask> instruction;
+  while(popInstruction(instruction))
     {
       bool read_status_packet_flag = false;
-      uint8_t servo_index = instruction.second;
+      uint8_t servo_index = static_cast<uint8_t>(instruction.second);
 
       if (mutex_ != NULL)  osMutexWait(*mutex_, osWaitForever);
 
-      /* set command */
-	      switch (instruction.first) {
-	      case INST_SET_GOAL_COMMAND: /* send position and current */
 #ifdef STM32G4
-	        cmdBulkWriteGoalStates();
-#else
-	        cmdSyncWriteGoalPosition();
-	        cmdSyncWriteGoalCurrent();
+      bool fast_sync_read = true;
+      switch (instruction.first) {
+      case INST_GET_PRESENT_CVP:
+        executeFastSyncRead(
+          instruction.first, CTRL_PRESENT_CURRENT, PRESENT_CVP_BYTE_LEN,
+          instruction.second);
+        break;
+      case INST_GET_PRESENT_TEMPERATURE:
+        executeFastSyncRead(
+          instruction.first, CTRL_PRESENT_TEMPERATURE,
+          PRESENT_TEMPERATURE_BYTE_LEN, instruction.second);
+        break;
+      case INST_GET_PRESENT_MOVING:
+        executeFastSyncRead(
+          instruction.first, CTRL_MOVING, MOVING_BYTE_LEN,
+          instruction.second);
+        break;
+      case INST_GET_HARDWARE_ERROR_STATUS:
+        executeFastSyncRead(
+          instruction.first, CTRL_HARDWARE_ERROR_STATUS,
+          HARDWARE_ERROR_STATUS_BYTE_LEN, instruction.second);
+        break;
+      default:
+        fast_sync_read = false;
+        break;
+      }
+      if (fast_sync_read) {
+        if (mutex_ != NULL) osMutexRelease(*mutex_);
+        continue;
+      }
 #endif
-	        break;
+
+      /* set command */
+      switch (instruction.first) {
+      case INST_SET_GOAL_COMMAND: { /* send position and current */
+#ifdef STM32G4
+        if (!writeGoalGroups(instruction.second == 0
+                               ? goalServoMask() : instruction.second)) {
+          watchdog_goal_write_pending_ = true;
+        }
+#else
+        cmdSyncWriteGoalPosition();
+        const bool position_write_success =
+          lastTransmitResult() == NEURON_SERVO_RESULT_OK;
+        cmdSyncWriteGoalCurrent();
+        if (!position_write_success ||
+            lastTransmitResult() != NEURON_SERVO_RESULT_OK) {
+          watchdog_goal_write_pending_ = true;
+        }
+#endif
+        break;
+      }
       case INST_SET_TORQUE: /* send torque enable flag */
         cmdWriteTorqueEnableWithLED(
           servo_index, servo_[servo_index].torque_enable_);
@@ -1039,8 +1452,7 @@ void DynamixelSerial::update()
         case INST_GET_PRESENT_CVP:
           if(!servo_[servo_index].send_data_flag_ &&
              !servo_[servo_index].first_get_pos_flag_) break;
-          cmdReadPresentCVP(servo_index);
-          readStatusPacket(instruction.first);
+          readFastSyncPresentCVP(static_cast<uint8_t>(1U << servo_index));
           break;
         case INST_GET_PRESENT_POS: /* read servo position(angle) */
           if(!servo_[servo_index].send_data_flag_ && !servo_[servo_index].first_get_pos_flag_) break;
@@ -1096,10 +1508,16 @@ void DynamixelSerial::update()
         }
       } else {
         switch (instruction.first) {
-        case INST_GET_PRESENT_CVP:
-          cmdSyncReadPresentCVP(false);
-          read_status_packet_flag = true;
+        case INST_GET_PRESENT_CVP: {
+          uint8_t servo_mask = 0;
+          for (unsigned int i = 0; i < servo_num_; ++i) {
+            if (servo_[i].send_data_flag_ || servo_[i].first_get_pos_flag_) {
+              servo_mask |= static_cast<uint8_t>(1U << i);
+            }
+          }
+          readFastSyncPresentCVP(servo_mask);
           break;
+        }
         case INST_GET_PRESENT_POS: /* read servo position(angle) */
           cmdSyncReadPresentPosition(false);
           read_status_packet_flag = true;
@@ -1143,7 +1561,8 @@ void DynamixelSerial::update()
         if(read_status_packet_flag) {
           for (unsigned int i = 0; i < servo_num_; i++) {
             if(!servo_[i].send_data_flag_ && !servo_[i].first_get_pos_flag_) continue;
-            readStatusPacket(instruction.first);
+            if (readStatusPacket(instruction.first) !=
+                NEURON_SERVO_RESULT_OK) break;
           }
         }
       }
@@ -1153,9 +1572,14 @@ void DynamixelSerial::update()
 }
 
 /* Transmit instruction packet to Dynamixel */
-void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters)
+HAL_StatusTypeDef DynamixelSerial::transmitInstructionPacket(
+  uint8_t id, uint16_t len, uint8_t instruction, uint8_t* parameters)
 {
   uint8_t transmit_data[INSTRUCTION_PACKET_SIZE];
+  if (len < 3) {
+    last_tx_status_ = HAL_ERROR;
+    return last_tx_status_;
+  }
   /* headers */
   transmit_data[0] = HEADER0;
   transmit_data[1] = HEADER1;
@@ -1169,35 +1593,21 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   /* instruction */
   transmit_data[7] = instruction;
   /* parameters */
-  //process for exception
-  int header_match_count = 0;
-  int transmit_data_index = 8;
-  for (int i = 0; i < len - 3; i++) {
-	uint8_t tx_data = parameters[i];
-	if (header_match_count == 0) {
- 		if (tx_data == HEADER0) header_match_count++;
- 		else header_match_count = 0;
- 		transmit_data[transmit_data_index] = tx_data;
- 		transmit_data_index++;
- 	} else if (header_match_count == 1) {
- 		if (tx_data == HEADER1) header_match_count++;
- 		else header_match_count = 0;
- 		transmit_data[transmit_data_index] = tx_data;
- 		transmit_data_index++;
- 	} else if (header_match_count == 2) {
- 		if (tx_data == HEADER2) {
- 			//exception
- 			transmit_data[transmit_data_index] = tx_data;
- 			transmit_data_index++;
- 			transmit_data[transmit_data_index] = EXCEPTION_ADDITIONAL_BYTE;
- 			transmit_data_index++;
- 		} else {
- 			header_match_count = 0;
- 			transmit_data[transmit_data_index] = tx_data;
- 			transmit_data_index++;
- 		}
- 	}
+  const size_t parameter_count = len - 3U;
+  size_t transmit_data_index = 8;
+  for (size_t i = 0; i < parameter_count; ++i) {
+    if (parameters == nullptr ||
+        !appendStuffedByte(
+          parameters[i], transmit_data, INSTRUCTION_PACKET_SIZE - 2U,
+          transmit_data_index, 8U)) {
+      last_tx_status_ = HAL_ERROR;
+      return last_tx_status_;
+    }
   }
+  const uint16_t stuffed_len = static_cast<uint16_t>(
+    len + (transmit_data_index - 8U - parameter_count));
+  transmit_data[5] = stuffed_len & 0xFF;
+  transmit_data[6] = (stuffed_len >> 8) & 0xFF;
 
   /* checksum */
   uint16_t chksum = calcCRC16(0, transmit_data, transmit_data_index);
@@ -1207,31 +1617,294 @@ void DynamixelSerial::transmitInstructionPacket(uint8_t id, uint16_t len, uint8_
   transmit_data[transmit_data_index] = (chksum >> 8) & 0xFF; //CRC_H
   transmit_data_index++;
   /* send data */
-  HAL_UART_Transmit(huart_, transmit_data, transmit_data_index, 10); //timeout: 10 ms. Although we found 2 ms is enough OK for our case by oscilloscope. Large value is better for UART async task in RTOS. 
+  last_tx_status_ = HAL_UART_Transmit(
+    huart_, transmit_data, static_cast<uint16_t>(transmit_data_index), 10);
+  if (last_tx_status_ != HAL_OK) {
+    recoverRx();
+  }
+  return last_tx_status_;
+}
+
+void DynamixelSerial::updatePresentPosition(ServoData* s, int32_t present_position)
+{
+  const int32_t previous_position = s->present_position_;
+  s->hardware_error_status_ &= ((1 << ENCODER_CONNECT_ERROR) - 1); // &= 0b01111111
+  if(s->external_encoder_flag_) {
+    encoder_handler_.update();
+    if(encoder_handler_.connected()) {
+      s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
+
+      int32_t internal_offset = s->resolution_ratio_ * s->present_position_ - present_position;
+      if (s->first_get_pos_flag_) {
+        s->internal_offset_ = internal_offset;
+        s->first_get_pos_flag_ = false;
+      }
+      else {
+        // check pulley skip
+        int32_t diff = internal_offset - s->internal_offset_; // this should be proportional to joint load.
+        // TODO: use diff to estimate the joint torque
+
+
+        if (abs(diff) > pulley_skip_thresh_) {
+          if (!(s->hardware_error_status_ & (1 << PULLEY_SKIP_ERROR))) {
+            s->pulley_skip_time_ = HAL_GetTick();
+          }
+
+          s->hardware_error_status_ |= 1 << PULLEY_SKIP_ERROR;
+        }
+
+        if (s->hardware_error_status_ & (1 << PULLEY_SKIP_ERROR)) {
+          if (HAL_GetTick() - s->pulley_skip_time_ > s->pulley_skip_reset_du_) {
+            // reset the internal_offset, goal_position, and error flag
+            s->internal_offset_ = internal_offset;
+            s->goal_position_ = s->present_position_;
+            s->send_goal_position_ = true; // send this goal position to spinal
+            s->hardware_error_status_ &= ~(1 << PULLEY_SKIP_ERROR);
+          }
+        }
+      }
+    }
+    else {
+      s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected
+    }
+  }
+  else {
+    if (s->first_get_pos_flag_) {
+      s->internal_offset_ = std::floor(present_position / 4096.0) * -4096; // to convert [0, 4096]
+      s->first_get_pos_flag_ = false;
+    }
+    s->present_position_ = present_position + s->internal_offset_;
+  }
+
+  const int64_t delta_position =
+    static_cast<int64_t>(s->present_position_) - previous_position;
+  const int64_t delta_position_velocity = symmetricDivide(
+    delta_position * POSITION_DELTA_VELOCITY_NUMERATOR,
+    POSITION_DELTA_VELOCITY_DENOMINATOR);
+  s->delta_position_velocity_ = clampInt32(delta_position_velocity);
+
+  // update goal position with internal servo encoder when the servo is off
+  if (!s->torque_enable_) {
+    s->goal_position_ = (present_position + s->internal_offset_) / s->resolution_ratio_;
+  }
+}
+
+void DynamixelSerial::cmdFastSyncRead(uint16_t address, uint16_t byte_size,
+                                      ServoMask servo_mask)
+{
+  uint8_t parameters[4 + MAX_SERVO_NUM] = {
+    static_cast<uint8_t>(address & 0xFF),
+    static_cast<uint8_t>((address >> 8) & 0xFF),
+    static_cast<uint8_t>(byte_size & 0xFF),
+    static_cast<uint8_t>((byte_size >> 8) & 0xFF)};
+  uint8_t parameter_count = 4;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if ((servo_mask & servoBit(i)) == 0) continue;
+    parameters[parameter_count++] = servo_[i].id_;
+  }
+  transmitInstructionPacket(BROADCAST_ID, parameter_count + 3,
+                            COMMAND_FAST_SYNC_READ, parameters);
+}
+
+int8_t DynamixelSerial::executeFastSyncRead(
+  uint8_t status_packet_instruction, uint16_t address, uint16_t byte_size,
+  ServoMask servo_mask)
+{
+  const ServoMask invalid_mask = static_cast<ServoMask>(~allServoMask());
+  if (servoCount(servo_mask) == 0 ||
+      (servo_mask & invalid_mask) != 0) {
+    return NEURON_SERVO_RESULT_INVALID_ARGUMENT;
+  }
+  cmdFastSyncRead(address, byte_size, servo_mask);
+  const int8_t tx_result = lastTransmitResult();
+  if (tx_result != NEURON_SERVO_RESULT_OK) return tx_result;
+  return readFastSyncStatusPacket(status_packet_instruction, servo_mask);
+}
+
+int8_t DynamixelSerial::readFastSyncPresentCVP(ServoMask servo_mask)
+{
+  return executeFastSyncRead(
+    INST_GET_PRESENT_CVP, CTRL_PRESENT_CURRENT, PRESENT_CVP_BYTE_LEN,
+    servo_mask);
+}
+
+// Fast Sync Read returns one combined packet. As in Spinal and the DYNAMIXEL
+// Fast Sync Read definition, this combined Status packet is not unstuffed.
+int8_t DynamixelSerial::readFastSyncStatusPacket(
+  uint8_t status_packet_instruction, ServoMask expected_servo_mask)
+{
+  const int8_t tx_result = lastTransmitResult();
+  if (tx_result != NEURON_SERVO_RESULT_OK) return tx_result;
+
+  uint16_t servo_data_byte_len = 0;
+  switch (status_packet_instruction) {
+  case INST_GET_PRESENT_CVP:
+    servo_data_byte_len = PRESENT_CVP_BYTE_LEN;
+    break;
+  case INST_GET_PRESENT_TEMPERATURE:
+    servo_data_byte_len = PRESENT_TEMPERATURE_BYTE_LEN;
+    break;
+  case INST_GET_PRESENT_MOVING:
+    servo_data_byte_len = MOVING_BYTE_LEN;
+    break;
+  case INST_GET_HARDWARE_ERROR_STATUS:
+    servo_data_byte_len = HARDWARE_ERROR_STATUS_BYTE_LEN;
+    break;
+  default:
+    return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_ARGUMENT);
+  }
+
+  const ServoMask invalid_mask = static_cast<ServoMask>(~allServoMask());
+  const uint8_t expected_servo_count = servoCount(expected_servo_mask);
+  if (expected_servo_count == 0 ||
+      (expected_servo_mask & invalid_mask) != 0) {
+    return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_ARGUMENT);
+  }
+
+  const size_t packet_size =
+    8U + expected_servo_count * (servo_data_byte_len + 4U);
+  if (packet_size > STATUS_PACKET_SIZE) {
+    return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_RESPONSE);
+  }
+
+  uint8_t packet[STATUS_PACKET_SIZE] = {};
+  const uint32_t deadline_ms = HAL_GetTick() + SERVO_FAST_CVP_TIMEOUT_MS;
+  auto read_byte = [this, deadline_ms](uint8_t* byte) {
+    const HAL_StatusTypeDef status = readUntil(byte, deadline_ms);
+    if (status == HAL_OK) return static_cast<int8_t>(NEURON_SERVO_RESULT_OK);
+    return static_cast<int8_t>(status == HAL_TIMEOUT
+      ? NEURON_SERVO_RESULT_TIMEOUT : NEURON_SERVO_RESULT_UART_ERROR);
+  };
+
+  int8_t read_result = NEURON_SERVO_RESULT_OK;
+  do {
+    read_result = read_byte(&packet[0]);
+    if (read_result != NEURON_SERVO_RESULT_OK) {
+      return finishReadTransaction(read_result);
+    }
+  } while (packet[0] != HEADER0);
+  for (size_t i = 1; i < 7; ++i) {
+    read_result = read_byte(&packet[i]);
+    if (read_result != NEURON_SERVO_RESULT_OK) {
+      return finishReadTransaction(read_result);
+    }
+  }
+
+  const uint16_t length = static_cast<uint16_t>(packet[5]) |
+                          (static_cast<uint16_t>(packet[6]) << 8);
+  if (packet[1] != HEADER1 || packet[2] != HEADER2 ||
+      packet[3] != HEADER3 || packet[4] != BROADCAST_ID ||
+      length != packet_size - 7U) {
+    return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_RESPONSE);
+  }
+  for (size_t i = 7; i < packet_size; ++i) {
+    read_result = read_byte(&packet[i]);
+    if (read_result != NEURON_SERVO_RESULT_OK) {
+      return finishReadTransaction(read_result);
+    }
+  }
+
+  const uint16_t crc = static_cast<uint16_t>(packet[packet_size - 2]) |
+                       (static_cast<uint16_t>(packet[packet_size - 1]) << 8);
+  if (packet[7] != STATUS_PACKET_INSTRUCTION) {
+    return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_RESPONSE);
+  }
+  if (crc != calcCRC16(
+               0, packet, static_cast<int>(packet_size - 2U))) {
+    return finishReadTransaction(NEURON_SERVO_RESULT_CRC_ERROR);
+  }
+
+  // Validate the complete combined response before committing any feedback.
+  uint8_t packet_servo_index = 0;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if ((expected_servo_mask & servoBit(i)) == 0) continue;
+    const size_t offset =
+      8U + packet_servo_index * (servo_data_byte_len + 4U);
+    if ((packet[offset] & 0x7F) != NO_ERROR ||
+        packet[offset + 1] != servo_[i].id_) {
+      return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_RESPONSE);
+    }
+    ++packet_servo_index;
+  }
+
+  packet_servo_index = 0;
+  for (uint8_t i = 0; i < servo_num_; ++i) {
+    if ((expected_servo_mask & servoBit(i)) == 0) continue;
+    const uint8_t* data = packet + 10U +
+      packet_servo_index * (servo_data_byte_len + 4U);
+    ServoData& servo = servo_[i];
+    switch (status_packet_instruction) {
+    case INST_GET_PRESENT_CVP: {
+      servo.present_current_ = static_cast<int16_t>(
+        static_cast<uint16_t>(data[0]) |
+        (static_cast<uint16_t>(data[1]) << 8));
+      servo.present_velocity_ = static_cast<int32_t>(
+        static_cast<uint32_t>(data[2]) |
+        (static_cast<uint32_t>(data[3]) << 8) |
+        (static_cast<uint32_t>(data[4]) << 16) |
+        (static_cast<uint32_t>(data[5]) << 24));
+      const int32_t position = static_cast<int32_t>(
+        static_cast<uint32_t>(data[6]) |
+        (static_cast<uint32_t>(data[7]) << 8) |
+        (static_cast<uint32_t>(data[8]) << 16) |
+        (static_cast<uint32_t>(data[9]) << 24));
+      updatePresentPosition(&servo, position);
+      ++servo.pvc_update_count_;
+      break;
+    }
+    case INST_GET_PRESENT_TEMPERATURE:
+      servo.present_temp_ = data[0];
+      break;
+    case INST_GET_PRESENT_MOVING:
+      servo.moving_ = data[0];
+      break;
+    case INST_GET_HARDWARE_ERROR_STATUS:
+      servo.hardware_error_status_ &=
+        (1U << PULLEY_SKIP_ERROR) |
+        (1U << RESOLUTION_RATIO_ERROR) |
+        (1U << ENCODER_CONNECT_ERROR);
+      servo.hardware_error_status_ |= data[0];
+      break;
+    default:
+      return finishReadTransaction(NEURON_SERVO_RESULT_INVALID_ARGUMENT);
+    }
+    ++packet_servo_index;
+  }
+  return finishReadTransaction(NEURON_SERVO_RESULT_OK);
 }
 
 /* Receive status packet to Dynamixel */
 int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 {
+	const int8_t tx_result = lastTransmitResult();
+	if (tx_result != NEURON_SERVO_RESULT_OK) return tx_result;
+	return finishReadTransaction(parseStatusPacket(
+	  status_packet_instruction,
+	  HAL_GetTick() + NEURON_SERVO_RESPONSE_TIMEOUT_MS));
+}
+
+int8_t DynamixelSerial::parseStatusPacket(
+  uint8_t status_packet_instruction, uint32_t deadline_ms)
+{
 	int status_stage = READ_HEADER0;
 	uint8_t rx_data;
-	int header_match_count = 0;
 	uint16_t parameter_len = 0;
 	uint8_t parameters[STATUS_PACKET_SIZE] = {};
-	int parameter_index = 0;
-	int parameter_loop_count = 0;
+	size_t parameter_index = 0;
+	uint16_t parameter_loop_count = 0;
+	UnstuffState unstuff_state;
 	uint16_t checksum = 0;
 	uint8_t receive_data[STATUS_PACKET_SIZE] = {};
 	bool read_end_flag = false;
-	int loop_count = 0;
-	uint8_t servo_id;
+	size_t loop_count = 0;
+	uint8_t servo_id = 0;
 
 	while(!read_end_flag) {
-		HAL_StatusTypeDef receive_status = read(&rx_data, 1);
-		if(receive_status == HAL_TIMEOUT)
-			{
-				return -1;
-			}
+		HAL_StatusTypeDef receive_status = readUntil(&rx_data, deadline_ms);
+		if (receive_status != HAL_OK) {
+			return receive_status == HAL_TIMEOUT
+			  ? NEURON_SERVO_RESULT_TIMEOUT : NEURON_SERVO_RESULT_UART_ERROR;
+		}
 
 		switch (status_stage) {
 		case READ_HEADER0:
@@ -1243,21 +1916,21 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			if (rx_data == HEADER1) {
 				status_stage++;
 			} else {
-				return -1;
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_HEADER2:
 			if (rx_data == HEADER2) {
 				status_stage++;
 			} else {
-				return -1;
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_HEADER3:
 			if (rx_data == HEADER3) {
 				status_stage++;
 			} else {
-				return -1;
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_SERVOID:
@@ -1271,47 +1944,30 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 		case READ_LENH:
 			parameter_len |= ((rx_data << 8) & 0xFF00);
 			if (parameter_len < 4 ||
-			    parameter_len > STATUS_PACKET_SIZE - 2) return -1;
+			    parameter_len > STATUS_PACKET_SIZE - 5) {
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
+			}
 			status_stage++;
 			break;
 		case READ_INSTRUCTION:
 			if (rx_data == STATUS_PACKET_INSTRUCTION) {
 				status_stage++;
 			} else {
-				return -1;
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_ERROR:
 			if ((rx_data & 0x7F) == NO_ERROR) {
 				status_stage++;
 			} else {
-				return -1;
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 			}
 			break;
 		case READ_PARAMETER:
-			if (parameter_index >= STATUS_PACKET_SIZE) return -1;
-			//process for exception
-			if (header_match_count == 0) {
-				if (rx_data == HEADER0) header_match_count++;
-				else header_match_count = 0;
-				parameters[parameter_index] = rx_data;
-				parameter_index++;
-			} else if (header_match_count == 1) {
-				if (rx_data == HEADER1) header_match_count++;
-				else header_match_count = 0;
-				parameters[parameter_index] = rx_data;
-				parameter_index++;
-			} else if (header_match_count == 2) {
-				if (rx_data == HEADER2) header_match_count++;
-				else header_match_count = 0;
-				parameters[parameter_index] = rx_data;
-				parameter_index++;
-			} else if (header_match_count == 3) {
-				if (rx_data == EXCEPTION_ADDITIONAL_BYTE) {
-					header_match_count = 0;
-				} else {
-					return -1;
-				}
+			if (!unstuff_state.append(rx_data, parameters,
+			                          STATUS_PACKET_SIZE,
+			                          parameter_index)) {
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 			}
 			parameter_loop_count++;
 			if (parameter_loop_count == parameter_len - 4) {
@@ -1327,20 +1983,70 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 			if (checksum == calcCRC16(0, receive_data, loop_count)) {
 				read_end_flag = true;
 			} else {
-				return -1;
+				return NEURON_SERVO_RESULT_CRC_ERROR;
 			}
 			break;
 		default:
-			return -1;
+			return NEURON_SERVO_RESULT_INVALID_RESPONSE;
 		}
 		if (status_stage > READ_HEADER0 && status_stage != READ_CHECKSUMH) {
-			if (loop_count >= STATUS_PACKET_SIZE) return -1;
+			if (loop_count >= STATUS_PACKET_SIZE) {
+				return NEURON_SERVO_RESULT_INVALID_RESPONSE;
+			}
 			receive_data[loop_count] = rx_data;
 			loop_count++;
 		}
 	}
 
 	auto s = std::find(servo_.begin(), servo_.end(), ServoData(servo_id));
+	uint16_t expected_parameter_len = 0;
+	switch (status_packet_instruction) {
+	case INST_PING:
+		expected_parameter_len = PING_LEN;
+		break;
+	case INST_GET_PRESENT_CVP:
+		expected_parameter_len = PRESENT_CVP_BYTE_LEN;
+		break;
+	case INST_GET_PRESENT_POS:
+		expected_parameter_len = PRESENT_POSITION_BYTE_LEN;
+		break;
+	case INST_GET_PRESENT_CURRENT:
+		expected_parameter_len = PRESENT_CURRENT_BYTE_LEN;
+		break;
+	case INST_GET_PRESENT_TEMPERATURE:
+		expected_parameter_len = PRESENT_TEMPERATURE_BYTE_LEN;
+		break;
+	case INST_GET_PRESENT_MOVING:
+		expected_parameter_len = MOVING_BYTE_LEN;
+		break;
+	case INST_GET_MODEL_NUMBER:
+		expected_parameter_len = MODEL_NUMBER_BYTE_LEN;
+		break;
+	case INST_GET_OPERATING_MODE:
+		expected_parameter_len = OPERATING_MODE_BYTE_LEN;
+		break;
+	case INST_GET_HOMING_OFFSET:
+		expected_parameter_len = HOMING_OFFSET_BYTE_LEN;
+		break;
+	case INST_GET_HARDWARE_ERROR_STATUS:
+		expected_parameter_len = HARDWARE_ERROR_STATUS_BYTE_LEN;
+		break;
+	case INST_GET_CURRENT_LIMIT:
+		expected_parameter_len = CURRENT_LIMIT_BYTE_LEN;
+		break;
+	case INST_GET_POSITION_GAINS:
+		expected_parameter_len = POSITION_GAINS_BYTE_LEN;
+		break;
+	case INST_GET_PROFILE_VELOCITY:
+		expected_parameter_len = PROFILE_VELOCITY_BYTE_LEN;
+		break;
+	default:
+		return NEURON_SERVO_RESULT_INVALID_ARGUMENT;
+	}
+	if (parameter_index != expected_parameter_len ||
+	    (status_packet_instruction != INST_PING && s == servo_.end())) {
+		return NEURON_SERVO_RESULT_INVALID_RESPONSE;
+	}
 
         /* clear UART RX */
         __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
@@ -1351,18 +2057,17 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
 	/* read success */
 	switch (status_packet_instruction) {
 	case INST_PING:
-		if (s != servo_.end()) return 0;
-		if (servo_num_ >= MAX_SERVO_NUM) return -1;
+		if (s != servo_.end()) return NEURON_SERVO_RESULT_OK;
+		if (servo_num_ >= MAX_SERVO_NUM) {
+			return NEURON_SERVO_RESULT_INVALID_RESPONSE;
+		}
 		servo_[servo_num_++].id_ = servo_id;
-	    return 0;
+	    return NEURON_SERVO_RESULT_OK;
 	case INST_GET_PRESENT_CVP:
 	case INST_GET_PRESENT_POS:
 	{
                 const uint8_t position_offset =
                   status_packet_instruction == INST_GET_PRESENT_CVP ? 6 : 0;
-		if (parameter_index < position_offset + PRESENT_POSITION_BYTE_LEN) {
-		  return -1;
-		}
 		if (s != servo_.end() &&
                     status_packet_instruction == INST_GET_PRESENT_CVP) {
                   s->present_current_ =
@@ -1383,129 +2088,68 @@ int8_t DynamixelSerial::readStatusPacket(uint8_t status_packet_instruction)
                     (static_cast<uint32_t>(parameters[position_offset + 2]) << 16) |
                     (static_cast<uint32_t>(parameters[position_offset + 3]) << 24));
 		if (s != servo_.end()) {
-                  s->hardware_error_status_ &= ((1 << ENCODER_CONNECT_ERROR) - 1); // &= 0b01111111
-                  if(s->external_encoder_flag_) {
-                    encoder_handler_.update();
-                    if(encoder_handler_.connected()) {
-                      s->present_position_ = (int32_t)(encoder_handler_.getValue()); // use external encoder value instead of servo internal encoder value
-
-                      int32_t internal_offset = s->resolution_ratio_ * s->present_position_ - present_position;
-                      if (s->first_get_pos_flag_) {
-                        s->internal_offset_ = internal_offset;
-                        s->first_get_pos_flag_ = false;
-                      }
-                      else {
-                        // check pulley skip
-                        int32_t diff = internal_offset - s->internal_offset_; // this should be proportional to joint load.
-                        // TODO: use diff to estimate the joint torque
-
-
-                        if (abs(diff) > pulley_skip_thresh_) {
-                          if (!(s->hardware_error_status_ & (1 << PULLEY_SKIP_ERROR))) {
-                            s->pulley_skip_time_ = HAL_GetTick();
-                          }
-
-                          s->hardware_error_status_ |= 1 << PULLEY_SKIP_ERROR;
-                        }
-
-                        if (s->hardware_error_status_ & (1 << PULLEY_SKIP_ERROR)) {
-                          if (HAL_GetTick() - s->pulley_skip_time_ > s->pulley_skip_reset_du_) {
-                            // reset the internal_offset, goal_position, and error flag
-                            s->internal_offset_ = internal_offset;
-                            s->goal_position_ = s->present_position_;
-                            s->send_goal_position_ = true; // send this goal position to spinal
-                            s->hardware_error_status_ &= ~(1 << PULLEY_SKIP_ERROR);
-                          }
-                        }
-                      }
-                    }
-                    else {
-                      s->hardware_error_status_ |= 1 << ENCODER_CONNECT_ERROR; // |= 0b10000000:  encoder is not connected
-                    }
-                  }
-                  else {
-                    if (s->first_get_pos_flag_) {
-                      s->internal_offset_ = std::floor(present_position / 4096.0) * -4096; // to convert [0, 4096]
-                      s->first_get_pos_flag_ = false;
-                    }
-                    s->present_position_ = present_position + s->internal_offset_;
-                  }
-
-                  // update goal position with internal servo encoder when the servo is off
-                  if (!s->torque_enable_) {
-                    s->goal_position_ = (present_position + s->internal_offset_) / s->resolution_ratio_;
-                  }
+                  updatePresentPosition(&*s, present_position);
                   if (status_packet_instruction == INST_GET_PRESENT_CVP) {
                     ++s->pvc_update_count_;
                   }
 		}
-                return 0;
+	            return NEURON_SERVO_RESULT_OK;
 	}
 	case INST_GET_PRESENT_CURRENT:
-		if (parameter_index < PRESENT_CURRENT_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->present_current_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_PRESENT_TEMPERATURE:
-		if (parameter_index < PRESENT_TEMPERATURE_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->present_temp_ = parameters[0];
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_PRESENT_MOVING:
-		if (parameter_index < MOVING_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->moving_ = parameters[0];
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_MODEL_NUMBER:
-		if (parameter_index < MODEL_NUMBER_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->model_number_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_OPERATING_MODE:
-		if (parameter_index < OPERATING_MODE_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->operating_mode_ = parameters[0];
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_HOMING_OFFSET:
-		if (parameter_index < HOMING_OFFSET_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->homing_offset_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_HARDWARE_ERROR_STATUS:
-		if (parameter_index < HARDWARE_ERROR_STATUS_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
                   s->hardware_error_status_ &=  ((1 << PULLEY_SKIP_ERROR) + (1 << RESOLUTION_RATIO_ERROR) + (1 << ENCODER_CONNECT_ERROR));  //  &= 0b11000010;
                   s->hardware_error_status_ |= parameters[0];
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_CURRENT_LIMIT:
-		if (parameter_index < CURRENT_LIMIT_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->current_limit_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_POSITION_GAINS:
-		if (parameter_index < POSITION_GAINS_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->d_gain_ = ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 			s->i_gain_ = ((parameters[3] << 8) & 0xFF00) | (parameters[2] & 0xFF);
 			s->p_gain_ = ((parameters[5] << 8) & 0xFF00) | (parameters[4] & 0xFF);
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	case INST_GET_PROFILE_VELOCITY:
-		if (parameter_index < PROFILE_VELOCITY_BYTE_LEN) return -1;
 		if (s != servo_.end()) {
 			s->profile_velocity_ = ((parameters[3] << 24) & 0xFF000000) | ((parameters[2] << 16) & 0xFF0000) | ((parameters[1] << 8) & 0xFF00) | (parameters[0] & 0xFF);
 		}
-		return 0;
+		return NEURON_SERVO_RESULT_OK;
 	default:
-		return -1;
+		return NEURON_SERVO_RESULT_INVALID_ARGUMENT;
 	}
 }
 
@@ -1791,8 +2435,12 @@ void DynamixelSerial::cmdSyncWriteGoalPosition()
 	cmdSyncWrite(CTRL_GOAL_POSITION, parameters, GOAL_POSITION_BYTE_LEN);
 }
 
-void DynamixelSerial::cmdBulkWriteGoalStates()
+bool DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
 {
+	const ServoMask invalid_mask = static_cast<ServoMask>(~allServoMask());
+	if (servo_mask == 0 || (servo_mask & invalid_mask) != 0) {
+	  return false;
+	}
 	uint8_t parameters[INSTRUCTION_PACKET_SIZE];
 	int param_idx = 0;
 	auto appendValue = [&parameters, &param_idx](
@@ -1809,8 +2457,11 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	  return true;
 	};
 
-	uint8_t cbp_mask = 0;
+	ServoMask cbp_mask = 0;
+	bool success = true;
 	for (uint8_t i = 0; i < servo_num_; ++i) {
+	  const ServoMask bit = servoBit(i);
+	  if ((servo_mask & bit) == 0) continue;
 	  ServoData& servo = servo_[i];
 	  if (!servo.configured()) continue;
 	  bool appended = false;
@@ -1826,7 +2477,7 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	      servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
 	      static_cast<uint16_t>(clampGoalCurrentMagnitude(
 	        servo.goal_current_, servo.current_limit_)));
-	    cbp_mask |= static_cast<uint8_t>(1U << i);
+	    cbp_mask |= bit;
 	    break;
 	  case NEURON_SERVO_MODE_DV:
 	    appended = appendValue(
@@ -1849,14 +2500,16 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	      static_cast<uint16_t>(calculateMITGoalCurrent(servo)));
 	    break;
 	  default:
-	    return;
+	    return false;
 	  }
-	  if (!appended) return;
+	  if (!appended) {
+	    return false;
+	  }
 	}
 
 	if (param_idx != 0) {
-	  transmitInstructionPacket(
-	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);
+	  success = transmitInstructionPacket(
+	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters) == HAL_OK;
 	}
 
 	// Protocol 2.0 Bulk Write permits each ID only once per packet. Keep the
@@ -1864,18 +2517,20 @@ void DynamixelSerial::cmdBulkWriteGoalStates()
 	// registers located between them in the control table.
 	param_idx = 0;
 	for (uint8_t i = 0; i < servo_num_; ++i) {
-	  if ((cbp_mask & static_cast<uint8_t>(1U << i)) == 0) continue;
+	  if ((cbp_mask & servoBit(i)) == 0) continue;
 	  const ServoData& servo = servo_[i];
 	  if (!appendValue(
 	        servo.id_, CTRL_GOAL_POSITION, GOAL_POSITION_BYTE_LEN,
 	        static_cast<uint32_t>(servo.getInternalGoalPosition()))) {
-	    return;
+	    return false;
 	  }
 	}
 	if (param_idx != 0) {
-	  transmitInstructionPacket(
-	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters);
+	  success = (transmitInstructionPacket(
+	    BROADCAST_ID, param_idx + 3, COMMAND_BULK_WRITE, parameters) == HAL_OK) &&
+	    success;
 	}
+	return success;
 }
 
 void DynamixelSerial::cmdSyncWriteGoalCurrent()
@@ -1994,7 +2649,8 @@ void DynamixelSerial::getModelNumber()
 	} else {
 		cmdSyncReadModelNumber();
 		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_MODEL_NUMBER);
+			if (readStatusPacket(INST_GET_MODEL_NUMBER) !=
+			    NEURON_SERVO_RESULT_OK) break;
 		}
 	}
 }
@@ -2009,7 +2665,8 @@ void DynamixelSerial::getOperatingMode()
 	} else {
 		cmdSyncReadOperatingMode();
 		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_OPERATING_MODE);
+			if (readStatusPacket(INST_GET_OPERATING_MODE) !=
+			    NEURON_SERVO_RESULT_OK) break;
 		}
 	}
 }
@@ -2024,7 +2681,8 @@ void DynamixelSerial::getHomingOffset()
 	} else {
 		cmdSyncReadHomingOffset();
 		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_HOMING_OFFSET);
+			if (readStatusPacket(INST_GET_HOMING_OFFSET) !=
+			    NEURON_SERVO_RESULT_OK) break;
 		}
 	}
 }
@@ -2039,7 +2697,8 @@ void DynamixelSerial::getCurrentLimit()
 	} else {
 		cmdSyncReadCurrentLimit();
 		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_CURRENT_LIMIT);
+			if (readStatusPacket(INST_GET_CURRENT_LIMIT) !=
+			    NEURON_SERVO_RESULT_OK) break;
 		}
 	}
 }
@@ -2054,7 +2713,8 @@ void DynamixelSerial::getPositionGains()
 	} else {
 		cmdSyncReadPositionGains();
 		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_POSITION_GAINS);
+			if (readStatusPacket(INST_GET_POSITION_GAINS) !=
+			    NEURON_SERVO_RESULT_OK) break;
 		}
 	}
 }
@@ -2069,7 +2729,8 @@ void DynamixelSerial::getProfileVelocity()
 	} else {
 		cmdSyncReadProfileVelocity();
 		for (unsigned int i = 0; i < servo_num_; i++) {
-			readStatusPacket(INST_GET_PROFILE_VELOCITY);
+			if (readStatusPacket(INST_GET_PROFILE_VELOCITY) !=
+			    NEURON_SERVO_RESULT_OK) break;
 		}
 	}
 }
@@ -2118,20 +2779,13 @@ uint16_t DynamixelSerial::calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, i
 	return crc_accum;
 }
 
-HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
+HAL_StatusTypeDef DynamixelSerial::readUntil(uint8_t* data,
+                                             uint32_t deadline_ms)
 {
-  /* handle RX Overrun Error */
-  if ( __HAL_UART_GET_FLAG(huart_, UART_FLAG_ORE) )
-    {
-      __HAL_UART_CLEAR_FLAG(huart_, UART_FLAG_RXNE);
-      __HAL_UART_CLEAR_PEFLAG(huart_);
-      __HAL_UART_CLEAR_OREFLAG(huart_);
-      __HAL_UART_CLEAR_FEFLAG(huart_);
-
-      HAL_UART_Receive_DMA(huart_, rx_buf_, RX_BUFFER_SIZE);
-    }
-
-  uint32_t tick_start = HAL_GetTick();
+  if (huart_ == nullptr || huart_->hdmarx == nullptr || data == nullptr) {
+    return HAL_ERROR;
+  }
+  if (__HAL_UART_GET_FLAG(huart_, UART_FLAG_ORE)) return HAL_ERROR;
 
   while (true)
     {
@@ -2150,9 +2804,14 @@ HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data,  uint32_t timeout)
           return HAL_OK;
         }
 
-      if (((HAL_GetTick() - tick_start) > timeout) || (timeout == 0U))
+      if (deadlineExpired(HAL_GetTick(), deadline_ms))
         {
           return HAL_TIMEOUT;
         }
     }
+}
+
+HAL_StatusTypeDef DynamixelSerial::read(uint8_t* data, uint32_t timeout)
+{
+  return readUntil(data, HAL_GetTick() + timeout);
 }

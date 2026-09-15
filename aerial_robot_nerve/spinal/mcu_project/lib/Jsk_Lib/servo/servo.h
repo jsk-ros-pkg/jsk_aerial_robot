@@ -14,7 +14,6 @@ includes ------------------------------------------------------------------*/
 #include <ros.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoStates.h>
-#include <spinal/ServoCommStatus.h>
 #include <spinal/ServoTorqueStates.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/SetDirectServoConfig.h>
@@ -44,8 +43,7 @@ class DirectServo
 {
 public:
   DirectServo():
-    joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this),
-    servo_comm_status_pub_("servo/comm_status", &servo_comm_status_msg_)
+    joint_profiles_sub_("joint_profiles", &DirectServo::jointProfilesCallback,this)
   {
     connected_ = false;
   }
@@ -91,15 +89,8 @@ private:
   /* ROS */
   ros::NodeHandle* nh_;
   ros::Subscriber<spinal::JointProfiles, DirectServo> joint_profiles_sub_;
-  ros::Publisher servo_comm_status_pub_;
-  spinal::ServoCommStatus servo_comm_status_msg_;
-
-  uint32_t servo_comm_status_last_pub_time_;
-  bool servo_comm_status_initialized_;
-  bool last_bus_map_valid_;
 
   void jointProfilesCallback(const spinal::JointProfiles& joint_prof_msg);
-  void publishCommStatus();
   
   /* Servo state */
   struct ServoState{

@@ -400,7 +400,6 @@ private:
   bool enqueueInstructionBatch(const ServoInstruction* instructions,
                                uint8_t instruction_count);
   bool popInstruction(ServoInstruction& instruction);
-  void updateQueueHighWaterMark();
   void schedulePeriodicCommands();
   void processInstructionQueue();
   static ServoMask servoBit(uint8_t servo_index);
@@ -433,7 +432,6 @@ private:
   ServoResult executeBlockingRead(const ServoInstruction& instruction,
                                   bool fast_sync,
                                   uint32_t timeout_ms = SERVO_RESPONSE_TIMEOUT_MS);
-  void recordTransactionResult(ServoResult result);
   ServoResult lastTransmitResult();
   void recoverRx();
   static bool deadlineExpired(uint32_t now_ms, uint32_t deadline_ms);
