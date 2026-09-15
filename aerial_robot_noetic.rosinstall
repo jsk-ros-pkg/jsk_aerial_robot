@@ -60,9 +60,9 @@
 - git:
     local-name: mujoco
     uri: https://github.com/sugikazu75/mujoco_catkin.git
-    version: master
+    version: a429c7c
 
 - git:
     local-name: mujoco_ros_pkgs
     uri: https://github.com/sugikazu75/mujoco_ros_pkgs.git
-    version: PR/hybrid-devel/depend_mujoco
+    version: 6de14a3
