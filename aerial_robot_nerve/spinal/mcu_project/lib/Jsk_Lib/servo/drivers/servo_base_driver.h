@@ -136,10 +136,14 @@ public:
   void resetGoalTargets() {
     target_position_ = present_position_;
     target_velocity_ = 0;
-    target_current_ = mode_ == DIRECT_SERVO_MODE_CBP
-      ? static_cast<int16_t>(current_limit_ > INT16_MAX
-          ? INT16_MAX : current_limit_)
-      : 0;
+    if (mode_ == DIRECT_SERVO_MODE_CBP) {
+      const uint32_t cbp_current =
+        static_cast<uint32_t>(current_limit_) * 4U / 5U;
+      target_current_ = static_cast<int16_t>(
+        cbp_current > INT16_MAX ? INT16_MAX : cbp_current);
+    } else {
+      target_current_ = 0;
+    }
     goal_position_ = static_cast<int32_t>(
       resolution_ratio_ * target_position_) - internal_offset_;
     goal_velocity_ = 0;

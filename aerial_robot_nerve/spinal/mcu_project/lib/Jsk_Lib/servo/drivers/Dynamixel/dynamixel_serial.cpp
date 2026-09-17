@@ -79,13 +79,6 @@ private:
     return static_cast<int16_t>(current);
   }
 
-  int16_t clampGoalCurrentMagnitude(int64_t current,
-                                    uint16_t configured_limit)
-  {
-    const int64_t magnitude = current < 0 ? -current : current;
-    return clampGoalCurrent(magnitude, configured_limit);
-  }
-
   int64_t symmetricDivide(int64_t value, int64_t divisor)
   {
     return value >= 0
@@ -2062,8 +2055,11 @@ void DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
         static_cast<uint32_t>(servo.goal_position_));
       break;
     case DIRECT_SERVO_MODE_CBP:
-      servo.goal_current_ = clampGoalCurrentMagnitude(
-        servo.target_current_, servo.current_limit_);
+      servo.goal_current_ = clampGoalCurrent(
+        servo.target_current_ < 0
+          ? -static_cast<int64_t>(servo.target_current_)
+          : servo.target_current_,
+        servo.current_limit_);
       appended = append_value(
         servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
         static_cast<uint16_t>(servo.goal_current_));
@@ -2704,7 +2700,8 @@ ServoResult DynamixelSerial::executeServiceRequest(
       servo.current_limit_ = old_current_limit;
     } else if (servo.mode_ == DIRECT_SERVO_MODE_CBP) {
       servo.target_current_ = clampGoalCurrent(
-        servo.current_limit_, servo.current_limit_);
+        static_cast<uint32_t>(servo.current_limit_) * 4U / 5U,
+        servo.current_limit_);
       servo.goal_current_ = servo.target_current_;
     }
     return result;

@@ -217,9 +217,10 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id,
              pending_config_command_ ==
                CAN::SERVO_CONFIG_SET_CURRENT_LIMIT) &&
             servo.mode_ == SERVO_CONTROL_MODE_CBP) {
+          const uint32_t cbp_current =
+            static_cast<uint32_t>(servo.current_limit_) * 4U / 5U;
           servo.goal_current_ = static_cast<int16_t>(
-            servo.current_limit_ > INT16_MAX
-              ? INT16_MAX : servo.current_limit_);
+            cbp_current > INT16_MAX ? INT16_MAX : cbp_current);
         }
         break;
       }

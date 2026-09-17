@@ -63,13 +63,6 @@ int16_t clampGoalCurrent(int64_t current, uint16_t configured_limit)
   return static_cast<int16_t>(current);
 }
 
-int16_t clampGoalCurrentMagnitude(int64_t current,
-                                  uint16_t configured_limit)
-{
-  const int64_t magnitude = current < 0 ? -current : current;
-  return clampGoalCurrent(magnitude, configured_limit);
-}
-
 int64_t symmetricDivide(int64_t value, int64_t divisor)
 {
   return value >= 0 ? (value + divisor / 2) / divisor
@@ -223,15 +216,13 @@ void DynamixelSerial::init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, o
           }
 	}
 
-        // Match the DYNAMIXEL mode-switch default: in CbP, Goal Current
-        // starts at Current Limit until a host current-limit target arrives.
         for (unsigned int i = 0; i < servo_num_; i++) {
           uint8_t operating_mode = servo_[i].operating_mode_;
           uint16_t current_limit = servo_[i].current_limit_;
           if (servo_[i].mode_ == NEURON_SERVO_MODE_CBP &&
               operating_mode == CURRENT_BASE_POSITION_CONTROL_MODE) {
-            servo_[i].goal_current_ =
-              clampGoalCurrent(current_limit, current_limit);
+            servo_[i].goal_current_ = clampGoalCurrent(
+              static_cast<uint32_t>(current_limit) * 4U / 5U, current_limit);
             cmdWriteGoalCurrent(i);
           }
 	}
@@ -742,7 +733,10 @@ uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
     servo.watchdog_timed_out_ = false;
     servo.goal_velocity_ = 0;
     servo.goal_current_ = mode == NEURON_SERVO_MODE_CBP
-      ? clampGoalCurrent(servo.current_limit_, servo.current_limit_) : 0;
+      ? clampGoalCurrent(
+          static_cast<uint32_t>(servo.current_limit_) * 4U / 5U,
+          servo.current_limit_)
+      : 0;
     if (!setPositionGains(servo_index) ||
         !setProfileVelocity(servo_index)) {
       servo.mode_ = old_mode;
@@ -850,7 +844,8 @@ uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
       }
       if (servo.mode_ == NEURON_SERVO_MODE_CBP) {
         servo.goal_current_ = clampGoalCurrent(
-          servo.current_limit_, servo.current_limit_);
+          static_cast<uint32_t>(servo.current_limit_) * 4U / 5U,
+          servo.current_limit_);
       }
     }
     return CAN::SERVO_CONFIG_RESULT_OK;
@@ -1351,7 +1346,13 @@ void DynamixelSerial::update()
         // ingnore overload error for current based position control (only with this error bit)
         if (error_status == (1 << OVERLOAD_ERROR)) {
           if (servo_[i].operating_mode_ == CURRENT_BASE_POSITION_CONTROL_MODE) {
-            if (servo_[i].goal_current_ < servo_[i].current_limit_) {
+            const int64_t goal_current = servo_[i].goal_current_;
+            const int16_t written_current_magnitude = clampGoalCurrent(
+              goal_current < 0 ? -goal_current : goal_current,
+              servo_[i].current_limit_);
+            const int16_t effective_current_limit = clampGoalCurrent(
+              servo_[i].current_limit_, servo_[i].current_limit_);
+            if (written_current_magnitude < effective_current_limit) {
               continue;
             }
           }
@@ -2475,8 +2476,11 @@ bool DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
 	  case NEURON_SERVO_MODE_CBP:
 	    appended = appendValue(
 	      servo.id_, CTRL_GOAL_CURRENT, GOAL_CURRENT_BYTE_LEN,
-	      static_cast<uint16_t>(clampGoalCurrentMagnitude(
-	        servo.goal_current_, servo.current_limit_)));
+	      static_cast<uint16_t>(clampGoalCurrent(
+	        servo.goal_current_ < 0
+	          ? -static_cast<int64_t>(servo.goal_current_)
+	          : servo.goal_current_,
+	        servo.current_limit_)));
 	    cbp_mask |= bit;
 	    break;
 	  case NEURON_SERVO_MODE_DV:

@@ -47,7 +47,7 @@ The `position` field remains a joint-side position target. When the incoming
 `sensor_msgs/JointState` also contains `effort`, ServoBridge converts that
 joint torque through `torque_scale` and sends it as `Goal Current`, which is
 the current/torque limit magnitude in CbP; its sign is ignored. On startup or
-after selecting CbP, the default Goal Current is the configured
+after selecting CbP, the default Goal Current is 80% of the configured
 `current_limit`. Later commands with an omitted `effort` field retain the last
 Goal Current, following the sparse-field behavior of `ServoControlCmd`.
 Unlike DV, DC, and MIT, CbP follows position-mode hold behavior and is not
