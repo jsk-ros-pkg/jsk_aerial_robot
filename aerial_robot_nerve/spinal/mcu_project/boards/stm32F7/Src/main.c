@@ -72,6 +72,7 @@
 /* Extra Servo */
 #include "extra_servo/extra_servo.h"
 
+#include "device_manager/servo_manager.h"
 
 /* Internal Communication System */
 #include <Spine/spine.h>
@@ -123,6 +124,7 @@ StateEstimate estimator_;
 BatteryStatus battery_status_;
 FlightControl controller_;
 ExtraServo extra_servo_;
+ServoManager servo_manager_;
 
 #endif
 
@@ -193,6 +195,8 @@ static void MX_NVIC_Init(void);
 #endif
 
         Spine::update();
+
+        servo_manager_.update();
       }
   }
 
@@ -360,7 +364,12 @@ int main(void)
 
   /* NERVE */
   bool nerve_connect = Spine::init(&hcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
-  if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+  if(nerve_connect)
+    {
+      Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+      servo_manager_.addSpineServo();
+    }
+  servo_manager_.init(&nh_); // inintialize after the addition of all servo handlers to count the servo number correctly
 
 #if FLIGHT_CONTROL_FLAG
   /* BATTERY_STATUS */

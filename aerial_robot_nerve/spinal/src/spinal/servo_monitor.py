@@ -43,7 +43,6 @@ class ServoMonitor(Plugin):
 
         self.get_board_info_client_ = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
         self.set_board_config_client_ = rospy.ServiceProxy(robot_ns + '/set_board_config', SetBoardConfig)
-        self.set_direct_servo_config_client_ = rospy.ServiceProxy(robot_ns + '/direct_servo_config', SetDirectServoConfig)
         self.servo_torque_pub_ = rospy.Publisher(robot_ns + '/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
 
         from argparse import ArgumentParser
@@ -85,7 +84,6 @@ class ServoMonitor(Plugin):
 
         self._table_data = []
         self._board_id = None
-        self._servo_id = None
         self._command = None
         self._servo_num = 0
 
@@ -115,7 +113,7 @@ class ServoMonitor(Plugin):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update)
-        self.timer.start(1000)
+        self.timer.start(100)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
@@ -173,16 +171,15 @@ class ServoMonitor(Plugin):
         if servo_index == -1:
             rospy.logerr("No servo exists")
             return
-        
+
         board_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())
         servo_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())
         req = None
+        req = SetBoardConfigRequest()
+        req.data.append(board_id)
         if(board_id == 0):
-            req = SetDirectServoConfigRequest()
-            req.data.append(servo_id)
+            req.data.append(servo_index)
         else:
-            req = SetBoardConfigRequest()
-            req.data.append(board_id)
             req.data.append(servo_id)
         try:
             req.data.append(int(self._widget.homingOffsetLineEdit.text()))
@@ -202,10 +199,7 @@ class ServoMonitor(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            if(board_id == 0):
-                res = self.set_direct_servo_config_client_(req)
-            else:
-                res = self.set_board_config_client_(req)
+            res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
         except rospy.ServiceException as e:
             print("/set_board_config service call failed: %s"%e)

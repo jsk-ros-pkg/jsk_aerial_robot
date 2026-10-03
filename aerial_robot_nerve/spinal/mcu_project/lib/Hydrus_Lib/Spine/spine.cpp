@@ -31,29 +31,7 @@ namespace Spine
     FlightControl* controller_;
 
     /* ros */
-    constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
-    constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
-    spinal::ServoStates servo_state_msg_;
-    spinal::ServoTorqueStates servo_torque_state_msg_;
-    ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
-    // merge torque_states to states
-    ros::Publisher servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_);
-
-    // rename following subscriber.
-    // taget_states -> target_position
-    // torque_enable -> control_enable
-    ros::Subscriber<spinal::ServoControlCmd> servo_position_sub_("servo/target_states", servoPositionCallback);
-    ros::Subscriber<spinal::ServoControlCmd> servo_current_sub_("servo/target_current", servoCurrentCallback);
-    ros::Subscriber<spinal::ServoTorqueCmd> servo_torque_ctrl_sub_("servo/torque_enable", servoTorqueControlCallback);
-
-    ros::ServiceServer<spinal::GetBoardInfo::Request, spinal::GetBoardInfo::Response> board_info_srv_("get_board_info", boardInfoCallback);
-    ros::ServiceServer<spinal::SetBoardConfig::Request, spinal::SetBoardConfig::Response> board_config_srv_("set_board_config", boardConfigCallback);
-
-    spinal::GetBoardInfo::Response board_info_res_;
-
     ros::NodeHandle* nh_;
-    uint32_t servo_last_pub_time_ = 0;
-    uint32_t servo_torque_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
 
@@ -62,76 +40,6 @@ namespace Spine
     unsigned int send_board_index = 0; // incremental board id assignment for CAN TX
 
     uint32_t last_connected_time_ =0;
-  }
-
-  void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
-  {
-    for (unsigned int i = 0; i < slave_num_; i++) {
-      Neuron& neuron = neuron_.at(i);
-      spinal::BoardInfo& board = board_info_res_.boards[i];
-      board.imu_send_data_flag = neuron.can_imu_.getSendDataFlag() ? 1 : 0;
-      board.dynamixel_ttl_rs485_mixed = neuron.can_servo_.getDynamixelTTLRS485Mixed() ? 1 : 0;
-      board.servo_pulley_skip_thresh = neuron.can_servo_.getPulleySkipThresh();
-      board.slave_id = neuron.getSlaveId();
-
-      for (unsigned int j = 0; j < board.servos_length; j++) {
-        Servo& s = neuron.can_servo_.servo_.at(j);
-        board.servos[j].id = s.getId();
-        board.servos[j].p_gain = s.getPGain();
-        board.servos[j].i_gain = s.getIGain();
-        board.servos[j].d_gain = s.getDGain();
-        board.servos[j].profile_velocity = s.getProfileVelocity();
-        board.servos[j].current_limit = s.getCurrentLimit();
-        board.servos[j].send_data_flag = s.getSendDataFlag() ? 1 : 0;
-        board.servos[j].external_encoder_flag = s.getExternalEncoderFlag() ? 1 : 0;
-        board.servos[j].joint_resolution = s.getJointResolution();
-        board.servos[j].servo_resolution = s.getServoResolution();
-      }
-    }
-    res = board_info_res_;
-  }
-
-  void servoPositionCallback(const spinal::ServoControlCmd& control_msg)
-  {
-    if (!servo_control_flag_) return;
-    if (control_msg.index_length != control_msg.angles_length) return;
-    for (unsigned int i = 0; i < control_msg.index_length; i++) {
-      servo_.at(control_msg.index[i]).get().setGoalPosition(control_msg.angles[i]);
-    }
-  }
-
-  void servoCurrentCallback(const spinal::ServoControlCmd& control_msg)
-  {
-    if (!servo_control_flag_) return;
-    if (control_msg.index_length != control_msg.angles_length) return;
-    for (unsigned int i = 0; i < control_msg.index_length; i++) {
-      servo_.at(control_msg.index[i]).get().setGoalCurrent(control_msg.angles[i]);
-      // TODO: change angles -> commands
-    }
-  }
-
-  void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg)
-  {
-    if (control_msg.index_length != control_msg.torque_enable_length) return;
-    for (unsigned int i = 0; i < control_msg.index_length; i++) {
-      servo_.at(control_msg.index[i]).get().setTorqueEnable((control_msg.torque_enable[i] != 0) ? true : false);
-
-      /* update the target angle */
-      if (servo_.at(control_msg.index[i]).get().getSendDataFlag()) {
-        servo_.at(control_msg.index[i]).get().setGoalPosition(servo_.at(control_msg.index[i]).get().getPresentPosition());
-      }
-    }
-  }
-
-  void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res)
-  {
-    /* Pause the spinal sending command for neuron to have enough time for flashmemory erase&write */
-    can_tx_idle_start_time_ = HAL_GetTick();
-    // TODO: change the return value to bool
-    can_initializer_.configDevice(req);
-
-    // TODO: please add string type message for consoling
-    res.success = true;
   }
 
   bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, FlightControl* controller, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin)
@@ -172,18 +80,6 @@ namespace Spine
     /* ros */
     nh_ = nh;
 
-    if (servo_num_ > 0)
-      {
-        nh_->advertise(servo_state_pub_);
-        nh_->advertise(servo_torque_state_pub_);
-        nh_->subscribe(servo_position_sub_);
-        nh_->subscribe(servo_current_sub_);
-        nh_->subscribe(servo_torque_ctrl_sub_);
-      }
-
-    nh_->advertiseService(board_info_srv_);
-    nh_->advertiseService(board_config_srv_);
-
     /* uav model: special rule based on the number of gimbals (no send data flag servos) */
     uint8_t gimbal_servo_num = servo_num_ - servo_with_send_flag_.size();
 
@@ -205,11 +101,6 @@ namespace Spine
     controller_->setUavModel(uav_model_);
     controller_->setMotorNumber(slave_num_);
 
-    servo_state_msg_.servos_length = servo_with_send_flag_.size();
-    servo_state_msg_.servos = new spinal::ServoState[servo_with_send_flag_.size()];
-    servo_torque_state_msg_.torque_enable_length = servo_num_;
-    servo_torque_state_msg_.torque_enable = new uint8_t[servo_num_];
-
     /* other component */
     imu_weight_.resize(slave_num_ + 1);
 
@@ -223,16 +114,6 @@ namespace Spine
       neuron_.at(i).can_imu_.init();
 
       IMU_ROS_CMD::addImu(&(neuron_.at(i).can_imu_));
-    }
-
-    //set response for get_board_info
-    board_info_res_.boards_length = slave_num_;
-    board_info_res_.boards = new spinal::BoardInfo[slave_num_];
-    for (unsigned int i = 0; i < slave_num_; i++) {
-      Neuron& neuron = neuron_.at(i);
-      spinal::BoardInfo& board = board_info_res_.boards[i];
-      board.servos_length = neuron.can_servo_.servo_.size();
-      board.servos = new spinal::ServoInfo[board.servos_length];
     }
 
     return true;
@@ -275,9 +156,6 @@ namespace Spine
     for (int i = 0; i < slave_num_; i++)
       neuron_.at(i).can_imu_.update();
 
-    /* ros publish */
-    servoPublish();
-
     CANDeviceManager::tick(1);
 
     uint32_t now_time = HAL_GetTick();
@@ -310,6 +188,31 @@ namespace Spine
     return false;
   }
 
+  std::vector<Neuron>& getNeuron()
+  {
+    return neuron_;
+  }
+
+  std::vector<std::reference_wrapper<Servo>>& getServo()
+  {
+    return servo_;
+  }
+
+  std::vector<std::reference_wrapper<Servo>>& getServoWithSendFlag()
+  {
+    return servo_with_send_flag_;
+  }
+
+  CANInitializer& getCANInitializer()
+  {
+    return can_initializer_;
+  }
+
+  int8_t getServoNum()
+  {
+    return servo_num_;
+  }
+
   uint8_t getSlaveNum()
   {
     return slave_num_;
@@ -320,45 +223,18 @@ namespace Spine
     return uav_model_;
   }
 
+  bool getServoControlFlag()
+  {
+    return servo_control_flag_;
+  }
+
+  void setCanTxIdleStartTime(uint32_t time)
+  {
+    can_tx_idle_start_time_ = time;
+  }
+
   void setServoControlFlag(bool flag)
   {
     servo_control_flag_ = flag;
-  }
-
-  void servoPublish()
-  {
-    if (servo_num_ == 0) return;
-
-    uint32_t now_time = HAL_GetTick();
-    if( now_time - servo_last_pub_time_ >= SERVO_PUB_INTERVAL)
-      {
-        /* send servo */
-        servo_state_msg_.stamp = nh_->now();
-        for (unsigned int i = 0; i < servo_with_send_flag_.size(); i++)
-          {
-            spinal::ServoState servo;
-
-            servo.index = servo_with_send_flag_.at(i).get().getIndex();
-            servo.angle = servo_with_send_flag_.at(i).get().getPresentPosition();
-            servo.temp = servo_with_send_flag_.at(i).get().getPresentTemperature();
-            servo.load = servo_with_send_flag_.at(i).get().getPresentCurrent();
-            servo.error = servo_with_send_flag_.at(i).get().getError();
-
-            servo_state_msg_.servos[i] = servo;
-          }
-
-        servo_state_pub_.publish(&servo_state_msg_);
-        servo_last_pub_time_ = now_time;
-      }
-
-    if( now_time - servo_torque_last_pub_time_ >= SERVO_TORQUE_PUB_INTERVAL)
-      {
-        for (unsigned int i = 0; i < servo_num_; i++)
-          {
-            servo_torque_state_msg_.torque_enable[i] = servo_.at(i).get().getTorqueEnable() ? 1 : 0;
-          }
-        servo_torque_state_pub_.publish(&servo_torque_state_msg_);
-        servo_torque_last_pub_time_ = now_time;
-      }
   }
 };

@@ -45,6 +45,7 @@
 #include "battery_status/battery_status.h"
 
 #include "servo/servo.h"
+#include "device_manager/servo_manager.h"
 
 #include "state_estimate/state_estimate.h"
 #include "flight_control/flight_control.h"
@@ -126,6 +127,8 @@ BatteryStatus battery_status_;
 
 /* servo instance */
 DirectServo servo_;
+ServoManager servo_manager_;
+
 DShot dshot_;
 
 
@@ -278,12 +281,21 @@ int main(void)
 
   DirectServo* servoptr = nullptr;
   bool servo_connect = servo_.init(&huart2, &nh_, NULL);
-  if(servo_connect) servoptr = &servo_;
+  if(servo_connect){
+    servoptr = &servo_;
+    servo_manager_.addDirectServo(&servo_);
+  }
 
   controller_.init(&htim1, &htim4, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
 
   bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
-  if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+  if(nerve_connect)
+    {
+      Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spinal
+      servo_manager_.addSpineServo();
+    }
+
+  servo_manager_.init(&nh_); // inintialize after the addition of all servo handlers to count the servo number correctly
 
   /* USER CODE END 2 */
 
@@ -1228,6 +1240,8 @@ void coreTaskFunc(void const * argument)
       controller_.update();
 
       Spine::update();
+
+      servo_manager_.update();
 
       // Workaround to handle the BUSY->TIMEOUT Error problem of ETH handler in STM32H7
       // We observe this is occasionally occur, but the ETH DMA is valid.

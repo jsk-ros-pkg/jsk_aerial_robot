@@ -57,7 +57,6 @@ add_service_files(
   SetAttitudeGains.srv
   ImuCalib.srv
   MagDeclination.srv
-  SetDirectServoConfig.srv
 )
 
 generate_messages(
