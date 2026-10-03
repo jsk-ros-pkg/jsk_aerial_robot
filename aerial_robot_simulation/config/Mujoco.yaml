@@ -1,12 +1,15 @@
 # control
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
+
 attitude_controller:
   type: flight_controllers/MujocoAttitudeController
-
 
 # sensor -> aerial_robot_hw_sim
 ## mocap
 simulation:
-  robot_hw_sim_plugin_name: mujoco_ros_control/AerialRobotHWSim
+  publish_tf: true
 
   mocap_pub_rate: 0.01
   mocap_pos_noise: 0.001
@@ -14,4 +17,3 @@ simulation:
 
   # ground truth -> aerial_robot_hw_sim
   ground_truth_pub_rate: 0.01
-  
