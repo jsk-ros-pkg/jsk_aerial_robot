@@ -32,6 +32,8 @@
   <run_depend>hydrus</run_depend>
   <run_depend>nlopt</run_depend>
   <run_depend>pluginlib</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>xacro</run_depend>
 
   <test_depend>rostest</test_depend>
 
