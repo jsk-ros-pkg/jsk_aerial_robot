@@ -14,6 +14,8 @@ HydrusRobotModel::HydrusRobotModel(bool init_with_rosparam, bool verbose, double
 
   if(wrench_dof_ == 3) setFeasibleControlTMinThre(0);
 
+  resolveLinkLength();
+
   fc_rp_dists_.resize(getRotorNum());
   approx_fc_rp_dists_.resize(getRotorNum());
 
@@ -127,6 +129,15 @@ void HydrusRobotModel::getParamFromRos()
   nh.param("rp_position_margin_thre", rp_position_margin_thre_, 0.01);
   nh.param("wrench_mat_det_thre", wrench_mat_det_thre_, 1e-6);
   if(nh.hasParam("wrench_dof"))  nh.getParam("wrench_dof", wrench_dof_);
+}
+
+void HydrusRobotModel::resolveLinkLength()
+{
+  KDL::JntArray joint_positions(getTree().getNrOfJoints());
+  //hard coding
+  KDL::Frame f_link2 = forwardKinematics<KDL::Frame>("link2", joint_positions);
+  KDL::Frame f_link3 = forwardKinematics<KDL::Frame>("link3", joint_positions);
+  link_length_ = (f_link3.p - f_link2.p).Norm();
 }
 
 // @depreacated
