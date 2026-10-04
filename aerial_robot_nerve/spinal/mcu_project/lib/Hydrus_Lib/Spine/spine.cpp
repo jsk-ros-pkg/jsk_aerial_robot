@@ -33,11 +33,14 @@ namespace Spine
     /* ros */
     constexpr uint8_t SERVO_PUB_INTERVAL = 20; //[ms]
     constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
+    constexpr uint32_t NEURON_IMU_PUB_INTERVAL = 20; //[ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
+    spinal::NeuronImuStates neuron_imu_state_msg_;
     ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
     // merge torque_states to states
     ros::Publisher servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_);
+    ros::Publisher neuron_imu_state_pub_("neuron/imu_states", &neuron_imu_state_msg_);
 
     // rename following subscriber.
     // taget_states -> target_position
@@ -54,6 +57,7 @@ namespace Spine
     ros::NodeHandle* nh_;
     uint32_t servo_last_pub_time_ = 0;
     uint32_t servo_torque_last_pub_time_ = 0;
+    uint32_t neuron_imu_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
 
@@ -181,6 +185,8 @@ namespace Spine
         nh_->subscribe(servo_torque_ctrl_sub_);
       }
 
+    nh_->advertise(neuron_imu_state_pub_);
+
     nh_->advertiseService(board_info_srv_);
     nh_->advertiseService(board_config_srv_);
 
@@ -209,6 +215,9 @@ namespace Spine
     servo_state_msg_.servos = new spinal::ServoState[servo_with_send_flag_.size()];
     servo_torque_state_msg_.torque_enable_length = servo_num_;
     servo_torque_state_msg_.torque_enable = new uint8_t[servo_num_];
+    neuron_imu_state_msg_.imus_length = slave_num_;
+    neuron_imu_state_msg_.imus = new spinal::NeuronImu[slave_num_];
+
 
     /* other component */
     imu_weight_.resize(slave_num_ + 1);
@@ -277,6 +286,7 @@ namespace Spine
 
     /* ros publish */
     servoPublish();
+    neuronImuPublish();
 
     CANDeviceManager::tick(1);
 
@@ -360,5 +370,31 @@ namespace Spine
         servo_torque_state_pub_.publish(&servo_torque_state_msg_);
         servo_torque_last_pub_time_ = now_time;
       }
+  }
+
+  void neuronImuPublish()
+  {
+    uint32_t now_time = HAL_GetTick();
+    if( now_time - neuron_imu_last_pub_time_ < NEURON_IMU_PUB_INTERVAL)
+      {
+        return;
+      }
+    
+    neuron_imu_last_pub_time_ = now_time;
+    neuron_imu_state_msg_.stamp = nh_->now();
+    for (unsigned int i = 0; i < slave_num_; ++i)
+    {
+      CANIMU& imu = neuron_.at(i).can_imu_;
+      Vector3f acc = imu.getAcc();
+      Vector3f gyro = imu.getGyro();
+
+      neuron_imu_state_msg_.imus[i].slave_id = neuron_.at(i).getSlaveId();
+      for (int axis = 0; axis < 3; ++axis)
+      {
+        neuron_imu_state_msg_.imus[i].acc[axis] = acc[axis];
+        neuron_imu_state_msg_.imus[i].gyro[axis] = gyro[axis];
+      }
+    }
+    neuron_imu_state_pub_.publish(&neuron_imu_state_msg_);
   }
 };

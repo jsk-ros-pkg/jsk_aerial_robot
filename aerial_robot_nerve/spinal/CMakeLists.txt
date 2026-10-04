@@ -35,6 +35,8 @@ add_message_files(
   GpsFull.msg
   RollPitchYawTerm.msg
   RollPitchYawTerms.msg
+  NeuronImu.msg
+  NeuronImuStates.msg
   MotorInfo.msg
   PwmInfo.msg
   Pwms.msg

@@ -26,6 +26,8 @@
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/ServoTorqueStates.h>
+#include <spinal/NeuronImuStates.h>
+#include <spinal/NeuronImu.h>
 #include <spinal/Gyro.h>
 #include <spinal/GetBoardInfo.h>
 #include <spinal/SetBoardConfig.h>
@@ -59,6 +61,7 @@ namespace Spine
   void useRTOS(osMailQId* handle);
   void setServoControlFlag(bool flag);
   void servoPublish();
+  void neuronImuPublish();
   void servoPositionCallback(const spinal::ServoControlCmd& control_msg);
   void servoCurrentCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
