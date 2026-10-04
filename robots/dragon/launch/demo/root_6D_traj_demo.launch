@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Simple Pose Demo for Dragon Robot -->
+  <!-- This demo only publishes to /dragon/root/target_pose topic -->
+  
+  <!-- Demo node parameters -->
+  <arg name="control_frequency" default="40.0" />
+  <arg name="segment_time" default="10.0" />
+  <arg name="config_file" default="$(find dragon)/src/demo/config/root_6D_traj_demo.yaml" />
+  
+  <!-- Launch the Simple Pose demo node -->
+  <node pkg="dragon" type="root_6D_traj_demo" name="root_6D_traj_demo" output="screen">
+    <param name="control_frequency" value="$(arg control_frequency)" />
+    <param name="segment_time" value="$(arg segment_time)" />
+    <rosparam file="$(arg config_file)" command="load" />
+  </node>
+  
+</launch>

@@ -88,7 +88,9 @@ target_link_libraries (trajectory_generation ${catkin_LIBRARIES})
 add_executable(trajectory_generation_node src/trajectory/test.cpp)
 target_link_libraries (trajectory_generation_node ${catkin_LIBRARIES} trajectory_generation)
 
-
+### MINCO trajectory test
+add_executable(minco_trajectory_test src/trajectory/minco_trajectory_test.cpp)
+target_link_libraries (minco_trajectory_test ${catkin_LIBRARIES} ${EIGEN3_LIBRARIES})
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
@@ -97,7 +99,7 @@ install(TARGETS control_utils flight_control_pluginlib flight_navigation traject
   DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 )
 
-install(TARGETS trajectory_generation_node
+install(TARGETS trajectory_generation_node minco_trajectory_test
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

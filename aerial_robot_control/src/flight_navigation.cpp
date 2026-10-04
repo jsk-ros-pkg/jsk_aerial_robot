@@ -26,7 +26,8 @@ BaseNavigator::BaseNavigator():
   joy_stick_heart_beat_(false),
   joy_stick_prev_time_(0),
   teleop_flag_(true),
-  land_check_start_time_(0)
+  land_check_start_time_(0),
+  full_state_link_joint_num_(0)
 {
   setNaviState(ARM_OFF_STATE);
 }
@@ -79,6 +80,20 @@ void BaseNavigator::initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
 
   estimate_mode_ = estimator_->getEstimateMode();
   force_landing_start_time_ = ros::Time::now();
+
+  // Initialize full state target for transformable robots
+  auto transformable_model = boost::dynamic_pointer_cast<aerial_robot_model::transformable::RobotModel>(robot_model_);
+  if (transformable_model)
+  {
+    full_state_link_joint_indices_ = transformable_model->getLinkJointIndices();
+    full_state_link_joint_num_ = full_state_link_joint_indices_.size();
+    ROS_INFO("[BaseNavigator] Full state target enabled: %d link joints", full_state_link_joint_num_);
+
+    flight_nav_pub_ = nh_.advertise<aerial_robot_msgs::FlightNav>("uav/nav", 1);
+    target_rotation_motion_pub_ = nh_.advertise<nav_msgs::Odometry>("target_rotation_motion", 1);
+    full_state_joint_control_pub_ = nh_.advertise<sensor_msgs::JointState>("joints_ctrl", 1);
+    full_state_target_sub_ = nh_.subscribe("full_state_target", 1, &BaseNavigator::fullStateTargetCallback, this);
+  }
 }
 
 void BaseNavigator::batteryCheckCallback(const std_msgs::Float32ConstPtr &msg)
@@ -1160,3 +1175,118 @@ void BaseNavigator::rosParamInit()
   getParam<double>(bat_nh, "hovering_current", hovering_current_, 0.0); // current at hovering state
 }
 
+void BaseNavigator::fullStateTargetCallback(const aerial_robot_msgs::FullStateTargetConstPtr& msg)
+{
+  if (full_state_link_joint_num_ > 0 && msg->joint_state.position.size() != full_state_link_joint_num_)
+  {
+    ROS_ERROR("[BaseNavigator] Joint state size mismatch: expected %d, got %zu", full_state_link_joint_num_,
+              msg->joint_state.position.size());
+    return;
+  }
+
+  KDL::JntArray current_joint_positions = robot_model_->getJointPositions();
+
+  KDL::JntArray updated_joint_positions = current_joint_positions;
+  for (size_t i = 0; i < full_state_link_joint_num_; ++i)
+  {
+    int joint_index = full_state_link_joint_indices_[i];
+    updated_joint_positions(joint_index) = msg->joint_state.position[i];
+  }
+
+  tf::Vector3 root_pos;
+  tf::pointMsgToTF(msg->root_state.pose.pose.position, root_pos);
+  tf::Quaternion root_rot;
+  tf::quaternionMsgToTF(msg->root_state.pose.pose.orientation, root_rot);
+
+  tf::Vector3 root_vel;
+  tf::vector3MsgToTF(msg->root_state.twist.twist.linear, root_vel);
+  tf::Vector3 root_omega;
+  tf::vector3MsgToTF(msg->root_state.twist.twist.angular, root_omega);
+
+  KDL::Frame root_frame_kdl;
+  root_frame_kdl.p = KDL::Vector(root_pos.x(), root_pos.y(), root_pos.z());
+  root_frame_kdl.M = KDL::Rotation::Quaternion(root_rot.x(), root_rot.y(), root_rot.z(), root_rot.w());
+
+  KDL::Frame cog_frame;
+  KDL::Rotation world_baselink_rot;
+  {
+    std::lock_guard<std::mutex> lock(full_state_cog_mutex_);
+    const KDL::Frame root2baselink_frame =
+        robot_model_->forwardKinematics<KDL::Frame>(robot_model_->getBaselinkName(), updated_joint_positions);
+
+    // Keep the full-state target aligned with the existing baselink-based control-frame definition.
+    world_baselink_rot = root_frame_kdl.M * root2baselink_frame.M;
+    robot_model_->setCogDesireOrientation(world_baselink_rot);
+    robot_model_->updateRobotModel(updated_joint_positions);
+    cog_frame = robot_model_->getCog<KDL::Frame>();
+    robot_model_->updateRobotModel(current_joint_positions);
+  }
+
+  KDL::Frame world_cog_frame = root_frame_kdl * cog_frame;
+
+  tf::Vector3 cog_pos(world_cog_frame.p.x(), world_cog_frame.p.y(), world_cog_frame.p.z());
+
+  double cog_qx, cog_qy, cog_qz, cog_qw;
+  world_cog_frame.M.GetQuaternion(cog_qx, cog_qy, cog_qz, cog_qw);
+  tf::Quaternion cog_rot(cog_qx, cog_qy, cog_qz, cog_qw);
+
+  // v_cog = v_root + omega_root x (p_cog - p_root)
+  tf::Vector3 cog_rel_pos = cog_pos - root_pos;
+  tf::Vector3 cog_vel = root_vel + root_omega.cross(cog_rel_pos);
+  // Joint-motion-induced angular velocity is not representable in FullStateTarget today.
+  tf::Vector3 target_omega = root_omega;
+
+  // Extract yaw from CoG orientation for robots that rely solely on FlightNav
+  // (e.g. Hydrus / Hydrus_xi) and do not subscribe to target_rotation_motion.
+  double cog_roll, cog_pitch, cog_yaw;
+  tf::Matrix3x3(cog_rot).getRPY(cog_roll, cog_pitch, cog_yaw);
+
+  // CoG position + yaw
+  aerial_robot_msgs::FlightNav cog_pos_msg;
+  cog_pos_msg.header.stamp = ros::Time::now();
+  cog_pos_msg.header.frame_id = "world";
+  cog_pos_msg.target = aerial_robot_msgs::FlightNav::COG;
+  cog_pos_msg.control_frame = aerial_robot_msgs::FlightNav::WORLD_FRAME;
+  cog_pos_msg.pos_xy_nav_mode = aerial_robot_msgs::FlightNav::POS_VEL_MODE;
+  cog_pos_msg.pos_z_nav_mode = aerial_robot_msgs::FlightNav::POS_VEL_MODE;
+  // Include yaw so that robots without a target_rotation_motion subscriber
+  // (e.g. Hydrus / Hydrus_xi) still receive the correct heading target.
+  // For DRAGON this is redundant but harmless; DragonNavigator's
+  // targetRotationMotionCallback continues to handle full 3-D orientation.
+  cog_pos_msg.yaw_nav_mode = aerial_robot_msgs::FlightNav::POS_VEL_MODE;
+  cog_pos_msg.target_yaw = cog_yaw;
+  cog_pos_msg.target_omega_z = target_omega.z();
+
+  cog_pos_msg.target_pos_x = cog_pos.x();
+  cog_pos_msg.target_pos_y = cog_pos.y();
+  cog_pos_msg.target_pos_z = cog_pos.z();
+
+  cog_pos_msg.target_vel_x = cog_vel.x();
+  cog_pos_msg.target_vel_y = cog_vel.y();
+  cog_pos_msg.target_vel_z = cog_vel.z();
+
+  flight_nav_pub_.publish(cog_pos_msg);
+
+  // Publish the desired baselink orientation so robot-specific navigators can update their control frame.
+  nav_msgs::Odometry baselink_rotation_msg;
+  baselink_rotation_msg.header.stamp = ros::Time::now();
+  baselink_rotation_msg.header.frame_id = "baselink";
+
+  double baselink_qx, baselink_qy, baselink_qz, baselink_qw;
+  world_baselink_rot.GetQuaternion(baselink_qx, baselink_qy, baselink_qz, baselink_qw);
+  baselink_rotation_msg.pose.pose.orientation.x = baselink_qx;
+  baselink_rotation_msg.pose.pose.orientation.y = baselink_qy;
+  baselink_rotation_msg.pose.pose.orientation.z = baselink_qz;
+  baselink_rotation_msg.pose.pose.orientation.w = baselink_qw;
+
+  baselink_rotation_msg.twist.twist.angular.x = target_omega.x();
+  baselink_rotation_msg.twist.twist.angular.y = target_omega.y();
+  baselink_rotation_msg.twist.twist.angular.z = target_omega.z();
+
+  target_rotation_motion_pub_.publish(baselink_rotation_msg);
+
+  // Joint control commands
+  sensor_msgs::JointState joint_control_msg;
+  joint_control_msg.position = msg->joint_state.position;
+  full_state_joint_control_pub_.publish(joint_control_msg);
+}

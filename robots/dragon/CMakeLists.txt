@@ -54,6 +54,21 @@ add_dependencies(dragon_aerial_robot_controllib aerial_robot_msgs_generate_messa
 add_library(dragon_navigation src/dragon_navigation.cpp)
 target_link_libraries(dragon_navigation ${catkin_LIBRARIES})
 
+# Demo nodes
+add_executable(full_state_traj_demo src/demo/full_state_traj_demo.cpp)
+target_link_libraries(full_state_traj_demo ${catkin_LIBRARIES})
+add_dependencies(full_state_traj_demo aerial_robot_msgs_generate_messages_cpp)
+
+
+add_executable(root_6D_traj_demo src/demo/root_6D_traj_demo.cpp)
+target_link_libraries(root_6D_traj_demo ${catkin_LIBRARIES})
+add_dependencies(root_6D_traj_demo aerial_robot_msgs_generate_messages_cpp)
+
+# 新增 root_3D_traj_demo
+add_executable(root_3D_traj_demo src/demo/root_3D_traj_demo.cpp)
+target_link_libraries(root_3D_traj_demo ${catkin_LIBRARIES})
+add_dependencies(root_3D_traj_demo aerial_robot_msgs_generate_messages_cpp)
+
 # generate symbolic link for desktop files
 add_custom_target(${PROJECT_NAME}_install_desktop ALL COMMAND ${PROJECT_SOURCE_DIR}/bin/desktop/desktop_install.sh)
 
@@ -68,7 +83,7 @@ target_link_libraries(dragon_jacobian_test dragon_numerical_jacobians ${catkin_L
 install(DIRECTORY include/${PROJECT_NAME}/ test/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
 
-install(TARGETS dragon_jacobian_test
+install(TARGETS dragon_jacobian_test full_state_traj_demo root_6D_traj_demo root_3D_traj_demo
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

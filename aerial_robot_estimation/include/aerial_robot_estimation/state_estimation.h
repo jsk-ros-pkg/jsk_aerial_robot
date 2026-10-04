@@ -459,7 +459,7 @@ namespace aerial_robot_estimation
 
     ros::NodeHandle nh_;
     ros::NodeHandle nhp_;
-    ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_;
+    ros::Publisher full_state_pub_, baselink_odom_pub_, cog_odom_pub_, root_pose_pub_, root_tail_pose_pub_;
     tf2_ros::TransformBroadcaster br_;
     ros::Timer state_pub_timer_;
 
@@ -480,6 +480,8 @@ namespace aerial_robot_estimation
 
     /* robot model (kinematics)  */
     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model_;
+    bool publish_root_tail_pose_;
+    tf::Vector3 root_tail_offset_;
     std::string tf_prefix_;
 
     /* 6: x_w, y_w, z_w, x_b, y_b */
@@ -515,6 +517,8 @@ namespace aerial_robot_estimation
     /* latitude & longitude point */
     geographic_msgs::GeoPoint curr_wgs84_poiont_;
 
+    void initializeRootTailPosePublisher();
+    void publishWorldPose(ros::Publisher& publisher, const ros::Time& stamp, const tf::Transform& pose);
     void statePublish(const ros::TimerEvent & e);
     void rosParamInit();
   };

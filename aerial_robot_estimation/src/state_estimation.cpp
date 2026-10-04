@@ -39,12 +39,19 @@
 
 using namespace aerial_robot_estimation;
 
+namespace
+{
+constexpr char kRootTailSegmentName[] = "link2";
+}
+
 StateEstimator::StateEstimator()
   : sensor_fusion_flag_(false),
     qu_size_(0),
     flying_flag_(false),
     un_descend_flag_(false),
     force_att_control_flag_(false),
+    publish_root_tail_pose_(false),
+    root_tail_offset_(0, 0, 0),
     has_groundtruth_odom_(false),
     imu_handlers_(0), alt_handlers_(0), vo_handlers_(0), gps_handlers_(0), plane_detection_handlers_(0)
 {
@@ -87,6 +94,8 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
 
   baselink_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/baselink/odom", 1);
   cog_odom_pub_ = nh_.advertise<nav_msgs::Odometry>("uav/cog/odom", 1);
+  root_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("root/pose", 1);
+  initializeRootTailPosePublisher();
   full_state_pub_ = nh_.advertise<aerial_robot_msgs::States>("uav/full_state", 1);
 
   nhp_.param("tf_prefix", tf_prefix_, std::string(""));
@@ -94,6 +103,30 @@ void StateEstimator::initialize(ros::NodeHandle nh, ros::NodeHandle nh_private, 
   double rate;
   nhp_.param("state_pub_rate", rate, 100.0);
   state_pub_timer_ = nh_.createTimer(ros::Duration(1.0 / rate), &StateEstimator::statePublish, this);
+}
+
+void StateEstimator::initializeRootTailPosePublisher()
+{
+  publish_root_tail_pose_ = robot_model_->getTree().getSegments().count(kRootTailSegmentName) > 0;
+  if(!publish_root_tail_pose_)
+    return;
+
+  KDL::JntArray zero_joint_positions(robot_model_->getTree().getNrOfJoints());
+  for(unsigned int i = 0; i < zero_joint_positions.rows(); ++i)
+    zero_joint_positions(i) = 0.0;
+
+  const auto root2tail_frame = robot_model_->forwardKinematics<KDL::Frame>(kRootTailSegmentName, zero_joint_positions);
+  root_tail_offset_.setValue(root2tail_frame.p.x(), root2tail_frame.p.y(), root2tail_frame.p.z());
+  root_tail_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("root/tail_pose", 1);
+}
+
+void StateEstimator::publishWorldPose(ros::Publisher& publisher, const ros::Time& stamp, const tf::Transform& pose)
+{
+  geometry_msgs::PoseStamped pose_msg;
+  pose_msg.header.stamp = stamp;
+  pose_msg.header.frame_id = "world";
+  tf::poseTFToMsg(pose, pose_msg.pose);
+  publisher.publish(pose_msg);
 }
 
 
@@ -200,11 +233,23 @@ void StateEstimator::statePublish(const ros::TimerEvent & e)
       tf::Transform world2baselink_tf;
       tf::poseMsgToTF(odom_state.pose.pose, world2baselink_tf);
       geometry_msgs::TransformStamped transformStamped;
-      tf::transformStampedTFToMsg(tf::StampedTransform(world2baselink_tf * root2baselink_tf.inverse(),
+      tf::Transform world2root_tf = world2baselink_tf * root2baselink_tf.inverse();
+      tf::transformStampedTFToMsg(tf::StampedTransform(world2root_tf,
                                                        imu_stamp, "world",
                                                        tf::resolve(tf_prefix_, std::string("root"))),
                                   transformStamped);
       br_.sendTransform(transformStamped);
+      
+      /* Publish root pose */
+      publishWorldPose(root_pose_pub_, imu_stamp, world2root_tf);
+
+      /* Publish root tail pose */
+      if(publish_root_tail_pose_ && !segments_tf.empty())
+        {
+          tf::Transform world2tail_tf = world2root_tf;
+          world2tail_tf.setOrigin(world2root_tf * root_tail_offset_);
+          publishWorldPose(root_tail_pose_pub_, imu_stamp, world2tail_tf);
+        }
     }
 
   /* COG */

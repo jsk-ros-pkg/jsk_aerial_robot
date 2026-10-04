@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Root Head Trajectory Demo for Dragon Robot -->
+  <arg name="control_frequency" default="40.0" />
+  <arg name="segment_time" default="10.0" />
+  <arg name="config_file" default="$(find dragon)/src/demo/config/root_3D_traj_demo.yaml" />
+
+  <node pkg="dragon" type="root_3D_traj_demo" name="root_3D_traj_demo" output="screen">
+    <param name="control_frequency" value="$(arg control_frequency)" />
+    <param name="segment_time" value="$(arg segment_time)" />
+    <rosparam file="$(arg config_file)" command="load" />
+  </node>
+</launch>

@@ -17,6 +17,11 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <aerial_robot_control/trajectory/trajectory_reference/polynomial_trajectory.hpp>
+#include <aerial_robot_msgs/FullStateTarget.h>
+#include <aerial_robot_model/model/transformable_aerial_robot_model.h>
+#include <sensor_msgs/JointState.h>
+#include <nav_msgs/Odometry.h>
+#include <mutex>
 
 namespace aerial_robot_navigation
 {
@@ -350,6 +355,15 @@ namespace aerial_robot_navigation
     double bat_resistance_voltage_rate_;
     double hovering_current_;
 
+    /* full state target for transformable robots */
+    ros::Publisher flight_nav_pub_;
+    ros::Publisher target_rotation_motion_pub_;
+    ros::Publisher full_state_joint_control_pub_;
+    ros::Subscriber full_state_target_sub_;
+    int full_state_link_joint_num_;
+    std::vector<int> full_state_link_joint_indices_;
+    std::mutex full_state_cog_mutex_;
+
     virtual void rosParamInit();
     void simpleMoveBaseGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
     void singleGoalCallback(const geometry_msgs::PoseStampedConstPtr & msg);
@@ -357,6 +371,7 @@ namespace aerial_robot_navigation
     virtual void naviCallback(const aerial_robot_msgs::FlightNavConstPtr & msg);
     virtual void joyStickControl(const sensor_msgs::JoyConstPtr & joy_msg);
     void batteryCheckCallback(const std_msgs::Float32ConstPtr &msg);
+    void fullStateTargetCallback(const aerial_robot_msgs::FullStateTargetConstPtr& msg);
 
     virtual void halt() {}
     virtual void reset()
