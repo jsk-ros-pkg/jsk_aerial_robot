@@ -70,7 +70,7 @@ using SensorFuser = std::vector< std::pair<std::string, boost::shared_ptr<kf_plu
 
 namespace Frame
 {
-  enum {COG = 0, BASELINK = 1,};
+  enum {COG = 0, BASELINK = 1, ROOT = 2, ROOT_LOCAL = 3};
 };
 
 namespace State
@@ -213,6 +213,8 @@ namespace aerial_robot_estimation
 
     tf::Vector3 getPos(int frame, int estimate_mode)
     {
+      if (frame == Frame::ROOT)
+        return getRootPos(estimate_mode);
       boost::lock_guard<boost::mutex> lock(state_mutex_);
       return tf::Vector3((state_[State::X_COG + frame * 3][estimate_mode].second)[0],
                          (state_[State::Y_COG + frame * 3][estimate_mode].second)[0],
@@ -227,6 +229,10 @@ namespace aerial_robot_estimation
 
     tf::Vector3 getVel(int frame, int estimate_mode)
     {
+      if (frame == Frame::ROOT)
+        return getRootVel(estimate_mode);
+      if (frame == Frame::ROOT_LOCAL)
+        return getRootVelLocal(estimate_mode);
       boost::lock_guard<boost::mutex> lock(state_mutex_);
       return tf::Vector3((state_[State::X_COG + frame * 3][estimate_mode].second)[1],
                          (state_[State::Y_COG + frame * 3][estimate_mode].second)[1],
@@ -242,6 +248,9 @@ namespace aerial_robot_estimation
 
     tf::Matrix3x3 getOrientation(int frame, int estimate_mode)
     {
+      if (frame == Frame::ROOT)
+        return getRootOrientation(estimate_mode);
+
       boost::lock_guard<boost::mutex> lock(state_mutex_);
 
       if(frame == Frame::COG)
@@ -250,6 +259,15 @@ namespace aerial_robot_estimation
         return base_rots_.at(estimate_mode);
 
       return tf::Matrix3x3::getIdentity();
+    }
+
+    tf::Quaternion getQuaternion(int frame, int estimate_mode)
+    {
+      tf::Matrix3x3 rot = getOrientation(frame, estimate_mode);
+      tf::Quaternion quat;
+      rot.getRotation(quat);
+
+      return quat.normalized();
     }
 
     void setOrientation(int frame, int estimate_mode, tf::Matrix3x3 rot)
@@ -276,6 +294,9 @@ namespace aerial_robot_estimation
 
     tf::Vector3 getAngularVel(int frame, int estimate_mode)
     {
+      if (frame == Frame::ROOT)
+        return getRootAngularVel(estimate_mode);
+
       boost::lock_guard<boost::mutex> lock(state_mutex_);
 
       if(frame == Frame::COG)
@@ -517,5 +538,12 @@ namespace aerial_robot_estimation
 
     void statePublish(const ros::TimerEvent & e);
     void rosParamInit();
+
+    tf::Transform getRoot2BaselinkTf() const;
+    tf::Vector3 getRootPos(int estimate_mode);
+    tf::Vector3 getRootVel(int estimate_mode);
+    tf::Vector3 getRootVelLocal(int estimate_mode);
+    tf::Matrix3x3 getRootOrientation(int estimate_mode);
+    tf::Vector3 getRootAngularVel(int estimate_mode);
   };
 };
