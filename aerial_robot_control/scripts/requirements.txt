@@ -1,0 +1,11 @@
+casadi==3.7.0
+numpy<=1.26.4 # Ensure compatibility with casadi
+scipy
+matplotlib
+future-fstrings
+cython
+setuptools_scm
+PyYAML
+rospkg
+transformations
+scienceplots==2.1.1

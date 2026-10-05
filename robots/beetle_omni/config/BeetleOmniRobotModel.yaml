@@ -1,0 +1,4 @@
+# robot model plugin
+robot_model_plugin_name: multirotor_robot_model
+
+wrench_mat_det_thre: 0

@@ -22,6 +22,8 @@ add_message_files(FILES
   WrenchAllocationMatrix.msg
   ApplyWrench.msg
   ForceList.msg
+  PredXU.msg
+  FixRotor.msg
 )
 
 ## Generate added messages and services

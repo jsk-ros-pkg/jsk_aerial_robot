@@ -1,0 +1,252 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="beetle_link" >
+
+  <xacro:macro name="beetle_center_link" params="child1 child2 child3 child4">
+    ## dummy
+    <link name="root"/>
+
+    ## main body
+    <link name="main_body">
+      <inertial>
+        <origin xyz="0.00000847 0.00023741 0.01491666" rpy="0 0 0"/>
+        <mass value="2.27739"/>
+        <inertia
+            ixx="0.02747704" iyy="0.02676088" izz="0.04047304"
+            ixy="-0.00000599" ixz="0.00009626" iyz="0.00006750"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/main_body_beetle_omni_w_guard.dae"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0.0385" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.35 0.35 0.275"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="root_joint" type="fixed">
+      <parent link="root"/>
+      <child link="main_body"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </joint>
+
+    ## fc: flight controller. Note that "baselink" is assigned to "fc" in common.xacro by default
+    <link name="fc">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+    <joint name="fc_joint" type="fixed">
+      <child link="fc"/>
+      <parent link="main_body"/>
+      <origin rpy="0 0 0" xyz="-0.0175 -0.0015 0.06647"/>  # should be aligned with the position of IMU
+    </joint>
+
+    ## rotor arm macro
+    <xacro:macro name="dummy_rotor_arm" params="id x y z yaw">
+      ## link
+      <link name="rotor_arm${id}">
+        <inertial>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <mass value="0.0001"/>
+          <inertia
+              ixx="0.000001" ixy="0.0" ixz="0.0"
+              iyy="0.0001" iyz="0.0"
+              izz="0.0001"/>
+        </inertial>
+      </link>
+      ## joint
+      <joint name="base_arm_joint${id}" type="fixed">
+        <parent link="main_body"/>
+        <child link="rotor_arm${id}"/>
+        <origin rpy="0 0 ${yaw}" xyz="${x} ${y} ${z}"/>
+      </joint>
+    </xacro:macro>
+
+    ## dummy rotor arms
+    <xacro:dummy_rotor_arm id = "${child1}" x = "0.17938" y="0.17938" z = "0.0171" yaw = "${pi*1.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child2}" x = "-0.17938" y="0.17938" z = "0.0171" yaw = "${pi*3.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child3}" x = "-0.17938" y="-0.17938" z = "0.0171" yaw = "${pi*5.0/4.0}"/>
+    <xacro:dummy_rotor_arm id = "${child4}" x = "0.17938" y="-0.17938" z = "0.0171" yaw = "${-pi*1.0/4.0}"/>
+
+    <xacro:friction self="main_body"/>
+  </xacro:macro>
+
+  <xacro:macro name="beetle_thrust_link" params="self rotor_direction">
+    ## link
+    #### rotor parent link (virtual) ####
+    <link name="gimbal_link${self}">
+      <inertial>
+        <origin xyz="0.02085225 0.0 -0.01276312" rpy="0 0 0"/>
+        <mass value="0.15944"/>
+        <inertia
+            ixx="0.00007281" iyy="0.00007289" izz="0.00007635"
+            ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+      <collision>
+        <origin xyz="0.06 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.11 0.11 0.05"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/omni_rotor_module.dae"/>
+        </geometry>
+      </visual>
+    </link>
+    <xacro:damping_factor link="gimbal_link${self}"/>
+
+    ## rotor parent link (virtual)
+    <link name="rotor_parent${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.00001"/>
+        <inertia
+            ixx="0.000001" ixy="0.0" ixz="0.0"
+            iyy="0.000001" iyz="0.0"
+            izz="0.000001"/>
+      </inertial>
+    </link>
+
+    ## thrust link (virtual)
+    <link name="thrust${self}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.005"/>
+        <inertia
+            ixx="0.001" ixy="0.0" ixz="0.0"
+            iyy="0.001" iyz="0.0"
+            izz="0.001"/>
+      </inertial>
+    </link>
+    <xacro:damping_factor link="thrust${self}"/>
+
+    #### joints ####
+
+    #### gimbal joints ####
+    <joint name="gimbal${self}" type="revolute">
+      <limit effort="6.6" lower="-3.926991" upper="3.926991" velocity="3.0"/>
+      <parent link="rotor_arm${self}"/>
+      <child link="gimbal_link${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <dynamics damping="0.8" friction="0.0"/>
+    </joint>
+
+    <transmission name="joint_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="gimbal${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="servo${self}">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+    #### rotor parent link joint (virtual) ####
+    <joint name="rotor_parent_link_joint${self}" type="fixed">
+      <parent link="gimbal_link${self}"/>
+      <child link="rotor_parent${self}"/>
+      <origin rpy="0 0 0" xyz="0.02185 0.0 0.0"/>
+    </joint>
+
+    #### rotor joint (virtual) ####
+    <joint name="rotor${self}" type="continuous">
+      <limit effort="100.0" lower="${min_force}" upper="${max_force}" velocity="0.5"/>
+      <parent link="rotor_parent${self}"/>
+      <child link="thrust${self}"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <axis xyz="0 0 ${rotor_direction}"/>
+    </joint>
+
+    <transmission name="rotor_tran${self}">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="rotor${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+      </joint>
+      <actuator name="rotor_actuator${self}">
+        <hardwareInterface>RotorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+<!-- Define beetle -->
+  <xacro:arg name="robot_name" default="beetle-art-omni" />
+  <xacro:property name="robot_name" value="$(arg robot_name)"/>
+
+  <xacro:beetle_center_link child1="1" child2="2" child3="3" child4="4"/>
+  <xacro:beetle_thrust_link self="1" rotor_direction="1"/>
+  <xacro:beetle_thrust_link self="2" rotor_direction="-1"/>
+  <xacro:beetle_thrust_link self="3" rotor_direction="1"/>
+  <xacro:beetle_thrust_link self="4" rotor_direction="-1"/>
+
+  <!-- ============ End‑Effector (EE) =============== -->
+
+  <!-- Select EE type:  fork | ball | sensor_ball | brush -->
+  <xacro:arg name="end_effector" default="fork"/>
+  <xacro:property name="end_effector" value="$(arg end_effector)"/>
+
+  <xacro:if value="${end_effector != 'fork' and end_effector != 'ball' and end_effector != 'sensor_ball'
+  and end_effector != 'brush' and end_effector != 'osmo'}">
+    <xacro:error>Invalid end_effector type: ${end_effector}. Must be one of: fork, ball, sensor_ball, brush, osmo.</xacro:error>
+  </xacro:if>
+
+  <!-- Fixed the flange that all tools attach to -->
+  <link name="ee_mount"/>
+  <joint name="body_to_ee_mount" type="fixed">
+    <parent link="main_body"/>
+    <child link="ee_mount"/>
+    <origin xyz="0 0 0.1725" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Tool‑agnostic contact frame (pose set inside each branch) -->
+  <link name="ee_contact"/>
+
+  <!-- ############# Fork tool ############# -->
+  <xacro:include filename="$(find beetle_omni)/urdf/effectors/fork_ee.xacro"/>
+
+  <xacro:if value="${end_effector == 'fork'}">
+    <xacro:fork_end_effector ee_mount_link="ee_mount" robot_ns="${robot_name}"/>
+  </xacro:if>
+
+  <!-- ############# Ball tool ############# -->
+  <xacro:include filename="$(find beetle_omni)/urdf/effectors/ball_ee.xacro"/>
+
+  <xacro:if value="${end_effector == 'ball'}">
+    <xacro:ball_end_effector ee_mount_link="ee_mount" robot_ns="${robot_name}"/>
+  </xacro:if>
+
+
+  <!-- ############# Sensor‑ball tool ############# -->
+  <xacro:include filename="$(find beetle_omni)/urdf/effectors/force_sensor_ball_ee.xacro"/>
+
+  <xacro:if value="${end_effector == 'sensor_ball'}">
+    <xacro:force_sensor_ball_end_effector ee_mount_link="ee_mount" robot_ns="${robot_name}"/>
+  </xacro:if>
+
+  <!-- ############# Brush tool ############# -->
+  <xacro:include filename="$(find beetle_omni)/urdf/effectors/brush_ee.xacro"/>
+
+  <xacro:if value="${end_effector == 'brush'}">
+    <xacro:brush_end_effector ee_mount_link="ee_mount" robot_ns="${robot_name}"/>
+  </xacro:if>
+
+  <!-- ############# DJI OSMO Action 4 ############# -->
+  <xacro:include filename="$(find beetle_omni)/urdf/effectors/osmo_cam_ee.xacro"/>
+
+  <xacro:if value="${end_effector == 'osmo'}">
+    <xacro:osmo_end_effector ee_mount_link="ee_mount" robot_ns="${robot_name}"/>
+  </xacro:if>
+
+</robot>

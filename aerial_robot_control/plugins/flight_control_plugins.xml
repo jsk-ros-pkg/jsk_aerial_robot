@@ -16,4 +16,13 @@
     <description>controller for under actuated model (e.g., quad) with LQI Tilted controller </description>
   </class>
 
+  <!-- nmpc -->
+  <class name="aerial_robot_control/nmpc_controller/fix_qd/nmpc" type="aerial_robot_control::nmpc::FixQdNMPC" base_class_type="aerial_robot_control::ControlBase">
+    <description>NMPC controller for quadrotor with full model </description>
+  </class>
+
+  <class name="aerial_robot_control/nmpc_controller/tilt_mt/servo_dist_nmpc" type="aerial_robot_control::nmpc::TiltMtServoDistNMPC" base_class_type="aerial_robot_control::ControlBase">
+    <description>NMPC controller for tilt-multirotor with full model and consider disturbance </description>
+  </class>
+
 </library>

@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot name="ball_end_effector" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Macro: ball_end_effector
+    params:
+      ee_mount_link : The base link that the ball tool is mounted to (e.g. "ee_mount").
+  -->
+  <xacro:macro name="ball_end_effector" params="ee_mount_link robot_ns">
+
+    <!-- 1) Ball tool geometry and inertia -->
+    <link name="ball">
+      <inertial>
+        <!-- Inertia parameters from CAD -->
+        <origin xyz="0.00000000 0.08052689 0.00000000" rpy="0 0 0"/>
+        <mass value="0.1030"/>
+        <inertia
+                ixx="0.00020646" iyy="0.00008167" izz="0.00020646"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_ball.dae"
+                scale="1 1 1"/>
+        </geometry>
+      </visual>
+
+      <!-- Optional: add collision if needed -->
+      <!--
+      <collision>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_ball.dae"
+                scale="1 1 1"/>
+        </geometry>
+      </collision>
+      -->
+    </link>
+
+    <!-- 2) Mount the ball to the end-effector flange -->
+    <joint name="ee_mount_to_ball" type="fixed">
+      <parent link="${ee_mount_link}"/>
+      <child link="ball"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 3) Contact frame at the ball's contact point -->
+    <!-- ee_contact is assumed to be defined elsewhere -->
+    <joint name="ball_to_ee_contact" type="fixed">
+      <parent link="ball"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 0.11" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

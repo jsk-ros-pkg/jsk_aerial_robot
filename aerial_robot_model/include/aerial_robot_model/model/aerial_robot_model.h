@@ -56,6 +56,9 @@
 #include <urdf/model.h>
 #include <vector>
 
+// for contact point
+#include <tf/tf.h>
+
 namespace aerial_robot_model {
 
   //Basic Aerial Robot Model
@@ -168,6 +171,26 @@ namespace aerial_robot_model {
 
     KDL::JntArray convertEigenToKDL(const Eigen::VectorXd& joint_vector);
 
+    /* contact point */
+    bool hasFrame(const std::string& frame_name) const
+    {
+      return seg_tf_map_.find(frame_name) != seg_tf_map_.end();
+    }
+
+    void getCoGtoFramePosQuat(const std::string& frame_name, std::vector<double>& pos, std::vector<double>& quat) const
+    {
+      KDL::Frame cog_to_frame = updateCoGtoFrame(frame_name);
+
+      pos = { cog_to_frame.p.x(), cog_to_frame.p.y(), cog_to_frame.p.z() };
+      double qw, qx, qy, qz;
+      cog_to_frame.M.GetQuaternion(qx, qy, qz, qw);
+      quat = { qw, qx, qy, qz };
+    }
+
+    void convertFromCoGToEEContact(const tf::Vector3& cog_pos_in_w, const tf::Vector3& cog_vel_in_w,
+                                   const tf::Quaternion& cog_quat, const tf::Vector3& cog_omega, tf::Vector3& ee_pos_in_w,
+                                   tf::Vector3& ee_vel_in_w, tf::Quaternion& ee_quat, tf::Vector3& ee_omega) const;
+
   private:
 
     // kinematics
@@ -247,6 +270,15 @@ namespace aerial_robot_model {
 
   protected:
     virtual void updateRobotModelImpl(const KDL::JntArray& joint_positions);
+
+    /* for the robot with end-effectors */
+    // Note: this function is not updated in updateRobotModelImpl. Need to be called when you have the ee_contact frame in
+    // URDF.
+    KDL::Frame updateCoGtoFrame(const std::string& frame_name) const
+    {
+      KDL::Frame target_frame = seg_tf_map_.at(frame_name);
+      return cog_.Inverse() * target_frame;
+    }
 
     void setCog(const KDL::Frame cog)
     {

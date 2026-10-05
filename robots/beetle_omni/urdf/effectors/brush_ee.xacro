@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<robot name="brush_end_effector" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Macro: brush_end_effector
+    params:
+      ee_mount_link : The base link connected to the end-effector (e.g. "ee_mount").
+  -->
+  <xacro:macro name="brush_end_effector" params="ee_mount_link robot_ns">
+
+    <!-- 1) Main brush body link and joint -->
+    <link name="brush">
+      <inertial>
+        <origin xyz="0.00000000 0.06565796 -0.00001172" rpy="0 0 0"/>
+        <mass value="0.100"/>
+        <inertia
+                ixx="0.00019687" iyy="0.00013173" izz="0.00019689"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_brush.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <!-- You can reuse the same mesh for collision or a simplified one -->
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_brush.dae"
+                scale="1 1 1"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="ee_mount_to_brush" type="fixed">
+      <parent link="${ee_mount_link}"/>
+      <child link="brush"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 2) Contact frame at the bristle tip, required by the outer framework -->
+    <!-- ee_contact is assumed to be defined elsewhere -->
+    <joint name="brush_to_ee_contact" type="fixed">
+      <parent link="brush"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 0.144" rpy="0 0 0"/>
+    </joint>
+
+    <!--  3) Attach the ark_flow_sensor  -->
+    <xacro:ark_flow_sensor name="ark_flow" parent_link="ee_mount" robot_ns="${robot_ns}"/>
+
+  </xacro:macro>
+
+
+  <!-- include shared sensors -->
+  <xacro:include filename="$(find beetle_omni)/urdf/sensors/ark_flow.xacro"/>
+
+</robot>

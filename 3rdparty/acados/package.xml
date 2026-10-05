@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <name>acados</name>
+  <version>0.0.0</version>
+  <description>acados ROS Wrapper</description>
+  <maintainer email="chou@jsk.imi.i.u-tokyo.ac.jp">Moju Zhao</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>cmake</buildtool_depend>
+
+  <build_depend>git</build_depend>
+
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+
+</package>
+

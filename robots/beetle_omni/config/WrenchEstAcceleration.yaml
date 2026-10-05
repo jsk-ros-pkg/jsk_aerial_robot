@@ -1,0 +1,55 @@
+wrench_estimator_name: aerial_robot_control::WrenchEstAcceleration
+
+controller:
+  if_use_est_wrench_4_control: true
+
+  wrench_est:
+    # mode switch
+    calib_duration_t: 3.0  # seconds
+
+    ext_force_thresh_calib: [5, 5, 5]  # [x, y, z] N
+    ext_torque_thresh_calib: [0.5, 0.5, 0.5]  # [x, y, z] Nm
+
+    lin_vel_thresh_calib: [0.1, 0.1, 0.1]  # [x, y, z] m/s
+    ang_vel_thresh_calib: [0.1, 0.1, 0.1]  # [x, y, z] rad/s
+
+    lin_vel_thresh_stop: [0.5, 0.5, 0.5]  # [x, y, z] m/s
+    ang_vel_thresh_stop: [0.5, 0.5, 0.5]  # [x, y, z] rad/s
+
+    # overall limit
+    ext_force_limit: [50, 50, 50]  # N
+    ext_torque_limit: [5, 5, 5]  # Nm
+
+    # small noise: use sigmoid function for a threshold
+    thresh_force: 0.6  # N
+    thresh_torque: 0.3  # Nm
+    steepness_force: 10.0
+    steepness_torque: 10.0
+
+    accel_observer:
+      thrust_type: 1  # how to get thrust data. 0: cmd, 1: measured
+
+      # Use MATLAB Filter Design to get the coefficients
+      # 2-Ord Butterworth filter
+      iir_sensor_general:  # 15 Hz
+        num: [1, 2, 1]
+        den: [1, -0.7478, 0.2722]
+        gain: 0.1311
+      iir_omega_dot:  # 10.27 Hz
+        num: [1, 2, 1]
+        den: [1, -1.1211, 0.4032]
+        gain: 0.0705
+
+      #    iir_sensor_general: # 5 Hz
+      #      num: [ 1, 2, 1 ]
+      #      den: [ 1, -1.5610, 0.6414 ]
+      #      gain: 0.0201
+      #    iir_omega_dot: # 4.3 Hz
+      #      num: [ 1, 2, 1 ]
+      #      den: [ 1, -1.6214, 0.6825 ]
+      #      gain: 0.0153
+
+      iir_wrench:  # 2 Hz
+        num: [1, 2, 1]
+        den: [1, -1.8227, 0.8372]
+        gain: 0.0036

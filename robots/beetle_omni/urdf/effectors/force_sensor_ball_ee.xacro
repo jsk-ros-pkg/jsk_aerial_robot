@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<robot name="force_sensor_ball_end_effector" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Reuse the plain ball end-effector definition -->
+  <xacro:include filename="$(find beetle_omni)/urdf/effectors/ball_ee.xacro"/>
+
+  <!--
+    Macro: force_sensor_ball_end_effector
+    params:
+      ee_mount_link : The base link that the sensor-ball tool is mounted to (e.g. "ee_mount").
+  -->
+  <xacro:macro name="force_sensor_ball_end_effector" params="ee_mount_link robot_ns">
+
+    <!-- 1) Wrench sensor link -->
+    <link name="wrench_sensor">
+      <inertial>
+        <!-- Inertia parameters from CAD -->
+        <origin xyz="0.00000000 0.00000000 -0.01500000" rpy="0 0 0"/>
+        <mass value="0.285"/>
+        <inertia
+                ixx="0.00008773" iyy="0.00012377" izz="0.00016573"
+                ixy="0.00000000" ixz="0.00000328" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/wrench_sensor_pfs055ya501u6.dae"
+                scale="1 1 1"/>
+        </geometry>
+      </visual>
+      <!-- Optional: add collision if needed -->
+      <!--
+      <collision>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/wrench_sensor_pfs055ya501u6.dae"
+                scale="1 1 1"/>
+        </geometry>
+      </collision>
+      -->
+    </link>
+
+    <!-- 2) Mount the wrench sensor to the end-effector flange -->
+    <joint name="ee_mount_to_sensor" type="fixed">
+      <parent link="${ee_mount_link}"/>
+      <child link="wrench_sensor"/>
+      <origin xyz="0 0 0.031" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 3) Attach the ball to the sensor by reusing the ball end-effector macro -->
+    <!--
+      ball_end_effector will:
+        - create link "ball"
+        - add joint "ee_mount_to_ball" from wrench_sensor to ball
+        - add joint "ball_to_ee_contact" from ball to ee_contact
+      ee_contact is assumed to be defined elsewhere.
+    -->
+    <xacro:ball_end_effector ee_mount_link="wrench_sensor" robot_ns="${robot_name}"/>
+
+  </xacro:macro>
+
+</robot>

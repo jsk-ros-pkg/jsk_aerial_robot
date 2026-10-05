@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<robot name="fork_end_effector" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Macro: fork_end_effector
+    params:
+      ee_mount_link : The base link that the fork tool is mounted to (e.g. "ee_mount").
+  -->
+  <xacro:macro name="fork_end_effector" params="ee_mount_link robot_ns">
+
+    <!-- 1) Fork tool geometry and inertia -->
+    <link name="fork">
+      <inertial>
+        <origin xyz="0.00000000 0.06681059 -0.00005783" rpy="0 0 0"/>
+        <mass value="0.140"/>
+        <inertia
+                ixx="0.00040632" iyy="0.00053824" izz="0.00040617"
+                ixy="0.00000000" ixz="0.00000000" iyz="0.00000000"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_fork.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+
+      <!-- Optional: add collision if needed -->
+      <!--
+      <collision>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_fork.dae"
+                scale="1 1 1"/>
+        </geometry>
+      </collision>
+      -->
+    </link>
+
+    <!-- 2) Mount the fork to the end-effector flange -->
+    <joint name="ee_mount_to_fork" type="fixed">
+      <parent link="${ee_mount_link}"/>
+      <child link="fork"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 3) Contact frame at the fork tips, required by the outer framework -->
+    <!-- ee_contact is assumed to be defined elsewhere -->
+    <joint name="fork_to_ee_contact" type="fixed">
+      <parent link="fork"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 0.104" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

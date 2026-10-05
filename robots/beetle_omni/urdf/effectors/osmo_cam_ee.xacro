@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot name="osmo_camera_end_effector" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!--
+    Macro: osmo_end_effector
+    params:
+      ee_mount_link : The base link connected to the end-effector. (e.g., "ee_mount")
+      robot_ns    : ROS namespace (e.g. "beetle1"). Can be "".
+  -->
+  <xacro:macro name="osmo_end_effector" params="ee_mount_link robot_ns">
+
+    <!-- 1) OSMO link and joint -->
+    <link name="osmo">
+      <inertial>
+        <origin xyz="-0.01764 0.02342 0.01321" rpy="0 0 0"/>
+        <mass value="0.1911"/>
+        <inertia
+                ixx="0.0001070" iyy="0.0001779" izz="0.0001116"
+                ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://beetle_omni/urdf/mesh/end_effector_osmo_camera.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="ee_mount_to_osmo" type="fixed">
+      <parent link="${ee_mount_link}"/>
+      <child link="osmo"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- 2) Attach the reusable camera macro -->
+    <xacro:osmo_rgb_camera parent_link="osmo" robot_ns="${robot_ns}"/>
+
+    <!-- 3) Contact frame at the bristle tip, required by the outer framework -->
+    <joint name="osmo_to_ee_contact" type="fixed">
+      <parent link="osmo"/>
+      <child link="ee_contact"/>
+      <origin xyz="0 0 0.045" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+  <!-- include shared sensors -->
+  <xacro:include filename="$(find beetle_omni)/urdf/sensors/osmo_camera.xacro"/>
+
+</robot>

@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<robot name="osmo_camera_sensor" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Macro: osmo_rgb_camera
+    params:
+      parent_link : link on which the camera is mounted (e.g. "osmo")
+      robot_ns    : ROS namespace (e.g. "beetle1"). Can be "".
+  -->
+  <xacro:macro name="osmo_rgb_camera" params="parent_link robot_ns">
+
+    <!-- 1) Optical frame (REP-105): x right, y down, z forward -->
+    <link name="${parent_link}_color_optical_frame"/>
+    <joint name="${parent_link}_color_optical_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="${parent_link}_color_optical_frame"/>
+      <!-- lens center offset relative to parent_link -->
+      <origin xyz="0.00 0.00 0.045" rpy="0 -1.570796 0"/>
+    </joint>
+
+    <!-- 2) Gazebo Classic sensor + ROS plugin -->
+    <gazebo reference="${parent_link}_color_optical_frame">
+      <sensor type="camera" name="${parent_link}_rgb_sensor">
+        <always_on>true</always_on>
+        <update_rate>30</update_rate>
+
+        <camera name="${parent_link}_rgb">
+          <!-- hfov from original 3840x2160 calibration -->
+          <horizontal_fov>1.7663</horizontal_fov>
+          <image>
+            <!-- downsampled resolution for faster sim -->
+            <width>1920</width>
+            <height>1080</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>50.0</far>
+          </clip>
+        </camera>
+
+        <plugin name="${parent_link}_rgb_plugin" filename="libgazebo_ros_camera.so">
+          <!-- Use robot_ns as ROS namespace, keep cameraName relative -->
+          <!-- If robot_ns="" this is just the global namespace -->
+          <robotNamespace>${robot_ns}</robotNamespace>
+
+          <frameName>${robot_ns}/${parent_link}_color_optical_frame</frameName>
+          <cameraName>osmo/color</cameraName>
+          <updateRate>30</updateRate>
+
+          <!-- Intrinsics scaled for 1920x1080 -->
+          <focalLength>788.55</focalLength>  <!-- ≈ fx, also used for fy  1577.1 * 0.5 = 788.55 -->
+          <Cx>961.05</Cx>  <!-- PrincipalPoint(1) 1922.1 * 0.5 = 961.05 -->
+          <Cy>531.55</Cy>  <!-- PrincipalPoint(2) 1063.1 * 0.5 = 531.55 -->
+
+          <!-- Distortion D = [k1 k2 t1 t2 k3] from MATLAB -->
+          <distortionK1>0.0030</distortionK1>
+          <distortionK2>-0.0124</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+
+          <hackBaseline>0.0</hackBaseline>
+          <borderCrop>true</borderCrop>
+          <autoDistortion>false</autoDistortion>
+        </plugin>
+      </sensor>
+    </gazebo>
+
+  </xacro:macro>
+
+</robot>
