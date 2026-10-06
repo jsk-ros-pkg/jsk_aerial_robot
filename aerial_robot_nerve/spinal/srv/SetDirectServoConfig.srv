@@ -20,7 +20,7 @@ uint8 SET_SERVO_RESOLUTION_RATIO = 8
 uint8 SET_SERVO_CONTROL_MODE = 9
 # [mode] !torque disable!
 uint8 SET_SERVO_MIT_PD = 10
-# [kp_integer, kp_decimal, kd_integer, kd_decimal] !torque disable!
+# [mit_kp_integer, mit_kp_decimal, mit_kd_integer, mit_kd_decimal, mit_current_limit] !torque disable!
 uint8 SET_SERVO_BUS_TYPE = 12
 # ['R' or 'T'] !torque disable!
 uint8 SET_SERVO_FEEDBACK_FREQUENCY = 13

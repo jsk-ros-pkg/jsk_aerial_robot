@@ -71,8 +71,10 @@ void Motor::sendData()
     record[12] = telemetry.crc_error;
   }
 
-  sendMessage(CAN::MESSAGEID_SEND_ROTOR_STATE, m_slave_id,
-              CAN::CANFD_ROTOR_STATE_DLC, data, 0);
+  if (sendMessage(CAN::MESSAGEID_SEND_ROTOR_STATE, m_slave_id,
+                  CAN::CANFD_ROTOR_STATE_DLC, data, 0)) {
+    __atomic_add_fetch(&feedback_count_, 1, __ATOMIC_RELAXED);
+  }
 #endif
 }
 
@@ -92,6 +94,7 @@ void Motor::receiveDataCallback(uint8_t message_id, uint32_t DLC,
   for (uint8_t i = 0; i < motor_count; ++i) {
     const uint8_t* record = data + 4 + i * 5;
     if (record[0] == m_slave_id) {
+      __atomic_add_fetch(&target_count_, 1, __ATOMIC_RELAXED);
       setSyncPwm(readUint16(record + 1), readUint16(record + 3));
       return;
     }
@@ -148,4 +151,14 @@ void Motor::update()
   if (CANDeviceManager::isTimeout()) {
     setSyncPwm(0, 0); // force stop all rotors
   }
+}
+
+uint32_t Motor::takeTargetCount()
+{
+  return __atomic_exchange_n(&target_count_, 0, __ATOMIC_ACQ_REL);
+}
+
+uint32_t Motor::takeFeedbackCount()
+{
+  return __atomic_exchange_n(&feedback_count_, 0, __ATOMIC_ACQ_REL);
 }

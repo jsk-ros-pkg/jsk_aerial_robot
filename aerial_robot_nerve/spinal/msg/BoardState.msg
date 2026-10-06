@@ -1,0 +1,11 @@
+uint8 slave_id
+uint8 sequence
+uint32 uptime_ms
+uint32 state_age_ms
+uint16 servo_target_count
+uint16 thrust_target_count
+uint16 servo_pvc_count
+uint16 rotor_esc_status_count
+uint32 can_rx_drop_count
+uint32 can_tx_drop_count
+int16[] servo_control_count

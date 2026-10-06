@@ -1,5 +1,5 @@
 import os
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import Decimal, InvalidOperation, ROUND_FLOOR, ROUND_HALF_UP
 
 import rospy
 import rospkg
@@ -134,37 +134,53 @@ def controller_mit_scales(controller, group):
     return scales
 
 
-def mit_pd_raw_to_si(kp_integer, kp_decimal, kd_integer, kd_decimal,
-                     scales):
+def mit_pd_raw_to_si(mit_kp_integer, mit_kp_decimal,
+                     mit_kd_integer, mit_kd_decimal,
+                     mit_current_limit, scales):
     # BoardInfo transports the raw current/position and current/velocity
     # gains used by the MCU.  Board Configurator presents the equivalent
     # joint-side SI gains using the same scales as servo_bridge.
     gain_scale = Decimal(ServoInfo.GAIN_DECIMAL_SCALE)
-    kp_raw = ((Decimal(kp_integer) * gain_scale + Decimal(kp_decimal)) /
+    kp_raw = ((Decimal(mit_kp_integer) * gain_scale +
+               Decimal(mit_kp_decimal)) /
               gain_scale)
-    kd_raw = ((Decimal(kd_integer) * gain_scale + Decimal(kd_decimal)) /
+    kd_raw = ((Decimal(mit_kd_integer) * gain_scale +
+               Decimal(mit_kd_decimal)) /
               gain_scale)
     return (kp_raw * scales['torque'] / scales['angle'],
-            kd_raw * scales['torque'] / scales['velocity'])
+            kd_raw * scales['torque'] / scales['velocity'],
+            Decimal(mit_current_limit) * scales['torque'])
 
 
-def format_mit_pd_si(kp_integer, kp_decimal, kd_integer, kd_decimal,
-                     scales):
-    kp_si, kd_si = mit_pd_raw_to_si(
-        kp_integer, kp_decimal, kd_integer, kd_decimal, scales)
-    return '{:.4f}, {:.4f}'.format(kp_si, kd_si)
+def format_mit_pd_si(mit_kp_integer, mit_kp_decimal,
+                     mit_kd_integer, mit_kd_decimal,
+                     mit_current_limit, scales):
+    kp_si, kd_si, effort_limit_si = mit_pd_raw_to_si(
+        mit_kp_integer, mit_kp_decimal,
+        mit_kd_integer, mit_kd_decimal,
+        mit_current_limit, scales)
+    return '{:.4f}, {:.4f}, {:.4f}'.format(
+        kp_si, kd_si, effort_limit_si)
 
 
 def parse_mit_pd_si(text, scales):
     values = text.split(',')
-    if len(values) != 2:
-        raise ValueError('Input MIT Kp_si and Kd_si separated by a comma')
+    if len(values) != 3:
+        raise ValueError(
+            'Input MIT Kp_si, Kd_si and effort_limit_si separated by commas')
     kp_si = parse_non_negative_decimal(values[0], 'MIT Kp_si')
     kd_si = parse_non_negative_decimal(values[1], 'MIT Kd_si')
+    effort_limit_si = parse_non_negative_decimal(
+        values[2], 'MIT effort_limit_si')
+    current_limit = int((effort_limit_si / scales['torque']).to_integral_value(
+        rounding=ROUND_FLOOR))
+    if current_limit > 65535:
+        raise ValueError('MIT effort_limit_si exceeds the MCU current range')
     return (encode_mit_raw_gain(
                 kp_si * scales['angle'] / scales['torque'], 'MIT Kp_raw'),
             encode_mit_raw_gain(
-                kd_si * scales['velocity'] / scales['torque'], 'MIT Kd_raw'))
+                kd_si * scales['velocity'] / scales['torque'], 'MIT Kd_raw'),
+            current_limit)
 
 
 class BoardConfigurator(Plugin):
@@ -311,8 +327,9 @@ class BoardConfigurator(Plugin):
                         QStandardItem('mit_pd_si'),
                         QStandardItem(
                             format_mit_pd_si(
-                                s.kp_integer, s.kp_decimal,
-                                s.kd_integer, s.kd_decimal, mit_scales)
+                                s.mit_kp_integer, s.mit_kp_decimal,
+                                s.mit_kd_integer, s.mit_kd_decimal,
+                                s.mit_current_limit, mit_scales)
                             if mit_scales is not None else 'N/A')])
                     servo.appendRow([QStandardItem('pid_gain'), QStandardItem(str(s.p_gain) + ', ' + str(s.i_gain) + ', ' + str(s.d_gain))])
                     servo.appendRow([QStandardItem('profile_velocity'), QStandardItem(str(s.profile_velocity))])
@@ -467,10 +484,10 @@ class BoardConfigurator(Plugin):
                     raise ValueError(
                         'MIT SI conversion requires positive angle_scale, '
                         'velocity_scale and torque_scale')
-                kp, kd = parse_mit_pd_si(
+                kp, kd, mit_current_limit = parse_mit_pd_si(
                     self._widget.lineEdit.text(), mit_scales)
                 req.data.extend([
-                    kp[0], kp[1], kd[0], kd[1]])
+                    kp[0], kp[1], kd[0], kd[1], mit_current_limit])
             except ValueError as e:
                 rospy.logerr(str(e))
                 return

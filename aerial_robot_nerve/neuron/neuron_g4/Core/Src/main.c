@@ -74,6 +74,11 @@ osMailQId canMsgMailHandle;
 IMU imu_;
 Motor motor_;
 Servo servo_;
+Initializer* initializer_ = nullptr;
+/* Set by coreTask every 1000 / servo_feedback_frequency ms; IMU/rotor states
+   follow it independently of whether any servo is connected. */
+volatile bool core_feedback_due_ = false;
+uint16_t core_feedback_count_ = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -204,7 +209,8 @@ int main(void)
   imu_ = IMU(slave_id);
   servo_ = Servo(slave_id);
 
-  Initializer initializer(slave_id, servo_, imu_);
+  Initializer initializer(slave_id, servo_, imu_, motor_);
+  initializer_ = &initializer;
 
   imu_.init(&hspi1);
   motor_.init(&htim1);
@@ -264,7 +270,7 @@ int main(void)
   idleTaskHandle = osThreadCreate(osThread(idleTask), NULL);
 
   /* definition and creation of servoTask */
-  osThreadDef(servoTask, servoTaskCallback, osPriorityNormal, 0, 512);
+  osThreadDef(servoTask, servoTaskCallback, osPriorityHigh, 0, 512);
   servoTaskHandle = osThreadCreate(osThread(servoTask), NULL);
 
   /* definition and creation of coreTask */
@@ -776,16 +782,8 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 /* USER CODE BEGIN 0 */
 
-void CANDeviceManager::userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data)
-{
-  (void)slave_id;
-  (void)DLC;
-  (void)data;
-  if (device_id == CAN::DEVICEID_SERVO &&
-      message_id == CAN::MESSAGEID_RECEIVE_SERVO_TARGET) {
-    osSemaphoreRelease(canTxSemHandle);
-  }
-}
+/* canTxTask is woken by servoTask (servo states) and coreTask (IMU/rotor
+   states), both at servo_feedback_frequency. Received targets do not wake it. */
 
 /* USER CODE END 4 */
 
@@ -821,7 +819,8 @@ void servoTaskCallback(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    servo_.update();
+    if (servo_.update())
+      osSemaphoreRelease(canTxSemHandle);
     osDelay(1);
   }
   /* USER CODE END servoTaskCallback */
@@ -844,8 +843,17 @@ void coreTaskCallback(void const * argument)
     osSemaphoreWait(coreTaskSemHandle, osWaitForever);
 
     CANDeviceManager::tick(1);
+    initializer_->sendData();
     motor_.update();
     imu_.update();
+
+    const uint16_t feedback_frequency = servo_.getFeedbackFrequency();
+    if (feedback_frequency != 0 &&
+        ++core_feedback_count_ >= (1000U + feedback_frequency - 1U) / feedback_frequency) {
+      core_feedback_count_ = 0;
+      __atomic_store_n(&core_feedback_due_, true, __ATOMIC_RELEASE);
+      osSemaphoreRelease(canTxSemHandle);
+    }
   }
   /* USER CODE END coreTaskCallback */
 }
@@ -889,8 +897,10 @@ void canTxCallback(void const * argument)
     osSemaphoreWait(canTxSemHandle, osWaitForever);
 
     servo_.sendData();
-    imu_.sendData();
-    motor_.sendData();
+    if (__atomic_exchange_n(&core_feedback_due_, false, __ATOMIC_ACQ_REL)) {
+      imu_.sendData();
+      motor_.sendData();
+    }
   }
   /* USER CODE END canTxCallback */
 }

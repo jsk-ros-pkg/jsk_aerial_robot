@@ -67,8 +67,8 @@ uint8_t CANServo::requestConfig(uint8_t command, const int32_t* request_data,
                                 uint8_t data_length, uint32_t timeout_ms)
 {
 #ifdef STM32H7
-  if (request_data == nullptr || data_length > 5 || config_pending_) {
-    return data_length > 5 ? CAN::SERVO_CONFIG_RESULT_INVALID
+  if (request_data == nullptr || data_length > 6 || config_pending_) {
+    return data_length > 6 ? CAN::SERVO_CONFIG_RESULT_INVALID
                            : CAN::SERVO_CONFIG_RESULT_BUSY;
   }
 
@@ -114,12 +114,12 @@ uint8_t CANServo::requestConfigByIndex(
   uint8_t servo_index, uint8_t command,
   const int32_t* data, uint8_t data_length, uint32_t timeout_ms)
 {
-  if (servo_index >= servo_.size() || data_length >= 5 ||
+  if (servo_index >= servo_.size() || data_length >= 6 ||
       (data_length > 0 && data == nullptr)) {
     return CAN::SERVO_CONFIG_RESULT_INVALID;
   }
 
-  int32_t request_data[5] = {};
+  int32_t request_data[6] = {};
   request_data[0] = servo_[servo_index].id_;
   for (uint8_t i = 0; i < data_length; ++i) {
     request_data[i + 1] = data[i];
@@ -208,10 +208,11 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id,
         servo.current_limit_ = readUint16(data + 24);
         servo.joint_resolution_ = readUint16(data + 26);
         servo.servo_resolution_ = readUint16(data + 28);
-        servo.kp_integer_ = readInt16(data + 30);
-        servo.kp_decimal_ = readInt16(data + 32);
-        servo.kd_integer_ = readInt16(data + 34);
-        servo.kd_decimal_ = readInt16(data + 36);
+        servo.mit_kp_integer_ = readInt16(data + 30);
+        servo.mit_kp_decimal_ = readInt16(data + 32);
+        servo.mit_kd_integer_ = readInt16(data + 34);
+        servo.mit_kd_decimal_ = readInt16(data + 36);
+        servo.mit_current_limit_ = readUint16(data + 40);
         if ((pending_config_command_ ==
                CAN::SERVO_CONFIG_SET_CONTROL_MODE ||
              pending_config_command_ ==
@@ -261,6 +262,9 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id,
   servo.watchdog_timed_out_ =
     (flags & CAN::SERVO_STATE_WATCHDOG_TIMEOUT) != 0;
   servo.configured_ = (flags & CAN::SERVO_STATE_CONFIGURED) != 0;
+  if ((flags & CAN::SERVO_STATE_PVC_FRESH) != 0) {
+    servo.pvc_updated_ = true;
+  }
 #else
   if (message_id >= servo_.size() || DLC < sizeof(CANServoData)) return;
   CANServoData servo_data = *(reinterpret_cast<CANServoData*>(data));
@@ -282,6 +286,7 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id,
   servo_[message_id].torque_feedback_ =
     !servo_[message_id].force_servo_off_ &&
     servo_[message_id].torque_command_;
+  servo_[message_id].pvc_updated_ = true;
   if (servo_[message_id].force_servo_off_)
     servo_[message_id].torque_command_ = false;
 #endif

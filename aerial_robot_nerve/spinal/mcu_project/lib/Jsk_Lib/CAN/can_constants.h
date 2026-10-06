@@ -25,12 +25,13 @@ namespace CAN {
 	constexpr uint8_t DEVICEID_SERVO = 2;
 	constexpr uint8_t DEVICEID_CANFD_TEST = 6;
 	constexpr uint8_t DEVICEID_INITIALIZER = 7;
-	constexpr uint8_t CANFD_PROTOCOL_VERSION = 1;
+	constexpr uint8_t CANFD_PROTOCOL_VERSION = 2;
 	constexpr uint8_t CANFD_MAX_NEURON_NUM = 5;
 	constexpr uint8_t CANFD_MAX_SERVO_NUM = 4;
 	constexpr uint8_t MESSAGEID_SEND_GYRO = 0;
 	constexpr uint8_t MESSAGEID_SEND_ACC = 1;
 	constexpr uint8_t MESSAGEID_SEND_MAG = 2;
+	constexpr uint8_t MESSAGEID_SEND_IMU_STATE = 3;
 	constexpr uint8_t MESSAGEID_RECEIVE_PWM_0_5 = 0;
 	constexpr uint8_t MESSAGEID_RECEIVE_PWM_6_11 = 1;
 	constexpr uint8_t MESSAGEID_RECEIVE_ROTOR_TARGET = 0;
@@ -61,6 +62,7 @@ namespace CAN {
 	constexpr uint8_t SERVO_CONFIG_RESULT_BUSY = 2;
 	constexpr uint8_t CANFD_ROTOR_TARGET_DLC = 32;
 	constexpr uint8_t CANFD_ROTOR_STATE_DLC = 32;
+	constexpr uint8_t CANFD_IMU_STATE_DLC = 24;
 	constexpr uint8_t SERVO_TARGET_POSITION_VALID = 1 << 0;
 	constexpr uint8_t SERVO_TARGET_VELOCITY_VALID = 1 << 1;
 	constexpr uint8_t SERVO_TARGET_CURRENT_VALID = 1 << 2;
@@ -86,6 +88,8 @@ namespace CAN {
   	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_3 = 4;
 	constexpr uint8_t BOARD_CONFIG_SET_SLAVE_ID = 0;
 	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_4 = 5;
+	constexpr uint8_t MESSAGEID_SEND_BOARD_STATE = 6;
+	constexpr uint8_t CANFD_BOARD_STATE_DLC = 32;
 	constexpr uint8_t BOARD_CONFIG_SET_IMU_SEND_FLAG = 1;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_HOMING_OFFSET = 2;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_PID_GAIN = 3;

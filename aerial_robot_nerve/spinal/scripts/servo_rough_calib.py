@@ -64,6 +64,7 @@ class JointRoughCalib:
         config = rospy.get_param(robot_ns + '/servo_controller/joints')
         angle_scale = config['angle_scale']
         zero_point_offset = config['zero_point_offset']
+        startup_torque_enable = config.get('startup_torque_enable', True)
 
         # get calib angles
         calib_angles = rospy.get_param(robot_ns + '/joints/calib_angles', None) # dict
@@ -112,9 +113,9 @@ class JointRoughCalib:
                         # is not in calib target
                         continue
 
-                    config = calib_joints[name]
-                    config["slave_id"] = b.slave_id
-                    config["servo_id"] = j
+                    calib_joint = calib_joints[name]
+                    calib_joint["slave_id"] = b.slave_id
+                    calib_joint["servo_id"] = j
 
 
         except rospy.ServiceException as e:
@@ -178,11 +179,15 @@ class JointRoughCalib:
                     print("/set_board_config service call failed: {}".format(e))
 
 
-        # enable joint servo again
-        rospy.loginfo('enable joint servo')
+        # Restore the group state requested by Servo.yaml. Historically this
+        # script always enabled joints after calibration; defaulting to True
+        # above preserves that behavior for configurations without the new
+        # parameter.
+        rospy.loginfo('restore joint servo torque to startup state: %s',
+                      'enabled' if startup_torque_enable else 'disabled')
         self.joint_servo_client_ = rospy.ServiceProxy(robot_ns + '/joints/torque_enable', SetBool)
         try:
-            res = self.joint_servo_client_(SetBoolRequest(True))
+            res = self.joint_servo_client_(SetBoolRequest(startup_torque_enable))
         except rospy.ServiceException as e:
             print('/joints/torque_enable call failed: {}'.format(e))
         rospy.loginfo('succeed')

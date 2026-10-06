@@ -362,9 +362,12 @@ class ServoMonitor(Plugin):
                     rowData.append(BUS_NAMES.get(s.bus_type, 'Unknown'))
                     rowData.append(CONTROL_MODE_NAMES.get(s.mode, 'Unknown'))
                     rowData.append(SERVO_MODE_NAMES.get(s.servo_mode, 'Unknown'))
-                    rowData.append('Kp={}, Kd={}'.format(
-                        format_mit_gain(s.kp_integer, s.kp_decimal),
-                        format_mit_gain(s.kd_integer, s.kd_decimal)))
+                    rowData.append('Kp={}, Kd={}, EffortLimit={}'.format(
+                        format_mit_gain(
+                            s.mit_kp_integer, s.mit_kp_decimal),
+                        format_mit_gain(
+                            s.mit_kd_integer, s.mit_kd_decimal),
+                        s.mit_current_limit))
                     rowData.append(self.joint_id_name_map.get(servo_index))
                     servo_index += 1
                     rowData.append(b.slave_id)

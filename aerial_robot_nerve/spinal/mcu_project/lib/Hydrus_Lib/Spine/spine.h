@@ -24,6 +24,7 @@
 #include <spinal/UavInfo.h>
 #include <CANDevice/initializer/can_initializer.h>
 #include <spinal/ServoStates.h>
+#include <spinal/BoardStates.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/ServoTorqueStates.h>

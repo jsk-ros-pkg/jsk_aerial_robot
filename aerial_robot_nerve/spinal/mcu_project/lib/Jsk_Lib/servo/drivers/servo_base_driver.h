@@ -80,10 +80,11 @@ public:
   uint8_t bus_type_ = SERVO_BUS_UNKNOWN;
   uint8_t mode_ = DIRECT_SERVO_MODE_UNKNOWN;
   uint8_t operating_mode_ = 0xFF;
-  int16_t kp_integer_ = 0;
-  int16_t kp_decimal_ = 0;
-  int16_t kd_integer_ = 0;
-  int16_t kd_decimal_ = 0;
+  int16_t mit_kp_integer_ = 0;
+  int16_t mit_kp_decimal_ = 0;
+  int16_t mit_kd_integer_ = 0;
+  int16_t mit_kd_decimal_ = 0;
+  uint16_t mit_current_limit_ = 0;
   int32_t present_position_ = 0;
   int32_t present_velocity = 0;
 	int32_t target_position_ = 0;

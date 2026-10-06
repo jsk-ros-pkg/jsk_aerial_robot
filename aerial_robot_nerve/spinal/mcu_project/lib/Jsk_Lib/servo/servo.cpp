@@ -194,10 +194,11 @@ void DirectServo::fillBoardInfo(spinal::BoardInfo& board) const
     board.servos[i].bus_type = s.bus_type_;
     board.servos[i].mode = s.mode_;
     board.servos[i].servo_mode = s.operating_mode_;
-    board.servos[i].kp_integer = s.kp_integer_;
-    board.servos[i].kp_decimal = s.kp_decimal_;
-    board.servos[i].kd_integer = s.kd_integer_;
-    board.servos[i].kd_decimal = s.kd_decimal_;
+    board.servos[i].mit_kp_integer = s.mit_kp_integer_;
+    board.servos[i].mit_kp_decimal = s.mit_kp_decimal_;
+    board.servos[i].mit_kd_integer = s.mit_kd_integer_;
+    board.servos[i].mit_kd_decimal = s.mit_kd_decimal_;
+    board.servos[i].mit_current_limit = s.mit_current_limit_;
     board.servos[i].p_gain = s.p_gain_;
     board.servos[i].i_gain = s.i_gain_;
     board.servos[i].d_gain = s.d_gain_;

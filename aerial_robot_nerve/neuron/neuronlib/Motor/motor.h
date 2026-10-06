@@ -36,16 +36,22 @@ private:
   TIM_HandleTypeDef* pwm_htim_;
   std::array<RotorTelemetry, 2> rotor_state_;
   uint8_t state_sequence_;
+  volatile uint32_t target_count_;
+  volatile uint32_t feedback_count_;
   void setSyncPwm(uint16_t pwm_0, uint16_t pwm_1);
 public:
-  Motor():pwm_htim_(nullptr), state_sequence_(0){}
+  Motor():pwm_htim_(nullptr), state_sequence_(0), target_count_(0),
+          feedback_count_(0){}
   Motor(uint8_t slave_id):CANDevice(CAN::DEVICEID_MOTOR, slave_id),
-                          pwm_htim_(nullptr), state_sequence_(0){}
+                          pwm_htim_(nullptr), state_sequence_(0), target_count_(0),
+                          feedback_count_(0){}
   void init(TIM_HandleTypeDef* htim);
   void update();
   void sendData() override;
   void receiveDataCallback(uint8_t message_id, uint32_t DLC,
                            uint8_t* data) override;
+  uint32_t takeTargetCount();
+  uint32_t takeFeedbackCount();
   void setRotorTelemetry(uint8_t channel, const RotorTelemetry& telemetry)
   {
     if (channel < rotor_state_.size()) rotor_state_[channel] = telemetry;

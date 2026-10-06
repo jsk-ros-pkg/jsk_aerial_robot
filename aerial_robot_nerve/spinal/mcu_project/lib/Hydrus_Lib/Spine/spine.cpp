@@ -34,12 +34,15 @@ namespace Spine
     FlightControl* controller_;
 
     /* ros */
-    constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; //[ms]
+    constexpr uint32_t SERVO_TORQUE_PUB_INTERVAL = 1000; // [ms]
+    constexpr uint32_t BOARD_STATES_PUB_INTERVAL = 1000; // [ms]
     spinal::ServoStates servo_state_msg_;
     spinal::ServoTorqueStates servo_torque_state_msg_;
+    spinal::BoardStates board_states_msg_;
     ros::Publisher servo_state_pub_("servo/states", &servo_state_msg_);
     // merge torque_states to states
     ros::Publisher servo_torque_state_pub_("servo/torque_states", &servo_torque_state_msg_);
+    ros::Publisher board_states_pub_("board_states", &board_states_msg_);
 
     // rename following subscriber.
     // taget_states -> target_position
@@ -57,9 +60,9 @@ namespace Spine
     spinal::GetBoardInfo::Response board_info_res_;
 
     ros::NodeHandle* nh_;
-    std::vector<uint32_t> neuron_servo_last_pub_time_;
     uint32_t direct_servo_last_pub_time_ = 0;
     uint32_t servo_torque_last_pub_time_ = 0;
+    uint32_t board_states_last_pub_time_ = 0;
     unsigned int can_idle_count_ = 0;
     bool servo_control_flag_ = true;
 
@@ -103,6 +106,36 @@ namespace Spine
         return false;
       return direct_servo_->setTorqueEnable(global_index, enable);
     }
+
+    void boardStatesPublish()
+    {
+      const uint32_t now = HAL_GetTick();
+      if (now - board_states_last_pub_time_ < BOARD_STATES_PUB_INTERVAL)
+        return;
+
+      board_states_msg_.stamp = nh_->now();
+      for (uint8_t i = 0; i < slave_num_; ++i) {
+        const Neuron& neuron = neuron_.at(i);
+        const NeuronBoardState& state = neuron.getBoardState();
+        spinal::BoardState& output = board_states_msg_.boards[i];
+        output.slave_id = neuron.getSlaveId();
+        output.sequence = state.sequence;
+        output.uptime_ms = state.uptime_ms;
+        output.state_age_ms = state.received
+          ? now - state.received_tick : 0xFFFFFFFFU;
+        output.servo_target_count = state.servo_target_count;
+        output.thrust_target_count = state.thrust_target_count;
+        output.servo_pvc_count = state.servo_pvc_count;
+        output.rotor_esc_status_count = state.rotor_esc_status_count;
+        output.can_rx_drop_count = state.can_rx_drop_count;
+        output.can_tx_drop_count = state.can_tx_drop_count;
+        for (uint8_t j = 0; j < output.servo_control_count_length; ++j) {
+          output.servo_control_count[j] = state.servo_control_count[j];
+        }
+      }
+      board_states_pub_.publish(&board_states_msg_);
+      board_states_last_pub_time_ = now;
+    }
   }
 
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res)
@@ -128,10 +161,11 @@ namespace Spine
 	        board.servos[j].bus_type = s.getBusType();
 	        board.servos[j].mode = s.getMode();
 	        board.servos[j].servo_mode = s.getOperatingMode();
-	        board.servos[j].kp_integer = s.getKpInteger();
-	        board.servos[j].kp_decimal = s.getKpDecimal();
-	        board.servos[j].kd_integer = s.getKdInteger();
-	        board.servos[j].kd_decimal = s.getKdDecimal();
+	        board.servos[j].mit_kp_integer = s.getMitKpInteger();
+	        board.servos[j].mit_kp_decimal = s.getMitKpDecimal();
+	        board.servos[j].mit_kd_integer = s.getMitKdInteger();
+	        board.servos[j].mit_kd_decimal = s.getMitKdDecimal();
+	        board.servos[j].mit_current_limit = s.getMitCurrentLimit();
         board.servos[j].p_gain = s.getPGain();
         board.servos[j].i_gain = s.getIGain();
         board.servos[j].d_gain = s.getDGain();
@@ -324,8 +358,6 @@ namespace Spine
 
     slave_num_ = neuron_.size();
     if (slave_num_ > CAN::CANFD_MAX_NEURON_NUM) return false;
-    neuron_servo_last_pub_time_.assign(slave_num_, 0);
-
     //add CAN devices to CANDeviceManager
     for (unsigned int i = 0; i < neuron_.size(); i++) {
       CANDeviceManager::addDevice(neuron_.at(i).can_motor_);
@@ -345,6 +377,7 @@ namespace Spine
 
     /* ros */
     nh_ = nh;
+    nh_->advertise(board_states_pub_);
 
     if (servo_num_ > 0)
       {
@@ -384,6 +417,15 @@ namespace Spine
     servo_state_msg_.servos = new spinal::ServoState[servo_num_];
     servo_torque_state_msg_.torque_enable_length = servo_num_;
     servo_torque_state_msg_.torque_enable = new uint8_t[servo_num_];
+    board_states_msg_.boards_length = slave_num_;
+    board_states_msg_.boards = new spinal::BoardState[slave_num_];
+    for (uint8_t i = 0; i < slave_num_; ++i) {
+      spinal::BoardState& state = board_states_msg_.boards[i];
+      state.servo_control_count_length =
+        neuron_.at(i).can_servo_.servo_.size();
+      state.servo_control_count = state.servo_control_count_length == 0
+        ? nullptr : new int16_t[state.servo_control_count_length];
+    }
 
     /* other component */
     imu_weight_.resize(slave_num_ + 1);
@@ -443,6 +485,7 @@ namespace Spine
   {
     /* Publish the unified DirectServo + Neuron state stream. */
     servoPublish();
+    boardStatesPublish();
     if (slave_num_ == 0) return;
 
     /* update the motor PWM command */
@@ -508,15 +551,13 @@ namespace Spine
     if (servo_num_ == 0) return;
 
     uint32_t now_time = HAL_GetTick();
-    bool publish_neuron = false;
-    for (unsigned int i = 0; i < neuron_.size(); ++i) {
-      const CANServo& can_servo = neuron_.at(i).can_servo_;
-      const uint16_t frequency = can_servo.getServoFeedbackFrequency();
-      const uint32_t interval = frequency == 0 ? UINT32_MAX :
-        (1000U + frequency - 1U) / frequency;
-      if (!can_servo.servo_.empty() && frequency != 0 &&
-          now_time - neuron_servo_last_pub_time_.at(i) >= interval) {
-        publish_neuron = true;
+    // Publish Neuron states only after every enabled servo has fresh PVC data.
+    bool publish_neuron = !servo_with_send_flag_.empty();
+    for (const std::reference_wrapper<Servo>& servo_ref :
+         servo_with_send_flag_) {
+      if (!servo_ref.get().getPvcUpdated()) {
+        publish_neuron = false;
+        break;
       }
     }
     bool publish_direct = false;
@@ -549,27 +590,21 @@ namespace Spine
           direct_servo_last_pub_time_ = now_time;
         }
         if (publish_neuron) {
-          for (unsigned int i = 0; i < neuron_.size(); ++i) {
-            CANServo& can_servo = neuron_.at(i).can_servo_;
-            const uint16_t frequency = can_servo.getServoFeedbackFrequency();
-            const uint32_t interval = frequency == 0 ? UINT32_MAX :
-              (1000U + frequency - 1U) / frequency;
-            if (frequency == 0 ||
-                now_time - neuron_servo_last_pub_time_.at(i) < interval) {
-              continue;
-            }
-            for (Servo& neuron_servo : can_servo.servo_) {
-              if (!neuron_servo.getSendDataFlag()) continue;
-              spinal::ServoState state;
-              state.index = neuron_servo.getIndex();
-              state.angle = neuron_servo.getPresentPosition();
-              state.velocity = neuron_servo.getPresentVelocity();
-              state.temp = neuron_servo.getPresentTemperature();
-              state.load = neuron_servo.getPresentCurrent();
-              state.error = neuron_servo.getError();
-              servo_state_msg_.servos[output_index++] = state;
-            }
-            neuron_servo_last_pub_time_.at(i) = now_time;
+          for (std::reference_wrapper<Servo>& servo_ref :
+               servo_with_send_flag_) {
+            Servo& neuron_servo = servo_ref.get();
+            spinal::ServoState state;
+            state.index = neuron_servo.getIndex();
+            state.angle = neuron_servo.getPresentPosition();
+            state.velocity = neuron_servo.getPresentVelocity();
+            state.temp = neuron_servo.getPresentTemperature();
+            state.load = neuron_servo.getPresentCurrent();
+            state.error = neuron_servo.getError();
+            servo_state_msg_.servos[output_index++] = state;
+          }
+          for (std::reference_wrapper<Servo>& servo_ref :
+               servo_with_send_flag_) {
+            servo_ref.get().clearPvcUpdated();
           }
         }
         servo_state_msg_.servos_length = output_index;

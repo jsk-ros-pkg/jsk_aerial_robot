@@ -24,10 +24,11 @@ bool configured
 uint8 bus_type
 uint8 mode
 uint8 servo_mode
-int16 kp_integer
-int16 kp_decimal
-int16 kd_integer
-int16 kd_decimal
+int16 mit_kp_integer
+int16 mit_kp_decimal
+int16 mit_kd_integer
+int16 mit_kd_decimal
+uint16 mit_current_limit
 uint16 p_gain
 uint16 i_gain
 uint16 d_gain

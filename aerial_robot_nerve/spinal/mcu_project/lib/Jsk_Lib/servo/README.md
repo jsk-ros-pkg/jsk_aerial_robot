@@ -27,6 +27,7 @@ servo_controller:
       mode: MIT                    # optional; DP, DEP, DV, DC, MIT, or CbP
       mit_kp_si: 0.45
       mit_kd_si: 0.008
+      mit_effort_limit_si: 1.5
       current_limit: 100
       # p_gain, i_gain, d_gain, profile_velocity, send_data_flag,
       # external_encoder_flag, joint_resolution, and servo_resolution
@@ -36,11 +37,12 @@ servo_controller:
 For DirectServo, `servo_bridge` converts `sensor_msgs/JointState` into
 `spinal/ServoControlCmd` on `servo/target_states`. Empty velocity/current
 arrays are allowed; in MIT mode they mean zero target velocity and zero
-feed-forward current. MIT Kp/Kd are RAM-only values supplied together; no
-separate readiness flag is used. YAML (`mit_kp_si`/`mit_kd_si`) and RQT Board
-Configurator (`mit_pd_si`) express them as joint-side SI gains, while Servo
-Monitor (`mit_pd_raw`) and the MCU service payload expose the raw gains
-actually used by the firmware.
+feed-forward current. MIT Kp/Kd and the MIT effort limit are RAM-only values
+supplied together; no separate readiness flag is used. YAML
+(`mit_kp_si`/`mit_kd_si`/`mit_effort_limit_si`) and RQT Board Configurator
+(`mit_pd_si`) express them in joint-side SI units, while Servo Monitor
+(`mit_pd_raw`) and the MCU service payload expose the raw values actually used
+by the firmware.
 
 `CbP` selects Dynamixel Operating Mode 5 (Current-based Position Control).
 The `position` field remains a joint-side position target. When the incoming
@@ -64,8 +66,12 @@ DirectServo and `1..14` for a Neuron. Board-level commands ignore
 `servo_index`. Per-servo payloads never include the physical Dynamixel ID.
 Spinal sends each Neuron a target at 200 Hz; every arrival sets the
 synchronization marker consumed by Neuron's continuously running 1 ms servo
-task. The configured feedback frequency controls how often that board's servo
-states are emitted on ROS.
+task. A Neuron keeps this 200 Hz PVC/control cycle independent of the configured
+feedback frequency. The configured frequency only limits how often that Neuron
+sends its servo PVC state to Spinal. Spinal publishes the aggregated Neuron
+state to ROS after every enabled Neuron servo has supplied fresh PVC data, so a
+late board naturally reduces the ROS output rate. For DirectServo, the same
+setting limits the state publication from Spinal to ROS.
 
 Please follow these steps **in order**.
 ##### 1. Connect Spinal and a power source to servo motors.
@@ -106,9 +112,10 @@ Please follow these steps **in order**.
 - Persistent logical mode (torque must be disabled)
   - Values: DP=0, DV=1, DC=2, MIT=3, DEP=5, CbP=6. EM=4 remains a runtime-only safety state.
   - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 9 data: [mode]" ``
-- MIT PD gains (RAM only; torque must be disabled)
+- MIT PD gains and current limit (RAM only; torque must be disabled)
   - Gain is encoded as `integer + decimal / 10000`.
-  - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 10 data: [kp integer, kp decimal, kd integer, kd decimal]" ``
+  - The MIT current limit uses the same raw unit as Dynamixel Goal Current.
+  - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 10 data: [kp integer, kp decimal, kd integer, kd decimal, MIT current limit]" ``
 - Board feedback frequency and watchdog
   - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 13 data: [frequency Hz]" ``
   - ``rosservice call /direct_servo_config "board_id: 0 servo_index: 0 command: 15 data: [watchdog ms]" ``

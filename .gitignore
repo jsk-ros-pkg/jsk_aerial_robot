@@ -112,4 +112,5 @@ tags
 MUJOCO_LOG.txt
 robots/**/mujoco
 
+# Neural network models
 *.onnx

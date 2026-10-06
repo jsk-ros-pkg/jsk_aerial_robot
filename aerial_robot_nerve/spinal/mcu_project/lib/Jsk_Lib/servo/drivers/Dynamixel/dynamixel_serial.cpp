@@ -736,7 +736,7 @@ bool DynamixelSerial::validateServiceRequest(uint8_t command, const int32_t* dat
     expected_length = 4;
     break;
   case CONFIG_SET_MIT_PD:
-    expected_length = 5;
+    expected_length = 6;
     break;
   default:
     return false;
@@ -772,7 +772,8 @@ bool DynamixelSerial::validateServiceRequest(uint8_t command, const int32_t* dat
     return data[1] >= 0 && data[1] <= INT16_MAX &&
            data[2] >= 0 && data[2] < MIT_GAIN_DECIMAL_SCALE &&
            data[3] >= 0 && data[3] <= INT16_MAX &&
-           data[4] >= 0 && data[4] < MIT_GAIN_DECIMAL_SCALE;
+           data[4] >= 0 && data[4] < MIT_GAIN_DECIMAL_SCALE &&
+           data[5] >= 0 && data[5] <= UINT16_MAX;
   }
   switch (command) {
   case CONFIG_SET_HOMING_OFFSET:
@@ -1996,11 +1997,11 @@ int16_t DynamixelSerial::calculateMITGoalCurrent(
   }
 
   const int64_t kp_scaled =
-    static_cast<int64_t>(servo.kp_integer_) * MIT_GAIN_DECIMAL_SCALE +
-    servo.kp_decimal_;
+    static_cast<int64_t>(servo.mit_kp_integer_) * MIT_GAIN_DECIMAL_SCALE +
+    servo.mit_kp_decimal_;
   const int64_t kd_scaled =
-    static_cast<int64_t>(servo.kd_integer_) * MIT_GAIN_DECIMAL_SCALE +
-    servo.kd_decimal_;
+    static_cast<int64_t>(servo.mit_kd_integer_) * MIT_GAIN_DECIMAL_SCALE +
+    servo.mit_kd_decimal_;
   const int64_t position_error =
     static_cast<int64_t>(servo.target_position_) -
     servo.present_position_;
@@ -2013,9 +2014,10 @@ int16_t DynamixelSerial::calculateMITGoalCurrent(
     kp_scaled * position_error +
     kd_scaled * velocity_error;
 
-  return clampGoalCurrent(
+  const int16_t mit_limited_current = clampGoalCurrent(
     symmetricDivide(current_scaled, MIT_GAIN_DECIMAL_SCALE),
-    servo.current_limit_);
+    servo.mit_current_limit_);
+  return clampGoalCurrent(mit_limited_current, servo.current_limit_);
 }
 
 void DynamixelSerial::cmdBulkWriteGoalStates(ServoMask servo_mask)
@@ -2613,10 +2615,11 @@ ServoResult DynamixelSerial::executeServiceRequest(
 
   case CONFIG_SET_MIT_PD:
     if (servo.torque_enable_) return SERVO_RESULT_BUSY;
-    servo.kp_integer_ = static_cast<int16_t>(request.data[1]);
-    servo.kp_decimal_ = static_cast<int16_t>(request.data[2]);
-    servo.kd_integer_ = static_cast<int16_t>(request.data[3]);
-    servo.kd_decimal_ = static_cast<int16_t>(request.data[4]);
+    servo.mit_kp_integer_ = static_cast<int16_t>(request.data[1]);
+    servo.mit_kp_decimal_ = static_cast<int16_t>(request.data[2]);
+    servo.mit_kd_integer_ = static_cast<int16_t>(request.data[3]);
+    servo.mit_kd_decimal_ = static_cast<int16_t>(request.data[4]);
+    servo.mit_current_limit_ = static_cast<uint16_t>(request.data[5]);
     return SERVO_RESULT_OK;
 
   case CONFIG_SET_HOMING_OFFSET:

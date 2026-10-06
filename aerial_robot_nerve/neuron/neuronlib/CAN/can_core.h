@@ -18,6 +18,9 @@
 #elif defined(STM32F413xx)
 #include "stm32f4xx_hal.h"
 #elif defined(STM32G473xx)
+#ifndef STM32G4
+#define STM32G4
+#endif
 #include "stm32g4xx_hal.h"
 #else
 #error "please specify the STM32 series"

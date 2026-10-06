@@ -34,8 +34,8 @@ class Initializer;
 class IMU : public CANDevice {
 public:
 
-  IMU(){}
-  IMU(uint8_t slave_id):CANDevice(CAN::DEVICEID_IMU, slave_id){}
+  IMU():update_(false), state_sequence_(0){}
+  IMU(uint8_t slave_id):CANDevice(CAN::DEVICEID_IMU, slave_id), update_(false), state_sequence_(0){}
   ~IMU(){}
   void init(SPI_HandleTypeDef* hspi);
   void update();
@@ -78,6 +78,7 @@ private:
   bool update_;
   bool ahb_tx_suspend_flag_; // to avoid the confliction between SPI1 and USART1TX(ros)
   uint16_t send_data_flag_;
+  uint8_t state_sequence_;
 
   void gyroInit(void);
   void accInit(void);

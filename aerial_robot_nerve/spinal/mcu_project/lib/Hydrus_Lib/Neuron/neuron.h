@@ -13,6 +13,27 @@
 #include <CANDevice/servo/can_servo.h>
 #include <array>
 
+struct NeuronBoardState
+{
+  bool received;
+  uint8_t sequence;
+  uint8_t servo_count;
+  uint32_t uptime_ms;
+  uint32_t received_tick;
+  uint16_t servo_target_count;
+  uint16_t thrust_target_count;
+  uint16_t servo_pvc_count;
+  uint16_t rotor_esc_status_count;
+  uint32_t can_rx_drop_count;
+  uint32_t can_tx_drop_count;
+  std::array<int16_t, CAN::CANFD_MAX_SERVO_NUM> servo_control_count;
+
+  NeuronBoardState():received(false), sequence(0), servo_count(0),
+    uptime_ms(0), received_tick(0), servo_target_count(0),
+    thrust_target_count(0), servo_pvc_count(0), rotor_esc_status_count(0),
+    can_rx_drop_count(0), can_tx_drop_count(0), servo_control_count{} {}
+};
+
 class Neuron {
 private:
 	uint8_t slave_id_;
@@ -23,6 +44,7 @@ private:
 	uint32_t config_generation_;
 	bool pending_imu_send_data_;
 	CANServo pending_can_servo_;
+	NeuronBoardState board_state_;
 
 	bool commitConfiguration()
 	{
@@ -127,6 +149,8 @@ public:
 	bool getInitialized() const {return initialized_;}
 	bool isConfigurationPending() const {return config_receiving_;}
 	uint32_t getConfigGeneration() const {return config_generation_;}
+	void setBoardState(const NeuronBoardState& state) {board_state_ = state;}
+	const NeuronBoardState& getBoardState() const {return board_state_;}
 };
 
 

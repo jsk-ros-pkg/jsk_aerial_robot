@@ -232,6 +232,7 @@
 #define INST_GET_MODEL_NUMBER			16
 #define INST_GET_OPERATING_MODE			17
 #define INST_GET_PRESENT_CVP			18
+#define INST_SERVICE_REQUEST 19
 
 enum NeuronServoMode : uint8_t
 {
@@ -304,11 +305,11 @@ static_assert(sizeof(NeuronServoFlashConfig) == 20,
 #endif
 #define GET_LOAD_OFFSET 0 //offset from SET_COMMAND
 #define GET_TEMP_DU 200 //[msec], 200ms => 5Hz
-#define GET_TEMP_OFFSET 50 //offset from SET_COMMAND
+#define GET_TEMP_OFFSET 49  // avoid the 20ms position-read phase
 #define GET_MOVE_DU 200 //[msec], 200ms => 5Hz
-#define GET_MOVE_OFFSET 100 //offset from SET_COMMAND
+#define GET_MOVE_OFFSET 99               // avoid the 20ms goal-write phase
 #define GET_HARDWARE_ERROR_STATUS_DU 200 //[msec], 200ms => 5Hz
-#define GET_HARDWARE_ERROR_STATUS_OFFSET 150 //offset from SET_COMMAND
+#define GET_HARDWARE_ERROR_STATUS_OFFSET 149  // avoid the 20ms position-read phase
 
 // pre-defined configuration for dynamixel
 #define TEMPERATURE_LIMIT			60
@@ -392,8 +393,8 @@ public:
     goal_position_(0), goal_velocity_(0),
     goal_current_(0), pvc_update_count_(0), last_target_tick_(0),
     target_received_(false), watchdog_timed_out_(false),
-    configured_(false), kp_integer_(0), kp_decimal_(0),
-    kd_integer_(0), kd_decimal_(0), calib_value_(0),
+    configured_(false), mit_kp_integer_(0), mit_kp_decimal_(0),
+    mit_kd_integer_(0), mit_kd_decimal_(0), mit_current_limit_(0), calib_value_(0),
     homing_offset_(0), internal_offset_(0), pulley_skip_time_(0),
     pulley_skip_reset_du_(1000), present_temp_(0),
     present_current_(0), moving_(0), model_number_(0),
@@ -421,8 +422,9 @@ public:
 	bool target_received_;
 	bool watchdog_timed_out_;
 	bool configured_;
-	int16_t kp_integer_, kp_decimal_;
-	int16_t kd_integer_, kd_decimal_;
+	int16_t mit_kp_integer_, mit_kp_decimal_;
+	int16_t mit_kd_integer_, mit_kd_decimal_;
+	uint16_t mit_current_limit_;
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
@@ -468,6 +470,21 @@ class DynamixelSerial
 public:
   DynamixelSerial(){}
 
+#ifdef STM32G4
+  struct ServoTarget
+  {
+    bool valid = false;
+    bool torque_enable = false;
+    bool position_valid = false;
+    bool position_ack = false;
+    bool velocity_valid = false;
+    bool current_valid = false;
+    int32_t position = 0;
+    int32_t velocity = 0;
+    int16_t current = 0;
+  };
+#endif
+
   void init(UART_HandleTypeDef* huart, I2C_HandleTypeDef* hi2c, osMutexId* mutex = NULL);
   void ping();
   HAL_StatusTypeDef read(uint8_t* data,  uint32_t timeout);
@@ -478,14 +495,18 @@ public:
   bool setPositionGains(uint8_t servo_index);
   bool setProfileVelocity(uint8_t servo_index);
   bool setCurrentLimit(uint8_t servo_index);
-  bool setGoalTargets(uint8_t servo_index,
-                      bool has_position, int32_t position,
-                      bool has_velocity, int32_t velocity,
-                      bool has_current, int16_t current);
+  bool setGoalTargets(uint8_t servo_index, bool has_position, int32_t position, bool has_velocity, int32_t velocity,
+                      bool has_current, int16_t current, uint32_t receive_tick = UINT32_MAX);
   uint8_t configure(uint8_t command, const int32_t* data,
                     uint8_t data_length);
-  void startTargetCycle();
-  bool takeTargetCycleComplete();
+#ifdef STM32G4
+  void submitTargetFrame(const std::array<ServoTarget, MAX_SERVO_NUM>& targets, uint32_t receive_tick);
+  bool queueConfigRequest(uint8_t command, const int32_t* data, uint8_t data_length);
+  bool takeConfigResult(uint8_t& result);
+  bool takeFeedbackCycleEvent();
+  bool takeFeedbackFresh();
+  void restoreFeedbackFresh();
+#endif
   void update();
   unsigned int getServoNum() const {return servo_num_;}
   uint16_t getTTLRS485Mixed() const {return ttl_rs485_mixed_;}
@@ -508,10 +529,51 @@ private:
     bool valid = false;
   };
 
+#ifdef STM32G4
+  struct ServoInstruction
+  {
+    uint8_t command;
+    ServoMask servo_mask;
+    ServoMask feedback_cycle_mask;
+  };
+
+  struct PendingTransaction
+  {
+    bool active = false;
+    ServoInstruction instruction = { 255, 0, 0 };
+    bool fast_sync = false;
+    uint32_t deadline_ms = 0;
+  };
+
+  struct PendingTargetFrame
+  {
+    std::array<ServoTarget, MAX_SERVO_NUM> targets{};
+    uint32_t receive_tick = 0;
+    bool valid = false;
+  };
+
+  struct ServoServiceRequest
+  {
+    uint8_t command = 0;
+    uint8_t data_length = 0;
+    std::array<int32_t, 6> data{};
+    uint8_t result = 0;
+    bool active = false;
+    bool complete = false;
+  };
+#endif
+
   UART_HandleTypeDef* huart_; // uart handlercmdReadPresentPosition
   osMutexId* mutex_; // for UART (RS485) I/O mutex
   MagEncoder encoder_handler_;
+#ifdef STM32G4
+  RingBuffer<ServoInstruction, 64> instruction_buffer_;
+  PendingTransaction pending_transaction_;
+  PendingTargetFrame pending_target_frame_;
+  ServoServiceRequest service_request_;
+#else
   RingBuffer<std::pair<uint8_t, ServoMask>, 64> instruction_buffer_;
+#endif
   unsigned int servo_num_;
   std::array<ServoData, MAX_SERVO_NUM> servo_;
   std::array<NeuronServoFlashConfig, MAX_SERVO_NUM> servo_flash_configs_;
@@ -529,8 +591,16 @@ private:
   bool watchdog_goal_write_pending_;
   HAL_StatusTypeDef last_tx_status_;
 #ifdef STM32G4
-  bool target_cycle_pending_;
-  bool target_cycle_complete_;
+  volatile uint32_t torque_off_pending_mask_;
+  volatile uint32_t target_torque_mask_;
+  ServoMask feedback_received_mask_;
+  volatile bool feedback_fresh_;
+  volatile bool feedback_cycle_event_;
+  uint16_t feedback_cycle_count_;
+  bool phase_start_pending_;
+  uint32_t phase_start_tick_;
+  bool control_scheduler_started_;
+  uint32_t next_control_tick_;
 #endif
 
   /* uart rx */
@@ -538,20 +608,31 @@ private:
   uint32_t rd_ptr_;
 
   bool enqueueInstruction(uint8_t command, ServoMask servo_mask);
+#ifdef STM32G4
+  bool enqueueInstructionBatch(const ServoInstruction* instructions, uint8_t instruction_count);
+  bool popInstruction(ServoInstruction& instruction);
+  void schedulePeriodicCommands();
+  void processInstructionQueue();
+  void applyPendingTargetFrame();
+  void enqueuePendingTorqueOn();
+  void enforceHardwareErrorSafety();
+  bool startPendingTransaction(const ServoInstruction& instruction, bool fast_sync, uint32_t timeout_ms);
+  int8_t completePendingTransaction();
+  int8_t executeBlockingRead(const ServoInstruction& instruction, bool fast_sync, uint32_t timeout_ms);
+  uint16_t feedbackCycleDivider() const;
+#else
   bool enqueueInstructionBatch(
     const std::pair<uint8_t, ServoMask>* instructions,
     uint8_t instruction_count);
   bool popInstruction(std::pair<uint8_t, ServoMask>& instruction);
+#endif
   static ServoMask servoBit(uint8_t servo_index);
   ServoMask allServoMask() const;
   ServoMask activeServoMask() const;
   ServoMask goalServoMask() const;
   uint8_t servoCount(ServoMask servo_mask) const;
   ServoGroupMasks configuredServoMasks(ServoMask selected_mask) const;
-  bool enqueueGroupedFeedbackRead(uint8_t command,
-                                  ServoMask selected_mask);
   int8_t lastTransmitResult() const;
-  int8_t finishReadTransaction(int8_t result);
   void recoverRx();
   static bool deadlineExpired(uint32_t now_ms, uint32_t deadline_ms);
   HAL_StatusTypeDef readUntil(uint8_t* data, uint32_t deadline_ms);
@@ -574,10 +655,6 @@ private:
   void updateConfigurationState(ServoData& servo);
   void updateTargetWatchdogs(uint32_t now_ms);
   int16_t calculateMITGoalCurrent(const ServoData& servo) const;
-  bool readFastSyncGroups(uint8_t status_packet_instruction,
-                          uint16_t address, uint16_t byte_size,
-                          ServoMask selected_mask);
-  bool writeGoalGroups(ServoMask selected_mask);
   bool cmdBulkWriteGoalStates(ServoMask servo_mask);
 
   void cmdPing(uint8_t id);
@@ -589,7 +666,7 @@ private:
   int8_t executeFastSyncRead(uint8_t status_packet_instruction,
                              uint16_t address, uint16_t byte_size,
                              ServoMask servo_mask);
-  int8_t readFastSyncStatusPacket(uint8_t status_packet_instruction,
+  int8_t readFastSyncStatusPacket(uint8_t status_packet_instruction, uint32_t deadline_ms,
                                   ServoMask expected_servo_mask);
   int8_t readFastSyncPresentCVP(ServoMask servo_mask);
   void updatePresentPosition(ServoData* servo, int32_t present_position);

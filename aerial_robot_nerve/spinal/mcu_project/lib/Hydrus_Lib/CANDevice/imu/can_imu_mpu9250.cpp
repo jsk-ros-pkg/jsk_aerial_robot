@@ -40,5 +40,14 @@ void CANIMU::receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_t 
 	case CAN::MESSAGEID_SEND_MAG:
 		memcpy(r_mag_data, data, sizeof(uint8_t) * 6);
 		break;
+#ifdef STM32H7
+	case CAN::MESSAGEID_SEND_IMU_STATE:
+		/* one CAN FD frame: [version, sequence, reserved x2, gyro, acc, mag, reserved x2] */
+		if (DLC != CAN::CANFD_IMU_STATE_DLC || data[0] != CAN::CANFD_PROTOCOL_VERSION) break;
+		memcpy(r_gyro_data, data + 4, sizeof(uint8_t) * 6);
+		memcpy(r_acc_data, data + 10, sizeof(uint8_t) * 6);
+		memcpy(r_mag_data, data + 16, sizeof(uint8_t) * 6);
+		break;
+#endif
 	}
 }

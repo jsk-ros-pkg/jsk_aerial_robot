@@ -67,11 +67,12 @@ struct DirectServoStartupConfig
   uint8_t bus_type = spinal::ServoInfo::BUS_UNKNOWN;
   uint8_t mode = spinal::ServoInfo::MODE_UNKNOWN;
   bool mode_set = false;
-  bool mit_pd_set = false;
-  int32_t kp_integer = 0;
-  int32_t kp_decimal = 0;
-  int32_t kd_integer = 0;
-  int32_t kd_decimal = 0;
+  bool mit_config_set = false;
+  int32_t mit_kp_integer = 0;
+  int32_t mit_kp_decimal = 0;
+  int32_t mit_kd_integer = 0;
+  int32_t mit_kd_decimal = 0;
+  int32_t mit_current_limit = 0;
   OptionalInt p_gain;
   OptionalInt i_gain;
   OptionalInt d_gain;
@@ -254,24 +255,43 @@ DirectServoStartupConfig makeDirectServoConfig(
     controller, group, "servo_resolution", 1, UINT16_MAX - 1);
 
   XmlRpc::XmlRpcValue kp_value;
-  if (getInheritedValue(controller, group, "mit_kp_si", kp_value)) {
+  XmlRpc::XmlRpcValue kd_value;
+  XmlRpc::XmlRpcValue effort_limit_value;
+  const bool kp_set =
+    getInheritedValue(controller, group, "mit_kp_si", kp_value);
+  const bool kd_set =
+    getInheritedValue(controller, group, "mit_kd_si", kd_value);
+  const bool effort_limit_set = getInheritedValue(
+    controller, group, "mit_effort_limit_si", effort_limit_value);
+  if (kp_set || kd_set || effort_limit_set) {
+    if (!kp_set || !kd_set || !effort_limit_set) {
+      throw std::runtime_error(
+        name + ": mit_kp_si, mit_kd_si and mit_effort_limit_si "
+        "must be configured together");
+    }
     if (!(angle_scale > 0.0) || !(torque_scale > 0.0))
       throw std::runtime_error(name + ": mit_kp_si requires positive angle_scale and torque_scale");
     encodeMitGain(
       xmlRpcNumber(kp_value, name + ".mit_kp_si") *
         angle_scale / torque_scale,
-      name + ".mit_kp_si", config.kp_integer, config.kp_decimal);
-    config.mit_pd_set = true;
-  }
-  XmlRpc::XmlRpcValue kd_value;
-  if (getInheritedValue(controller, group, "mit_kd_si", kd_value)) {
+      name + ".mit_kp_si", config.mit_kp_integer, config.mit_kp_decimal);
     if (!(velocity_scale > 0.0) || !(torque_scale > 0.0))
       throw std::runtime_error(name + ": mit_kd_si requires positive velocity_scale and torque_scale");
     encodeMitGain(
       xmlRpcNumber(kd_value, name + ".mit_kd_si") *
         velocity_scale / torque_scale,
-      name + ".mit_kd_si", config.kd_integer, config.kd_decimal);
-    config.mit_pd_set = true;
+      name + ".mit_kd_si", config.mit_kd_integer, config.mit_kd_decimal);
+    const double effort_limit_si = xmlRpcNumber(
+      effort_limit_value, name + ".mit_effort_limit_si");
+    if (!std::isfinite(effort_limit_si) || effort_limit_si < 0.0)
+      throw std::runtime_error(
+        name + ": mit_effort_limit_si must be finite and non-negative");
+    const double raw_limit = std::floor(effort_limit_si / torque_scale);
+    if (raw_limit > UINT16_MAX)
+      throw std::runtime_error(
+        name + ": mit_effort_limit_si exceeds the MCU current range");
+    config.mit_current_limit = static_cast<int32_t>(raw_limit);
+    config.mit_config_set = true;
   }
   return config;
 }
@@ -557,15 +577,18 @@ bool configureDirectServos(
         return false;
       }
     }
-    if (config.mit_pd_set &&
-        (config.kp_integer != servo->kp_integer ||
-         config.kp_decimal != servo->kp_decimal ||
-         config.kd_integer != servo->kd_integer ||
-         config.kd_decimal != servo->kd_decimal) &&
+    if (config.mit_config_set &&
+        (config.mit_kp_integer != servo->mit_kp_integer ||
+         config.mit_kp_decimal != servo->mit_kp_decimal ||
+         config.mit_kd_integer != servo->mit_kd_integer ||
+         config.mit_kd_decimal != servo->mit_kd_decimal ||
+         config.mit_current_limit != servo->mit_current_limit) &&
         !write_servo_config(config,
           spinal::SetDirectServoConfig::Request::SET_SERVO_MIT_PD,
-          {config.kp_integer, config.kp_decimal, config.kd_integer,
-           config.kd_decimal}, config.name + " MIT PD")) {
+          {config.mit_kp_integer, config.mit_kp_decimal,
+           config.mit_kd_integer, config.mit_kd_decimal,
+           config.mit_current_limit},
+          config.name + " MIT configuration")) {
       return false;
     }
   }
@@ -625,11 +648,12 @@ bool configureDirectServos(
       (config.servo_resolution.set &&
        config.servo_resolution.value !=
          static_cast<uint16_t>(servo->servo_resolution)) ||
-      (config.mit_pd_set &&
-       (config.kp_integer != servo->kp_integer ||
-        config.kp_decimal != servo->kp_decimal ||
-        config.kd_integer != servo->kd_integer ||
-        config.kd_decimal != servo->kd_decimal));
+      (config.mit_config_set &&
+       (config.mit_kp_integer != servo->mit_kp_integer ||
+        config.mit_kp_decimal != servo->mit_kp_decimal ||
+        config.mit_kd_integer != servo->mit_kd_integer ||
+        config.mit_kd_decimal != servo->mit_kd_decimal ||
+        config.mit_current_limit != servo->mit_current_limit));
     if (optional_mismatch) {
       ROS_ERROR("Final optional-parameter readback failed for %s",
                 config.name.c_str());
@@ -642,7 +666,8 @@ bool configureDirectServos(
 
 ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   nh_(nh), nhp_(nhp),
-  auto_configure_direct_servo_(false)
+  auto_configure_direct_servo_(false),
+  startup_torque_config_ready_(false)
 {
   nh_.param("/use_sim_time", simulation_mode_, false);
   nhp_.param("use_mujoco", use_mujoco_, false);
@@ -745,6 +770,22 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
         continue;
 
       std::string group_name = servo_group_params.first;
+
+      if(servo_group_params.second.hasMember("startup_torque_enable"))
+        {
+          XmlRpc::XmlRpcValue& startup_enable =
+            servo_group_params.second["startup_torque_enable"];
+          if(startup_enable.getType() != XmlRpc::XmlRpcValue::TypeBoolean)
+            {
+              ROS_ERROR("servo_controller/%s/startup_torque_enable must be a boolean",
+                        group_name.c_str());
+            }
+          else
+            {
+              startup_torque_enable_[group_name] =
+                static_cast<bool>(startup_enable);
+            }
+        }
 
       /* check whether has feedback state from real machine */
       no_real_state_flags_.insert(make_pair(group_name, false));
@@ -918,6 +959,13 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
     direct_servo_config_timer_ = nh_.createWallTimer(
       ros::WallDuration(DIRECT_SERVO_CONFIG_STARTUP_DELAY),
       &ServoBridge::directServoConfigTimerCallback, this, true, true);
+  } else if (!configure_direct_servo) {
+    // Without automatic hardware configuration, preserve the explicit
+    // startup-torque behavior and wait for the first feedback/subscriber.
+    startup_torque_config_ready_ = true;
+  } else {
+    ROS_ERROR("Startup torque disabled because DirectServo parameters are invalid");
+    startup_torque_enable_.clear();
   }
 
   if(!simulation_mode_) servo_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
@@ -933,9 +981,12 @@ void ServoBridge::directServoConfigTimerCallback(
   direct_servo_configure_ = std::function<bool()>();
   if (configured) {
     ROS_INFO("DirectServo startup configuration completed");
+    startup_torque_config_ready_ = true;
+    applyStartupTorqueConfig();
     return;
   }
-  ROS_ERROR("DirectServo startup configuration failed; control remains available");
+  startup_torque_enable_.clear();
+  ROS_ERROR("DirectServo startup configuration failed; startup torque disabled");
 }
 
 void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const string& servo_group_name)
@@ -960,6 +1011,7 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
         }
 
       // finish process
+      applyStartupTorqueConfig();
       return;
     }
 
@@ -1018,6 +1070,54 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
         }
     }
   servo_states_pub_.publish(servo_states_msg);
+  applyStartupTorqueConfig();
+}
+
+void ServoBridge::applyStartupTorqueConfig()
+{
+  if(simulation_mode_ || use_mujoco_ || !startup_torque_config_ready_ ||
+     startup_torque_enable_.empty()) return;
+
+  for(auto it = startup_torque_enable_.begin();
+      it != startup_torque_enable_.end();)
+    {
+      const std::string& group_name = it->first;
+      auto group = servos_handler_.find(group_name);
+      if(group == servos_handler_.end())
+        {
+          ROS_ERROR("Cannot apply startup torque state: unknown servo group %s",
+                    group_name.c_str());
+          it = startup_torque_enable_.erase(it);
+          continue;
+        }
+
+      auto publisher = servo_enable_pubs_.find(group_name);
+      ros::Publisher& torque_pub = publisher != servo_enable_pubs_.end()
+        ? publisher->second : servo_enable_pubs_.at("common");
+
+      // Hardware configuration/readback has completed. Still wait for the
+      // torque command subscription so the startup command is not lost while
+      // the ROS serial bridge is registering its endpoints.
+      if(torque_pub.getNumSubscribers() == 0)
+        {
+          ++it;
+          continue;
+        }
+
+      spinal::ServoTorqueCmd torque_msg;
+      for(const auto& servo_handler : group->second)
+        {
+          torque_msg.index.push_back(servo_handler->getId());
+          torque_msg.torque_enable.push_back(it->second);
+        }
+      torque_pub.publish(torque_msg);
+      ROS_INFO("Applied startup torque state for servo group %s: %s",
+               group_name.c_str(), it->second ? "enabled" : "disabled");
+      // Publish at most one group per callback so the queue-size-one common
+      // publisher cannot overwrite another group's startup command.
+      it = startup_torque_enable_.erase(it);
+      return;
+    }
 }
 
 void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo_ctrl_msg, const string& servo_group_name)

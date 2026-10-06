@@ -11,6 +11,20 @@ namespace
 {
 constexpr uint8_t CONFIG_REQUEST_MAX_ATTEMPTS = 3;
 constexpr uint32_t CONFIG_RESPONSE_TIMEOUT_MS = 200;
+
+uint16_t readUint16(const uint8_t* data)
+{
+  return static_cast<uint16_t>(data[0]) |
+    (static_cast<uint16_t>(data[1]) << 8);
+}
+
+uint32_t readUint32(const uint8_t* data)
+{
+  return static_cast<uint32_t>(data[0]) |
+    (static_cast<uint32_t>(data[1]) << 8) |
+    (static_cast<uint32_t>(data[2]) << 16) |
+    (static_cast<uint32_t>(data[3]) << 24);
+}
 }
 
 void CANInitializer::sendData()
@@ -360,21 +374,49 @@ void CANInitializer::receiveDataCallback(uint8_t slave_id, uint8_t message_id, u
 	        servo->bus_type_ = data[2];
 	        servo->operating_mode_ = data[3];
 	        servo->configured_ = data[4] != 0;
-	        servo->kp_integer_ = static_cast<int16_t>(
+	        servo->mit_kp_integer_ = static_cast<int16_t>(
 	          static_cast<uint16_t>(data[6]) |
 	          (static_cast<uint16_t>(data[7]) << 8));
-	        servo->kp_decimal_ = static_cast<int16_t>(
+	        servo->mit_kp_decimal_ = static_cast<int16_t>(
 	          static_cast<uint16_t>(data[8]) |
 	          (static_cast<uint16_t>(data[9]) << 8));
-	        servo->kd_integer_ = static_cast<int16_t>(
+	        servo->mit_kd_integer_ = static_cast<int16_t>(
 	          static_cast<uint16_t>(data[10]) |
 	          (static_cast<uint16_t>(data[11]) << 8));
-	        servo->kd_decimal_ = static_cast<int16_t>(
+	        servo->mit_kd_decimal_ = static_cast<int16_t>(
 	          static_cast<uint16_t>(data[12]) |
 	          (static_cast<uint16_t>(data[13]) << 8));
+	        servo->mit_current_limit_ =
+	          static_cast<uint16_t>(data[14]) |
+	          (static_cast<uint16_t>(data[15]) << 8);
 	        neuron_[index].markConfigurationFragment(servo_index, 0x08);
 	        break;
 	      }
+    case CAN::MESSAGEID_SEND_BOARD_STATE:
+      {
+        if (DLC != CAN::CANFD_BOARD_STATE_DLC ||
+            data[0] != CAN::CANFD_PROTOCOL_VERSION ||
+            data[2] > CAN::CANFD_MAX_SERVO_NUM ||
+            data[2] > neuron_[index].can_servo_.servo_.size()) break;
+        NeuronBoardState state;
+        state.received = true;
+        state.sequence = data[1];
+        state.servo_count = data[2];
+        state.uptime_ms = readUint32(data + 4);
+        state.received_tick = HAL_GetTick();
+        state.servo_target_count = readUint16(data + 8);
+        state.thrust_target_count = readUint16(data + 10);
+        state.servo_pvc_count = readUint16(data + 12);
+        state.rotor_esc_status_count = readUint16(data + 14);
+        state.can_rx_drop_count = readUint32(data + 16);
+        state.can_tx_drop_count = readUint32(data + 20);
+        for (uint8_t i = 0; i < state.servo_count; ++i) {
+          state.servo_control_count[i] =
+            static_cast<int16_t>(readUint16(data + 24 + i * 2));
+        }
+        neuron_[index].setBoardState(state);
+        break;
+      }
     default:
       {
         break;
