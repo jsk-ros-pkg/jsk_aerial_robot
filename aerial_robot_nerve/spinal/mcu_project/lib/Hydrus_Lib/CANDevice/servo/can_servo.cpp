@@ -58,7 +58,7 @@ void Servo::setTorqueEnable(bool torque_enable)
 {
   // A safety fault may reject an enable request, but an explicit disable must
   // always be accepted.
-  if (torque_enable && force_servo_off_) return;
+  if (torque_enable && (force_servo_off_ || mode_transition_pending_)) return;
 
   torque_command_ = torque_enable;
 }
@@ -124,8 +124,30 @@ uint8_t CANServo::requestConfigByIndex(
   for (uint8_t i = 0; i < data_length; ++i) {
     request_data[i + 1] = data[i];
   }
-  return requestConfig(
+  Servo& servo = servo_[servo_index];
+  const bool mode_transition =
+    command == CAN::SERVO_CONFIG_SET_CONTROL_MODE && data_length == 1;
+  if (mode_transition) {
+    // Quiesce the command source before asking Neuron to change mode. Target
+    // callbacks are frozen until the response arrives, so an independently
+    // timed torque-on cannot carry an old mode's target across the boundary.
+    servo.mode_transition_pending_ = true;
+    servo.torque_command_ = false;
+    servo.goal_position_ = servo.present_position_;
+    servo.goal_velocity_ = 0;
+    servo.goal_current_ = 0;
+    servo.goal_position_ack_ = false;
+  }
+
+  const uint8_t result = requestConfig(
     command, request_data, data_length + 1, timeout_ms);
+  if (mode_transition) {
+    // A BUSY result can also mean a timeout, where the remote mode is unknown.
+    // Keep the gate closed until a later mode request resolves that ambiguity.
+    servo.mode_transition_pending_ =
+      result == CAN::SERVO_CONFIG_RESULT_BUSY;
+  }
+  return result;
 }
 
 void CANServo::sendData()
@@ -213,11 +235,28 @@ void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id,
         servo.mit_kd_integer_ = readInt16(data + 34);
         servo.mit_kd_decimal_ = readInt16(data + 36);
         servo.mit_current_limit_ = readUint16(data + 40);
-        if ((pending_config_command_ ==
-               CAN::SERVO_CONFIG_SET_CONTROL_MODE ||
-             pending_config_command_ ==
-               CAN::SERVO_CONFIG_SET_CURRENT_LIMIT) &&
-            servo.mode_ == SERVO_CONTROL_MODE_CBP) {
+        if (pending_config_command_ ==
+              CAN::SERVO_CONFIG_SET_CONTROL_MODE &&
+            data[3] == CAN::SERVO_CONFIG_RESULT_OK) {
+          // A mode change is a complete control-state transition. Reset the
+          // Spinal-side target mirror as well as the Neuron-side state so a
+          // later torque-on frame cannot reintroduce targets from the old
+          // mode.
+          servo.torque_command_ = false;
+          servo.goal_position_ = servo.present_position_;
+          servo.goal_velocity_ = 0;
+          servo.goal_current_ = 0;
+          servo.goal_position_ack_ = false;
+          if (servo.mode_ == SERVO_CONTROL_MODE_CBP) {
+            const uint32_t cbp_current =
+              static_cast<uint32_t>(servo.current_limit_) * 4U / 5U;
+            servo.goal_current_ = static_cast<int16_t>(
+              cbp_current > INT16_MAX ? INT16_MAX : cbp_current);
+          }
+        } else if (pending_config_command_ ==
+                     CAN::SERVO_CONFIG_SET_CURRENT_LIMIT &&
+                   data[3] == CAN::SERVO_CONFIG_RESULT_OK &&
+                   servo.mode_ == SERVO_CONTROL_MODE_CBP) {
           const uint32_t cbp_current =
             static_cast<uint32_t>(servo.current_limit_) * 4U / 5U;
           servo.goal_current_ = static_cast<int16_t>(

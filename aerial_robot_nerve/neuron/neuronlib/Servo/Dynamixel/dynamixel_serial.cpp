@@ -812,22 +812,41 @@ uint8_t DynamixelSerial::configure(uint8_t command, const int32_t* data,
         return CAN::SERVO_CONFIG_RESULT_INVALID;
       }
     }
+    // Operating-mode changes may alter the position representation and reset
+    // Dynamixel RAM goals. Refresh the position before constructing the new
+    // mode's control state.
     servo.mode_ = mode;
+    cmdReadPresentPosition(servo_index);
+    if (readStatusPacket(INST_GET_PRESENT_POS) !=
+        NEURON_SERVO_RESULT_OK) {
+      servo.configured_ = false;
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
+
+    servo.setGoalPosition(servo.present_position_);
+    servo.setGoalVelocity(0);
+    servo.setGoalCurrent(
+      mode == NEURON_SERVO_MODE_CBP
+        ? clampGoalCurrent(
+            static_cast<uint32_t>(servo.current_limit_) * 4U / 5U,
+            servo.current_limit_)
+        : 0);
+    servo.delta_position_velocity_ = 0;
+    servo.last_target_tick_ = 0;
     servo.target_received_ = false;
     servo.watchdog_timed_out_ = false;
-    servo.goal_velocity_ = 0;
-    servo.goal_current_ = mode == NEURON_SERVO_MODE_CBP
-      ? clampGoalCurrent(
-          static_cast<uint32_t>(servo.current_limit_) * 4U / 5U,
-          servo.current_limit_)
-      : 0;
+    servo.send_goal_position_ = false;
     if (!setPositionGains(servo_index) ||
         !setProfileVelocity(servo_index)) {
-      servo.mode_ = old_mode;
       servo.configured_ = false;
       return CAN::SERVO_CONFIG_RESULT_INVALID;
     }
     updateConfigurationState(servo);
+    if (!servo.configured_ ||
+        !cmdBulkWriteGoalStates(servoBit(servo_index))) {
+      servo.configured_ = false;
+      return CAN::SERVO_CONFIG_RESULT_INVALID;
+    }
     copyServoToFlashConfig(servo, *config);
     Flashmemory::erase();
     Flashmemory::write();

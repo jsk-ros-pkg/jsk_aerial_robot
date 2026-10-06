@@ -2597,6 +2597,14 @@ ServoResult DynamixelSerial::executeServiceRequest(
     ServoResult result = applyOperatingMode(servo_index, requested_mode);
     if (result == SERVO_RESULT_OK) result = applyPositionGains(servo_index);
     if (result == SERVO_RESULT_OK) result = applyProfileVelocity(servo_index);
+    if (result == SERVO_RESULT_OK) {
+      result = readOneServoRegister(INST_GET_PRESENT_POS, servo_index);
+    }
+    if (result == SERVO_RESULT_OK) {
+      servo.resetGoalTargets();
+      cmdBulkWriteGoalStates(servoBit(servo_index));
+      result = lastTransmitResult();
+    }
     if (result != SERVO_RESULT_OK) {
       servo.configured_ = false;
       enforceConfigurationSafety();

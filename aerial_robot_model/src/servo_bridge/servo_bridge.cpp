@@ -43,6 +43,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <set>
 #include <stdexcept>
 #include <vector>
@@ -51,6 +52,9 @@ namespace
 {
 constexpr double DIRECT_SERVO_CONFIG_CALL_INTERVAL = 0.02;
 constexpr double DIRECT_SERVO_CONFIG_STARTUP_DELAY = 1.0;
+constexpr double DIRECT_SERVO_CONFIG_TIMEOUT = 10.0;
+constexpr double STARTUP_FEEDBACK_TIMEOUT = 2.0;
+constexpr double STARTUP_TORQUE_CONFIRM_TIMEOUT = 2.0;
 
 struct OptionalInt
 {
@@ -343,8 +347,9 @@ bool configureDirectServos(
   ros::NodeHandle& nh,
   const DirectServoBoardConfig& board_config,
   const std::vector<DirectServoStartupConfig>& requested_configs,
-  double timeout)
+  double timeout, std::set<uint8_t>& feedback_servo_ids)
 {
+  feedback_servo_ids.clear();
   std::vector<DirectServoStartupConfig> configs = requested_configs;
   ros::ServiceClient config_client =
     nh.serviceClient<spinal::SetDirectServoConfig>(
@@ -353,7 +358,8 @@ bool configureDirectServos(
     nh.serviceClient<spinal::GetBoardInfo>("get_board_info");
   if (!config_client.waitForExistence(ros::Duration(timeout)) ||
       !board_info_client.waitForExistence(ros::Duration(timeout))) {
-    ROS_ERROR("Timed out waiting for DirectServo configuration services");
+    ROS_ERROR("Timed out after %.1f s waiting for DirectServo configuration services",
+              timeout);
     return false;
   }
 
@@ -659,6 +665,8 @@ bool configureDirectServos(
                 config.name.c_str());
       return false;
     }
+    if (servo->send_data_flag != 0)
+      feedback_servo_ids.insert(config.global_index);
   }
   return true;
 }
@@ -667,7 +675,8 @@ bool configureDirectServos(
 ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   nh_(nh), nhp_(nhp),
   auto_configure_direct_servo_(false),
-  startup_torque_config_ready_(false)
+  startup_torque_params_valid_(true),
+  startup_torque_state_(StartupTorqueState::DISABLED)
 {
   nh_.param("/use_sim_time", simulation_mode_, false);
   nhp_.param("use_mujoco", use_mujoco_, false);
@@ -694,23 +703,18 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   /* common param and topics (between servo_bridge and spinal_ros_bridge) */
   ros::NodeHandle nh_controller(nh_, "servo_controller");
   std::string state_sub_topic, pos_pub_topic;
-  std::string servo_enable_pub_topic;
+  std::string servo_enable_pub_topic, servo_torque_state_sub_topic;
   nh_controller.param("state_sub_topic", state_sub_topic, std::string("servo/states"));
   nh_controller.param("pos_pub_topic", pos_pub_topic, std::string("servo/target_states"));
   nh_controller.param("servo_enable_pub_topic", servo_enable_pub_topic, std::string("servo/torque_enable"));
+  nh_controller.param("servo_torque_state_sub_topic",
+                      servo_torque_state_sub_topic,
+                      std::string("servo/torque_states"));
   nh_controller.param("auto_configure_direct_servo",
                       auto_configure_direct_servo_, false);
-  double direct_servo_config_timeout = 10.0;
-  nh_controller.param("direct_servo_config_timeout",
-                      direct_servo_config_timeout, 10.0);
   const bool configure_direct_servo =
     auto_configure_direct_servo_ && !simulation_mode_ && !use_mujoco_;
   bool direct_servo_params_valid = true;
-  if (!std::isfinite(direct_servo_config_timeout) ||
-      direct_servo_config_timeout <= 0.0) {
-    ROS_FATAL("DirectServo configuration timeout is invalid");
-    direct_servo_params_valid = false;
-  }
 
   DirectServoBoardConfig direct_board_config;
   if (!nh_controller.getParam(
@@ -746,6 +750,10 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   }
   /* common subsriber: get servo states (i.e. joint angles) from real machine (spinal_ros_bridge) */
   servo_states_subs_.insert(make_pair("common", nh_.subscribe<spinal::ServoStates>(state_sub_topic, 10, boost::bind(&ServoBridge::servoStatesCallback, this, _1, "common"))));
+  servo_torque_subs_.insert(make_pair(
+    "common", nh_.subscribe<spinal::ServoTorqueStates>(
+      servo_torque_state_sub_topic, 1,
+      &ServoBridge::servoTorqueStatesCallback, this)));
   /* common publisher: target servo position to real machine (spinal_ros_bridge) */
   servo_target_pos_pubs_.insert(make_pair(
     "common", nh_.advertise<spinal::ServoControlCmd>(pos_pub_topic, 1)));
@@ -779,6 +787,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
             {
               ROS_ERROR("servo_controller/%s/startup_torque_enable must be a boolean",
                         group_name.c_str());
+              startup_torque_params_valid_ = false;
             }
           else
             {
@@ -831,7 +840,39 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
               double lower_limit = urdf_model.getJoint(servo_params.second["name"])->limits->lower;
 
               /* get parameters from rosparam */
-              int servo_id = servo_params.second["id"]; 
+              int servo_id = servo_params.second["id"];
+              if (startup_torque_enable_.count(group_name) != 0) {
+                if (servo_id < 0 || servo_id > UINT8_MAX) {
+                  ROS_ERROR("Servo %s id must fit in uint8",
+                            string(servo_params.second["name"]).c_str());
+                  startup_torque_params_valid_ = false;
+                } else {
+                  const uint8_t global_id = static_cast<uint8_t>(servo_id);
+                  if (!startup_all_servo_ids_.insert(global_id).second) {
+                    ROS_ERROR("Duplicate global servo id %d", servo_id);
+                    startup_torque_params_valid_ = false;
+                  }
+                  bool feedback_enabled =
+                    !no_real_state_flags_.at(group_name);
+                  XmlRpc::XmlRpcValue send_data_flag;
+                  if (feedback_enabled && getInheritedValue(
+                        servo_params.second, servo_group_params.second,
+                        "send_data_flag", send_data_flag)) {
+                    try {
+                      feedback_enabled = xmlRpcInteger(
+                        send_data_flag, "send_data_flag") != 0;
+                    } catch (const std::exception& error) {
+                      ROS_ERROR("Invalid send_data_flag for %s: %s",
+                                string(servo_params.second["name"]).c_str(),
+                                error.what());
+                      startup_torque_params_valid_ = false;
+                      feedback_enabled = false;
+                    }
+                  }
+                  if (feedback_enabled)
+                    startup_real_state_servo_ids_.insert(global_id);
+                }
+              }
               int angle_sgn = servo_params.second.hasMember("angle_sgn")? 
                 servo_params.second["angle_sgn"]:servo_group_params.second["angle_sgn"];
               int zero_point_offset = servo_params.second.hasMember("zero_point_offset")?
@@ -948,24 +989,49 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
       servos_handler_.insert(make_pair(servo_group_params.first, servo_group_handler));
     }
 
+  const bool run_startup_torque =
+    !startup_torque_enable_.empty() && !simulation_mode_ && !use_mujoco_;
   if (configure_direct_servo && direct_servo_params_valid) {
+    if (run_startup_torque && startup_torque_params_valid_)
+      startup_torque_state_ = StartupTorqueState::WAITING_FOR_CONFIG;
     direct_servo_configure_ =
-      [this, direct_board_config, direct_servo_configs,
-       direct_servo_config_timeout]() {
-        return configureDirectServos(
+      [this, direct_board_config, direct_servo_configs]() {
+        std::set<uint8_t> configured_feedback_ids;
+        const bool configured = configureDirectServos(
           nh_, direct_board_config, direct_servo_configs,
-          direct_servo_config_timeout);
+          DIRECT_SERVO_CONFIG_TIMEOUT, configured_feedback_ids);
+        if (configured) {
+          startup_expected_feedback_ids_.clear();
+          std::set_intersection(
+            configured_feedback_ids.begin(),
+            configured_feedback_ids.end(),
+            startup_real_state_servo_ids_.begin(),
+            startup_real_state_servo_ids_.end(),
+            std::inserter(startup_expected_feedback_ids_,
+                          startup_expected_feedback_ids_.end()));
+        }
+        return configured;
       };
     direct_servo_config_timer_ = nh_.createWallTimer(
       ros::WallDuration(DIRECT_SERVO_CONFIG_STARTUP_DELAY),
       &ServoBridge::directServoConfigTimerCallback, this, true, true);
-  } else if (!configure_direct_servo) {
-    // Without automatic hardware configuration, preserve the explicit
-    // startup-torque behavior and wait for the first feedback/subscriber.
-    startup_torque_config_ready_ = true;
-  } else {
-    ROS_ERROR("Startup torque disabled because DirectServo parameters are invalid");
-    startup_torque_enable_.clear();
+  } else if (!configure_direct_servo && run_startup_torque) {
+    startup_expected_feedback_ids_ = startup_real_state_servo_ids_;
+    if (!startup_torque_params_valid_ ||
+        startup_all_servo_ids_.empty() ||
+        startup_expected_feedback_ids_.empty()) {
+      failStartupTorque(
+        "Startup torque parameters contain no valid feedback-enabled servos");
+    } else {
+      startup_feedback_barrier_stamp_ = ros::Time(0);
+      startup_received_feedback_ids_.clear();
+      startup_torque_state_ = StartupTorqueState::WAITING_FOR_FEEDBACK;
+      startStartupTorqueTimeout(STARTUP_FEEDBACK_TIMEOUT);
+    }
+  } else if (configure_direct_servo && !direct_servo_params_valid &&
+             run_startup_torque) {
+    failStartupTorque(
+      "DirectServo parameters are invalid; startup torque is disabled");
   }
 
   if(!simulation_mode_) servo_states_pub_ = nh_.advertise<sensor_msgs::JointState>("joint_states", 1);
@@ -979,17 +1045,34 @@ void ServoBridge::directServoConfigTimerCallback(
   direct_servo_config_timer_.stop();
   const bool configured = direct_servo_configure_();
   direct_servo_configure_ = std::function<bool()>();
-  if (configured) {
-    ROS_INFO("DirectServo startup configuration completed");
-    startup_torque_config_ready_ = true;
-    applyStartupTorqueConfig();
+  if (!configured) {
+    failStartupTorque(
+      "DirectServo startup configuration or final readback failed");
     return;
   }
-  startup_torque_enable_.clear();
-  ROS_ERROR("DirectServo startup configuration failed; startup torque disabled");
+
+  ROS_INFO("DirectServo startup configuration completed");
+  if (startup_torque_enable_.empty() || simulation_mode_ || use_mujoco_)
+    return;
+  if (!startup_torque_params_valid_ ||
+      startup_all_servo_ids_.empty() ||
+      startup_expected_feedback_ids_.empty()) {
+    failStartupTorque(
+      "No valid feedback-enabled servos remain after configuration");
+    return;
+  }
+
+  startup_feedback_barrier_stamp_ = ros::Time::now();
+  startup_received_feedback_ids_.clear();
+  startup_torque_state_ = StartupTorqueState::WAITING_FOR_FEEDBACK;
+  startStartupTorqueTimeout(STARTUP_FEEDBACK_TIMEOUT);
+  ROS_INFO("Waiting for post-configuration feedback from %zu servos",
+           startup_expected_feedback_ids_.size());
 }
 
-void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const string& servo_group_name)
+void ServoBridge::servoStatesCallback(
+  const spinal::ServoStatesConstPtr& state_msg,
+  const string& servo_group_name)
 {
   /* independent group servo process without state publish */
   if(servo_group_name != std::string("common"))
@@ -1010,8 +1093,7 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
           (*servo_handler)->setCurrTorqueVal((double)it.load); // torque (effort)
         }
 
-      // finish process
-      applyStartupTorqueConfig();
+      updateStartupFeedback(*state_msg);
       return;
     }
 
@@ -1070,54 +1152,173 @@ void ServoBridge::servoStatesCallback(const spinal::ServoStatesConstPtr& state_m
         }
     }
   servo_states_pub_.publish(servo_states_msg);
-  applyStartupTorqueConfig();
+  updateStartupFeedback(*state_msg);
+}
+
+void ServoBridge::updateStartupFeedback(
+  const spinal::ServoStates& state_msg)
+{
+  if (startup_torque_state_ !=
+      StartupTorqueState::WAITING_FOR_FEEDBACK)
+    return;
+
+  if (!startup_feedback_barrier_stamp_.isZero() &&
+      (state_msg.stamp.isZero() ||
+       state_msg.stamp <= startup_feedback_barrier_stamp_)) {
+    ROS_DEBUG("Ignoring servo feedback produced before configuration completed");
+    return;
+  }
+
+  for (const spinal::ServoState& state : state_msg.servos) {
+    if (startup_expected_feedback_ids_.count(state.index) == 0)
+      continue;
+    if (state.error != 0) {
+      failStartupTorque(
+        "Servo " + std::to_string(state.index) +
+        " reported hardware error " + std::to_string(state.error));
+      return;
+    }
+    startup_received_feedback_ids_.insert(state.index);
+  }
+
+  if (startup_received_feedback_ids_.size() ==
+      startup_expected_feedback_ids_.size())
+    applyStartupTorqueConfig();
 }
 
 void ServoBridge::applyStartupTorqueConfig()
 {
-  if(simulation_mode_ || use_mujoco_ || !startup_torque_config_ready_ ||
-     startup_torque_enable_.empty()) return;
+  if (startup_torque_state_ !=
+        StartupTorqueState::WAITING_FOR_FEEDBACK ||
+      startup_received_feedback_ids_.size() !=
+        startup_expected_feedback_ids_.size())
+    return;
 
-  for(auto it = startup_torque_enable_.begin();
-      it != startup_torque_enable_.end();)
-    {
-      const std::string& group_name = it->first;
-      auto group = servos_handler_.find(group_name);
-      if(group == servos_handler_.end())
-        {
-          ROS_ERROR("Cannot apply startup torque state: unknown servo group %s",
-                    group_name.c_str());
-          it = startup_torque_enable_.erase(it);
-          continue;
-        }
-
-      auto publisher = servo_enable_pubs_.find(group_name);
-      ros::Publisher& torque_pub = publisher != servo_enable_pubs_.end()
-        ? publisher->second : servo_enable_pubs_.at("common");
-
-      // Hardware configuration/readback has completed. Still wait for the
-      // torque command subscription so the startup command is not lost while
-      // the ROS serial bridge is registering its endpoints.
-      if(torque_pub.getNumSubscribers() == 0)
-        {
-          ++it;
-          continue;
-        }
-
-      spinal::ServoTorqueCmd torque_msg;
-      for(const auto& servo_handler : group->second)
-        {
-          torque_msg.index.push_back(servo_handler->getId());
-          torque_msg.torque_enable.push_back(it->second);
-        }
-      torque_pub.publish(torque_msg);
-      ROS_INFO("Applied startup torque state for servo group %s: %s",
-               group_name.c_str(), it->second ? "enabled" : "disabled");
-      // Publish at most one group per callback so the queue-size-one common
-      // publisher cannot overwrite another group's startup command.
-      it = startup_torque_enable_.erase(it);
+  map<uint8_t, bool> torque_enable;
+  for (const auto& group_setting : startup_torque_enable_) {
+    auto group = servos_handler_.find(group_setting.first);
+    if (group == servos_handler_.end()) {
+      failStartupTorque(
+        "Unknown startup torque servo group " + group_setting.first);
       return;
     }
+    for (const auto& servo : group->second) {
+      const uint8_t id = static_cast<uint8_t>(servo->getId());
+      if (!torque_enable.insert(
+            std::make_pair(id, group_setting.second)).second) {
+        failStartupTorque(
+          "Duplicate global servo id " + std::to_string(id));
+        return;
+      }
+    }
+  }
+
+  if (!publishServoTorque(torque_enable))
+    return;
+
+  startup_expected_torque_enable_ = torque_enable;
+  startup_torque_timeout_timer_.stop();
+  startup_torque_state_ =
+    StartupTorqueState::WAITING_FOR_TORQUE_CONFIRMATION;
+  startStartupTorqueTimeout(STARTUP_TORQUE_CONFIRM_TIMEOUT);
+}
+
+bool ServoBridge::publishServoTorque(
+  const map<uint8_t, bool>& torque_enable)
+{
+  auto publisher = servo_enable_pubs_.find("common");
+  if (publisher == servo_enable_pubs_.end() ||
+      publisher->second.getNumSubscribers() == 0) {
+    ROS_WARN_THROTTLE(1.0,
+      "Waiting for the common servo torque command subscriber");
+    return false;
+  }
+
+  spinal::ServoTorqueCmd torque_msg;
+  for (const auto& servo_setting : torque_enable) {
+    torque_msg.index.push_back(servo_setting.first);
+    torque_msg.torque_enable.push_back(servo_setting.second);
+  }
+  if (torque_msg.index.empty()) {
+    ROS_ERROR("Cannot apply startup torque state: no servo IDs");
+    return false;
+  }
+
+  publisher->second.publish(torque_msg);
+  ROS_INFO("Requested grouped startup torque state for %zu servos",
+           torque_msg.index.size());
+  return true;
+}
+
+bool ServoBridge::publishAllServoTorque(bool enable)
+{
+  map<uint8_t, bool> torque_enable;
+  for (uint8_t id : startup_all_servo_ids_)
+    torque_enable[id] = enable;
+  return publishServoTorque(torque_enable);
+}
+
+void ServoBridge::servoTorqueStatesCallback(
+  const spinal::ServoTorqueStatesConstPtr& state_msg)
+{
+  if (startup_torque_state_ !=
+      StartupTorqueState::WAITING_FOR_TORQUE_CONFIRMATION)
+    return;
+
+  for (const auto& servo_setting : startup_expected_torque_enable_) {
+    const uint8_t id = servo_setting.first;
+    if (id >= state_msg->torque_enable.size()) {
+      ROS_ERROR_THROTTLE(1.0,
+        "Servo torque feedback is missing global servo id %u",
+        static_cast<unsigned int>(id));
+      return;
+    }
+    const bool enabled = state_msg->torque_enable[id] != 0;
+    if (enabled != servo_setting.second)
+      return;
+  }
+
+  startup_torque_timeout_timer_.stop();
+  startup_torque_state_ = StartupTorqueState::READY;
+  ROS_INFO("Confirmed grouped startup torque state for %zu servos",
+           startup_expected_torque_enable_.size());
+}
+
+void ServoBridge::startStartupTorqueTimeout(double timeout)
+{
+  startup_torque_timeout_timer_.stop();
+  startup_torque_timeout_timer_ = nh_.createWallTimer(
+    ros::WallDuration(timeout),
+    &ServoBridge::startupTorqueTimeoutCallback, this, true, true);
+}
+
+void ServoBridge::startupTorqueTimeoutCallback(
+  const ros::WallTimerEvent& event)
+{
+  (void)event;
+  if (startup_torque_state_ == StartupTorqueState::WAITING_FOR_FEEDBACK) {
+    failStartupTorque(
+      "Timed out after " + std::to_string(STARTUP_FEEDBACK_TIMEOUT) +
+      " s waiting for valid post-configuration servo feedback (" +
+      std::to_string(startup_received_feedback_ids_.size()) + "/" +
+      std::to_string(startup_expected_feedback_ids_.size()) + ")");
+  } else if (startup_torque_state_ ==
+             StartupTorqueState::WAITING_FOR_TORQUE_CONFIRMATION) {
+    failStartupTorque(
+      "Timed out after " +
+      std::to_string(STARTUP_TORQUE_CONFIRM_TIMEOUT) +
+      " s waiting for servo torque confirmation");
+  }
+}
+
+void ServoBridge::failStartupTorque(const std::string& reason)
+{
+  if (startup_torque_state_ == StartupTorqueState::FAILED)
+    return;
+  startup_torque_timeout_timer_.stop();
+  startup_torque_state_ = StartupTorqueState::FAILED;
+  ROS_ERROR("%s; startup torque enable is prohibited", reason.c_str());
+  publishAllServoTorque(false);
 }
 
 void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo_ctrl_msg, const string& servo_group_name)

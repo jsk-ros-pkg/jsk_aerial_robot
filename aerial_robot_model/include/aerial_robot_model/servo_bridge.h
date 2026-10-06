@@ -50,6 +50,7 @@
 #include <spinal/ServoStates.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
+#include <spinal/ServoTorqueStates.h>
 #include <spinal/JointProfiles.h>
 #include <spinal/UavInfo.h>
 #include <controller_manager_msgs/LoadController.h>
@@ -62,6 +63,7 @@
 /* util */
 #include <string>
 #include <functional>
+#include <set>
 #include <boost/algorithm/clamp.hpp>
 
 using namespace std;
@@ -274,6 +276,16 @@ using ServoGroupHandler= vector<SingleServoHandlePtr>;
 class ServoBridge
 {
 protected:
+  enum class StartupTorqueState
+  {
+    DISABLED,
+    WAITING_FOR_CONFIG,
+    WAITING_FOR_FEEDBACK,
+    WAITING_FOR_TORQUE_CONFIRMATION,
+    READY,
+    FAILED
+  };
+
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
 
@@ -289,7 +301,6 @@ protected:
   map<string, ros::Publisher> servo_target_pos_pubs_;
   map<string, ros::ServiceServer> servo_enable_srvs_;
   map<string, ros::Publisher> servo_enable_pubs_;
-  map<string, bool> startup_torque_enable_;
   map<string, vector<ros::Publisher> > servo_target_pos_sim_pubs_; // TODO: should be actionlib, trajectory controller
 
   map<string, ServoGroupHandler> servos_handler_;
@@ -299,16 +310,32 @@ protected:
   bool simulation_mode_;
   bool use_mujoco_;
   bool auto_configure_direct_servo_;
-  bool startup_torque_config_ready_;
+  map<string, bool> startup_torque_enable_;
+  map<uint8_t, bool> startup_expected_torque_enable_;
+  bool startup_torque_params_valid_;
+  StartupTorqueState startup_torque_state_;
+  set<uint8_t> startup_all_servo_ids_;
+  set<uint8_t> startup_real_state_servo_ids_;
+  set<uint8_t> startup_expected_feedback_ids_;
+  set<uint8_t> startup_received_feedback_ids_;
+  ros::Time startup_feedback_barrier_stamp_;
   ros::WallTimer direct_servo_config_timer_;
+  ros::WallTimer startup_torque_timeout_timer_;
   std::function<bool()> direct_servo_configure_;
   int send_init_joint_pose_cnt_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
+  void servoTorqueStatesCallback(const spinal::ServoTorqueStatesConstPtr& state_msg);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
   void servoTorqueCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
   bool servoEnableCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name);
+  void updateStartupFeedback(const spinal::ServoStates& state_msg);
   void applyStartupTorqueConfig();
+  bool publishServoTorque(const map<uint8_t, bool>& torque_enable);
+  bool publishAllServoTorque(bool enable);
+  void startStartupTorqueTimeout(double timeout);
+  void startupTorqueTimeoutCallback(const ros::WallTimerEvent& event);
+  void failStartupTorque(const std::string& reason);
   void uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg);
   void directServoConfigTimerCallback(const ros::WallTimerEvent& event);
 

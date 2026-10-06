@@ -14,13 +14,13 @@
 class Servo
 {
 private:
-		uint8_t id_;
-		uint8_t index_;
-		uint8_t bus_type_;
-		uint8_t mode_;
-		uint8_t operating_mode_;
-		int16_t mit_kp_integer_, mit_kp_decimal_;
-		int16_t mit_kd_integer_, mit_kd_decimal_;
+	uint8_t id_;
+	uint8_t index_;
+	uint8_t bus_type_;
+	uint8_t mode_;
+	uint8_t operating_mode_;
+	int16_t mit_kp_integer_, mit_kp_decimal_;
+	int16_t mit_kd_integer_, mit_kd_decimal_;
 	uint16_t mit_current_limit_;
 	uint16_t p_gain_, i_gain_, d_gain_;
 	int32_t present_position_;
@@ -36,13 +36,14 @@ private:
 	uint8_t error_;
 	bool send_data_flag_;
 	bool torque_command_;
+	volatile bool mode_transition_pending_;
 	bool torque_feedback_;
 	bool goal_position_ack_;
 	bool force_servo_off_;
 	volatile bool pvc_updated_;
-		bool external_encoder_flag_;
-		bool configured_;
-		bool watchdog_timed_out_;
+	bool external_encoder_flag_;
+	bool configured_;
+	bool watchdog_timed_out_;
 	uint16_t joint_resolution_;
 	uint16_t servo_resolution_;
 
@@ -58,6 +59,7 @@ public:
 	          profile_velocity_(0), present_current_(0), current_limit_(0),
 	          present_temperature_(0), moving_(0), error_(0),
 	          send_data_flag_(false), torque_command_(false),
+	          mode_transition_pending_(false),
 	          torque_feedback_(false),
 	          goal_position_ack_(false), force_servo_off_(false),
 	          pvc_updated_(false),
@@ -96,9 +98,15 @@ public:
 		bool getConfigured() const {return configured_;}
 		bool getWatchdogTimedOut() const {return watchdog_timed_out_;}
 	void setIndex(uint8_t index) {index_ = index;}
-	void setGoalPosition(int32_t goal_position) {goal_position_ = goal_position;}
-	void setGoalVelocity(int32_t goal_velocity) {goal_velocity_ = goal_velocity;}
-	void setGoalCurrent(int16_t goal_current) {goal_current_ = goal_current;}
+	void setGoalPosition(int32_t goal_position) {
+	  if (!mode_transition_pending_) goal_position_ = goal_position;
+	}
+	void setGoalVelocity(int32_t goal_velocity) {
+	  if (!mode_transition_pending_) goal_velocity_ = goal_velocity;
+	}
+	void setGoalCurrent(int16_t goal_current) {
+	  if (!mode_transition_pending_) goal_current_ = goal_current;
+	}
 	void clearPvcUpdated() {pvc_updated_ = false;}
 	void setTorqueEnable(bool torque_enable);
 	void copyConfigurationFrom(const Servo& source)
