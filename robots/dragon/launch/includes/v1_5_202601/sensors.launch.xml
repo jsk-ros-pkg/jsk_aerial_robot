@@ -14,19 +14,16 @@
           <arg name="mode" value="serial" />
           <arg name="serial_port" value="/dev/flight_controller" />
           <arg name="serial_baud" value="2000000" />
-          <!-- <arg name="mode" value="udp" />
-          <arg name="udp_port" default="12345" />
-          <arg name="udp_addr" default="192.168.25.238" /> -->
         </include>
 
         <!-- mocap -->
         <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
         <!-- livox mid360 & fast lio -->
-        <!-- <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
+        <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
         <include file="$(find fast_lio)/launch/mapping_mid360.launch" >
           <arg name="rviz" value="false" />
-        </include> -->
+        </include>
 
         <!-- joint rough calib -->
         <node pkg="spinal" type="servo_rough_calib.py" name="servo_rough_calib" output="screen">

@@ -12,8 +12,8 @@ inside the MCU, and its Flash remains keyed by the discovered hardware ID.
 ```yaml
 servo_controller:
   auto_configure_direct_servo: true
-  ServoFeedBackFrequency: 50       # MCU -> PC feedback [Hz]
-  ServoTargetWatchdog: 0.1         # DV/DC/MIT timeout [s]
+  servo_feedback_frequency: 50     # MCU -> PC feedback [Hz]
+  servo_target_watchdog: 0.1       # DV/DC/MIT timeout [s]
   dynamixel_ttl_rs485_mixed: true
 
   joints:
@@ -53,7 +53,7 @@ after selecting CbP, the default Goal Current is 80% of the configured
 `current_limit`. Later commands with an omitted `effort` field retain the last
 Goal Current, following the sparse-field behavior of `ServoControlCmd`.
 Unlike DV, DC, and MIT, CbP follows position-mode hold behavior and is not
-cleared by `ServoTargetWatchdog`.
+cleared by `servo_target_watchdog`.
 
 `auto_configure_direct_servo` enables the same host startup check/write
 sequence for either DirectServo or the discovered Neuron boards.

@@ -4,10 +4,7 @@
 
 # files for IDE project
 */STM32CubeIDE/Debug
-*/STM32CubeIDE/Release
-*/STM32CubeIDE/.settings
 */STM32CubeIDE/*.launch
-.project
 
 # libraries
 */ros_lib

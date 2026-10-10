@@ -43,13 +43,5 @@ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 catkin build
 ```
 
-## MCU communication configuration
-
-See the [Spinal firmware communication guide](aerial_robot_nerve/spinal/README.md)
-to select UART/USB serial or Ethernet/UDP between the host and Spinal, and to
-coordinate Classic CAN or CAN FD between Spinal and Neuron before rebuilding
-and flashing the MCU firmware.
-
 ## Demo
-
 Please check instruction in [wiki](https://github.com/JSKAerialRobot/aerial_robot/wiki).
