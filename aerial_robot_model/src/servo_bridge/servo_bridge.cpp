@@ -714,6 +714,10 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
                       auto_configure_direct_servo_, false);
   const bool configure_direct_servo =
     auto_configure_direct_servo_ && !simulation_mode_ && !use_mujoco_;
+  /* default for groups/controllers without clamp_joint_position_from_urdf */
+  bool default_clamp_position = true;
+  nh_controller.param("clamp_joint_position_from_urdf",
+                      default_clamp_position, true);
   bool direct_servo_params_valid = true;
 
   DirectServoBoardConfig direct_board_config;
@@ -835,9 +839,35 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
         {
           if(servo_params.first.find("controller") != string::npos)
             {
-              /* get parameters from urdf file */
-              double upper_limit = urdf_model.getJoint(servo_params.second["name"])->limits->upper;
-              double lower_limit = urdf_model.getJoint(servo_params.second["name"])->limits->lower;
+              /* get position limits from urdf file (optional) */
+              const string joint_name = servo_params.second["name"];
+              bool clamp_position = default_clamp_position;
+              XmlRpc::XmlRpcValue clamp_position_value;
+              if (getInheritedValue(servo_params.second, servo_group_params.second,
+                                    "clamp_joint_position_from_urdf",
+                                    clamp_position_value)) {
+                if (clamp_position_value.getType() == XmlRpc::XmlRpcValue::TypeBoolean)
+                  clamp_position = static_cast<bool>(clamp_position_value);
+                else
+                  ROS_ERROR("%s: clamp_joint_position_from_urdf must be a boolean, use default (%s)",
+                            joint_name.c_str(), clamp_position ? "true" : "false");
+              }
+
+              double upper_limit = std::numeric_limits<double>::infinity();
+              double lower_limit = -std::numeric_limits<double>::infinity();
+              if (clamp_position) {
+                urdf::JointConstSharedPtr joint = urdf_model.getJoint(joint_name);
+                if (joint && joint->limits) {
+                  upper_limit = joint->limits->upper;
+                  lower_limit = joint->limits->lower;
+                } else {
+                  ROS_ERROR("%s: no joint limits in urdf, position target will not be clamped",
+                            joint_name.c_str());
+                }
+              } else {
+                ROS_INFO("%s: position target is not clamped by urdf joint limits",
+                         joint_name.c_str());
+              }
 
               /* get parameters from rosparam */
               int servo_id = servo_params.second["id"];

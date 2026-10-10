@@ -56,6 +56,7 @@
 #include <controller_manager_msgs/LoadController.h>
 #include <controller_manager_msgs/SwitchController.h>
 #include <urdf/model.h>
+#include <limits>
 
 /* filter */
 #include <kalman_filter/lpf_filter.h>
@@ -107,20 +108,24 @@ public:
 
   inline void setCurrAngleVal(const double& val, int value_type)
   {
+    double angle;
     if(value_type == ValueType::BIT)
-      curr_angle_val_ = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
+      angle = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
     else if(value_type == ValueType::RADIAN)
-      curr_angle_val_ = val;
+      angle = val;
     else
-      ROS_ERROR("wrong value type");
+      {
+        ROS_ERROR("wrong value type");
+        return;
+      }
 
     /* do low pass filtering */
-    if(filter_flag_)
-      curr_angle_val_ = lpf_angle_.filterFunction(curr_angle_val_);
+    curr_angle_val_ = filter_flag_ ? lpf_angle_.filterFunction(angle) : angle;
 
     if(!init_target_angle_val_)
       {
-        target_angle_val_ = boost::algorithm::clamp(val, lower_limit_, upper_limit_);
+        /* use the unfiltered radian value: val may be in BIT, and the filter starts from zero */
+        target_angle_val_ = boost::algorithm::clamp(angle, lower_limit_, upper_limit_);
         init_target_angle_val_ = true;
       }
   }

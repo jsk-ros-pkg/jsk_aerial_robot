@@ -3,6 +3,7 @@ servo_controller:
   servo_feedback_frequency: 50 # keep previous dragon settings
   servo_target_watchdog: 0.1
   dynamixel_ttl_rs485_mixed: true
+  clamp_joint_position_from_urdf: true
 
   joints:
     startup_torque_enable: false # desired torque state after valid group feedback
