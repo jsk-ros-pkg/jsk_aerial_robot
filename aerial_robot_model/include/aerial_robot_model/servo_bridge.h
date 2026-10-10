@@ -295,7 +295,6 @@ protected:
   ros::NodeHandle nhp_;
 
   ros::Publisher servo_states_pub_;
-  ros::Publisher mujoco_control_input_pub_;
   ros::Publisher joint_profile_pub_;
   ros::Subscriber uav_info_sub_;
   map<string, ros::Subscriber> servo_states_subs_;
@@ -313,7 +312,6 @@ protected:
   double moving_angle_thresh_;
   bool send_init_joint_pose_;
   bool simulation_mode_;
-  bool use_mujoco_;
   bool auto_configure_direct_servo_;
   map<string, bool> startup_torque_enable_;
   map<uint8_t, bool> startup_expected_torque_enable_;

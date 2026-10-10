@@ -2,7 +2,7 @@
 - git:
     local-name: aerial_robot_3rdparty
     uri: https://github.com/JSKAerialRobot/aerial_robot_3rdparty.git
-    version: 3875fa5
+    version: 003970e
 
 # kalman filter
 - git:
@@ -56,3 +56,13 @@
     local-name: mocap_optitrack
     uri: https://github.com/sugikazu75/mocap_optitrack.git
     version: 50fb60d
+
+- git:
+    local-name: mujoco
+    uri: https://github.com/sugikazu75/mujoco_catkin.git
+    version: a429c7c
+
+- git:
+    local-name: mujoco_ros_pkgs
+    uri: https://github.com/sugikazu75/mujoco_ros_pkgs.git
+    version: 6de14a3

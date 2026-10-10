@@ -1,0 +1,8 @@
+<library path="lib/libmujoco_thrust_visualizer">
+  <class
+    name="aerial_robot_simulation/ThrustVisualizerPlugin"
+    type="mujoco_ros::ThrustVisualizerPlugin"
+    base_class_type="mujoco_ros::MujocoPlugin">
+    <description>Draws thrust arrows at MuJoCo actuator sites.</description>
+  </class>
+</library>

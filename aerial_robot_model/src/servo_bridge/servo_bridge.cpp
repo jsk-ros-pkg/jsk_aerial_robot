@@ -679,13 +679,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   startup_torque_state_(StartupTorqueState::DISABLED)
 {
   nh_.param("/use_sim_time", simulation_mode_, false);
-  nhp_.param("use_mujoco", use_mujoco_, false);
-  if(use_mujoco_)
-    {
-      ROS_WARN("use mujoco simulator");
-      simulation_mode_ = false;
-    }
-
   if(simulation_mode_)
     {
       if(!ros::service::waitForService(nh_.getNamespace() + std::string("/controller_manager/load_controller")))
@@ -713,7 +706,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   nh_controller.param("auto_configure_direct_servo",
                       auto_configure_direct_servo_, false);
   const bool configure_direct_servo =
-    auto_configure_direct_servo_ && !simulation_mode_ && !use_mujoco_;
+    auto_configure_direct_servo_ && !simulation_mode_;
   /* default for groups/controllers without clamp_joint_position_from_urdf */
   bool default_clamp_position = true;
   nh_controller.param("clamp_joint_position_from_urdf",
@@ -761,7 +754,6 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
   /* common publisher: target servo position to real machine (spinal_ros_bridge) */
   servo_target_pos_pubs_.insert(make_pair(
     "common", nh_.advertise<spinal::ServoControlCmd>(pos_pub_topic, 1)));
-  mujoco_control_input_pub_ = nh_.advertise<sensor_msgs::JointState>("mujoco/ctrl_input", 1);
   /* common publisher: servo on/off flag to real machine (spinal_ros_bridge) */
   servo_enable_pubs_.insert(make_pair("common", nh_.advertise<spinal::ServoTorqueCmd>(servo_enable_pub_topic, 1)));
   /* common publisher: joint profiles */
@@ -1020,7 +1012,7 @@ ServoBridge::ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp):
     }
 
   const bool run_startup_torque =
-    !startup_torque_enable_.empty() && !simulation_mode_ && !use_mujoco_;
+    !startup_torque_enable_.empty() && !simulation_mode_;
   if (configure_direct_servo && direct_servo_params_valid) {
     if (run_startup_torque && startup_torque_params_valid_)
       startup_torque_state_ = StartupTorqueState::WAITING_FOR_CONFIG;
@@ -1082,7 +1074,7 @@ void ServoBridge::directServoConfigTimerCallback(
   }
 
   ROS_INFO("DirectServo startup configuration completed");
-  if (startup_torque_enable_.empty() || simulation_mode_ || use_mujoco_)
+  if (startup_torque_enable_.empty() || simulation_mode_)
     return;
   if (!startup_torque_params_valid_ ||
       startup_all_servo_ids_.empty() ||
@@ -1380,8 +1372,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
   }
 
   spinal::ServoControlCmd target_state_msg;
-  sensor_msgs::JointState mujoco_control_input_msg;
-  mujoco_control_input_msg.header = servo_ctrl_msg->header;
 
   auto append_target = [&](const SingleServoHandlePtr& servo,
                            size_t command_index,
@@ -1422,17 +1412,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
       target_state_msg.current.push_back(raw_current);
     }
 
-    mujoco_control_input_msg.name.push_back(servo->getName());
-    if (has_position)
-      mujoco_control_input_msg.position.push_back(
-        servo_ctrl_msg->position[command_index]);
-    if (has_velocity)
-      mujoco_control_input_msg.velocity.push_back(
-        servo_ctrl_msg->velocity[command_index]);
-    if (has_effort)
-      mujoco_control_input_msg.effort.push_back(
-        servo_ctrl_msg->effort[command_index]);
-
     if (simulation_mode_) {
       std_msgs::Float64 msg;
       msg.data = has_position
@@ -1469,8 +1448,6 @@ void ServoBridge::servoCtrlCallback(const sensor_msgs::JointStateConstPtr& servo
       if (!append_target(group[i], i, i)) return;
     }
   }
-
-  mujoco_control_input_pub_.publish(mujoco_control_input_msg);
 
   auto publisher = servo_target_pos_pubs_.find(servo_group_name);
   (publisher != servo_target_pos_pubs_.end()

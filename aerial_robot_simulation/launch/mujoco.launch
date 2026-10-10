@@ -2,19 +2,57 @@
 <launch>
   <arg name="robot_ns" default="" />
   <arg name="headless" default="false" />
+  <arg name="no_render" default="$(arg headless)"/>
   <arg name="mujoco_model" default="" />
+  <arg name="initial_joint_states" default=""/>
+  <arg name="use_spinal" default="true"/>
+  <arg name="hw_sim_type" value="mujoco_ros_control/AerialRobotHWSim" if="$(arg use_spinal)"/>
+  <arg name="hw_sim_type" value="mujoco_ros_control/DefaultAerialRobotHWSim" unless="$(arg use_spinal)"/>
+  <arg name="mujoco_threads" default="1"/>
 
-  <!-- mujoco ros control -->
-  <include file="$(find mujoco_ros_control)/launch/mujoco.launch" >
-    <arg name="robot_ns" value="$(arg robot_ns)" />
-    <arg name="headless" value="$(arg headless)"/>
-    <arg name="mujoco_model" value="$(arg mujoco_model)"/>
-  </include>
+  <group ns="$(arg robot_ns)">
+    <include file="$(find mujoco_ros)/launch/launch_server.launch" >
+      <arg name="ns" value="$(arg robot_ns)" />
+      <arg name="headless" value="$(arg headless)"/>
+      <arg name="no_render" value="$(arg no_render)"/>
+      <arg name="modelfile" value="$(arg mujoco_model)"/>
+      <arg name="use_sim_time" value="true"/>
+      <arg name="unpause" value="true"/>
+      <arg name="initial_joint_states" value="$(arg initial_joint_states)" unless="$(eval initial_joint_states == '')"/>
+      <arg name="mujoco_threads" value="$(arg mujoco_threads)"/>
+    </include>
+
+    <rosparam subst_value="true">
+      MujocoPlugins:
+        - type: mujoco_ros_control/MujocoRosControlPlugin
+          robot_namespace: $(arg robot_ns)
+          hardware:
+            type: $(arg hw_sim_type)
+            control_period: 0.001
+        - type: mujoco_ros_sensors/MujocoRosSensorsPlugin
+        - type: aerial_robot_simulation/ThrustVisualizerPlugin
+          min_force: 0.001
+          rgba: [0.0, 0.8, 1.0, 0.9]
+    </rosparam>
+
+  </group>
 
   <!-- basic parameter -->
   <rosparam file="$(find aerial_robot_simulation)/config/Mujoco.yaml" command="load" ns="$(arg robot_ns)" />
 
-  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
-        output="screen" ns="$(arg robot_ns)" args="attitude_controller" />
+  <!-- spawn joint state controller and spinal based flight controller -->
+  <group if="$(arg use_spinal)">
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+          output="screen" ns="$(arg robot_ns)" args="joint_state_controller attitude_controller"/>
+  </group>
+
+  <!-- spawn joint state controller and rotor controller -->
+  <group unless="$(arg use_spinal)">
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+          output="screen" ns="$(arg robot_ns)" args="joint_state_controller"/>
+
+    <node pkg="aerial_robot_simulation" type="rotor_controller_spawner.py"
+          name="rotor_controller_spawner" output="screen" ns="$(arg robot_ns)"/>
+  </group>
 
 </launch>
