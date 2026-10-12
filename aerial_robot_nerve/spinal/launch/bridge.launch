@@ -1,8 +1,8 @@
 <launch>
-  <arg name="mode" default="serial" />
+  <arg name="mode" default="serial" /> <!-- serial,udp -->
 
   <arg name="serial_port" default="/dev/ttyUSB0" />
-  <arg name="serial_baud" default="921600" />
+  <arg name="serial_baud" default="2000000" />
 
   <arg name="udp_port" default="12345" />
   <arg name="udp_addr" default="192.168.25.238" />
@@ -10,11 +10,13 @@
   <node pkg="rosserial_server" type="serial_node" name="rosserial_server" output="screen" if="$(eval arg('mode') == 'serial')">
     <param name="port" value="$(arg serial_port)" />
     <param name="baud" value="$(arg serial_baud)" />
+    <param name="unrecognised_topic_retry_threshold" value="5" />
   </node>
 
   <node pkg="rosserial_server" type="udp_socket_node" name="rosserial_server" output="screen" if="$(eval arg('mode') == 'udp')">
     <param name="client_port" value="$(arg udp_port)" />
     <param name="server_port" value="$(arg udp_port)" />
     <param name="client_addr" value="$(arg udp_addr)" />
+    <param name="unrecognised_topic_retry_threshold" value="5" />
   </node>
 </launch>

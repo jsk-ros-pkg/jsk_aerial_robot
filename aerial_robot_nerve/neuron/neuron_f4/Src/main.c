@@ -210,7 +210,7 @@ int main(void)
   imu_ = IMU(slave_id);
   servo_ = Servo(slave_id);
 
-  Initializer initializer(slave_id, servo_, imu_);
+  Initializer initializer(slave_id, servo_, imu_, motor_);
   motor_.init(&htim1);
   HAL_Delay(300); //wait servo init
   servo_.init(&huart2, &hi2c1, &servoMutexHandle);

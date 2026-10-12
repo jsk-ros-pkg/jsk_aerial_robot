@@ -1,23 +1,38 @@
 #commands
-## servo_index is from 0
+## Per-servo payload excludes the Dynamixel ID; addressing is board_id and
+## the stable board-local servo_index returned by /get_board_info.
 uint8 SET_SERVO_HOMING_OFFSET = 1
-# [servo_index, joint_offset] !torque disable!
+# [joint_offset] !torque disable!
 uint8 SET_SERVO_PID_GAIN = 2
-# [servo_index, p_gain, i_gain, d_gain]
+# [p_gain, i_gain, d_gain]
 uint8 SET_SERVO_PROFILE_VEL = 3
-# [servo_index, profile_vel]
+# [profile_vel]
 uint8 SET_SERVO_SEND_DATA_FLAG = 4
-# [servo_index, flag]
+# [flag]
 uint8 SET_SERVO_CURRENT_LIMIT = 5
-# [servo_index, current_limit] !torque disable!
+# [current_limit] !torque disable!
 uint8 SET_DYNAMIXEL_TTL_RS485_MIXED = 6
 # [flag]
 uint8 SET_SERVO_EXTERNAL_ENCODER_FLAG = 7
-# [servo_index, flag]
+# [flag]
 uint8 SET_SERVO_RESOLUTION_RATIO = 8
-# [servo_index, joint_resolution, servo_resolution]
+# [joint_resolution, servo_resolution]
+uint8 SET_SERVO_CONTROL_MODE = 9
+# [mode] !torque disable!
+uint8 SET_SERVO_MIT_PD = 10
+# [mit_kp_integer, mit_kp_decimal, mit_kd_integer, mit_kd_decimal, mit_current_limit] !torque disable!
+uint8 SET_SERVO_BUS_TYPE = 12
+# ['R' or 'T'] !torque disable!
+uint8 SET_SERVO_FEEDBACK_FREQUENCY = 13
+# [frequency_hz]
+uint8 SET_SERVO_TARGET_WATCHDOG_TIMEOUT = 15
+# [timeout_ms], YAML and BoardInfo expose seconds; 0 disables
 
 
+# board_id 0 selects Spinal; 1..14 select the matching Neuron CAN ID.
+uint8 board_id
+# Ignored by board-level commands.
+uint8 servo_index
 uint8 command
 int32[] data
 ---

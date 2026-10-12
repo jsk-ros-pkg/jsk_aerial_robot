@@ -86,38 +86,39 @@ private:
 
   void servoControlCallback(const spinal::ServoControlCmd& cmd_msg)
   {
+    if (cmd_msg.index_length != cmd_msg.position_length) return;
     for(int i = 0; i < cmd_msg.index_length; i++)
       {
         switch(cmd_msg.index[i])
           {
           case 0:
             {
-              pwm_htim1_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim1_->Instance->CCR1 = (uint32_t)(cmd_msg.position[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 1:
             {
-              pwm_htim1_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim1_->Instance->CCR2 = (uint32_t)(cmd_msg.position[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 2:
             {
-              pwm_htim1_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim1_->Instance->CCR3 = (uint32_t)(cmd_msg.position[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 3:
             {
-              pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim2_->Instance->CCR1 = (uint32_t)(cmd_msg.position[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 4:
             {
-              pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim2_->Instance->CCR2 = (uint32_t)(cmd_msg.position[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           case 5:
             {
-              pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.angles[i] / MAX_DUTY * MAX_PWM);
+              pwm_htim2_->Instance->CCR3 = (uint32_t)(cmd_msg.position[i] / MAX_DUTY * MAX_PWM);
               break;
             }
           default:
@@ -181,9 +182,10 @@ private:
 
   void servoInitDutyCallback(const spinal::ServoControlCmd& cmd_msg)
   {
+    if (cmd_msg.index_length != cmd_msg.position_length) return;
     for(int i = 0; i < cmd_msg.index_length; i++)
     {
-  	  init_duty_[cmd_msg.index[i]] = (float)(cmd_msg.angles[i]);
+      init_duty_[cmd_msg.index[i]] = (float)(cmd_msg.position[i]);
   	}
     FlashMemory::erase();
     FlashMemory::write();

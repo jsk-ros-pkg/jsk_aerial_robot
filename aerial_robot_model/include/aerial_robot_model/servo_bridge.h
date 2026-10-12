@@ -50,17 +50,21 @@
 #include <spinal/ServoStates.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
+#include <spinal/ServoTorqueStates.h>
 #include <spinal/JointProfiles.h>
 #include <spinal/UavInfo.h>
 #include <controller_manager_msgs/LoadController.h>
 #include <controller_manager_msgs/SwitchController.h>
 #include <urdf/model.h>
+#include <limits>
 
 /* filter */
 #include <kalman_filter/lpf_filter.h>
 
 /* util */
 #include <string>
+#include <functional>
+#include <set>
 #include <boost/algorithm/clamp.hpp>
 
 using namespace std;
@@ -74,7 +78,18 @@ namespace ValueType
 class SingleServoHandle
 {
 public:
-  SingleServoHandle(string name, int id, int angle_sgn, double zero_point_offset, double angle_scale, double upper_limit, double lower_limit, double torque_scale, bool receive_real_state, bool filter_flag = false, double sample_freq = 0, double cutoff_freq = 0): name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0), init_target_angle_val_(false), curr_torque_val_(0), angle_sgn_(angle_sgn), zero_point_offset_(zero_point_offset), angle_scale_(angle_scale), upper_limit_(upper_limit), lower_limit_(lower_limit), torque_scale_(torque_scale), receive_real_state_(receive_real_state), filter_flag_(filter_flag)
+  SingleServoHandle(string name, int id, int angle_sgn, double zero_point_offset,
+                    double angle_scale, double velocity_scale,
+                    double upper_limit, double lower_limit, double torque_scale,
+                    bool receive_real_state, bool filter_flag = false,
+                    double sample_freq = 0, double cutoff_freq = 0):
+    name_(name), id_(id), curr_angle_val_(0), target_angle_val_(0),
+    init_target_angle_val_(false), curr_torque_val_(0), target_torque_val_(0),
+    curr_velocity_val_(0), target_velocity_val_(0), angle_sgn_(angle_sgn),
+    zero_point_offset_(zero_point_offset), angle_scale_(angle_scale),
+    velocity_scale_(velocity_scale), upper_limit_(upper_limit),
+    lower_limit_(lower_limit), torque_scale_(torque_scale),
+    receive_real_state_(receive_real_state), filter_flag_(filter_flag)
   {
     /* for simulation */
     //joint_ctrl_pub_ = nh_.advertise<std_msgs::Float64>(std::string("/j") + std_  + std::string("_controller/command"), 1);
@@ -93,20 +108,24 @@ public:
 
   inline void setCurrAngleVal(const double& val, int value_type)
   {
+    double angle;
     if(value_type == ValueType::BIT)
-      curr_angle_val_ = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
+      angle = angle_scale_ * angle_sgn_ * (val - zero_point_offset_);
     else if(value_type == ValueType::RADIAN)
-      curr_angle_val_ = val;
+      angle = val;
     else
-      ROS_ERROR("wrong value type");
+      {
+        ROS_ERROR("wrong value type");
+        return;
+      }
 
     /* do low pass filtering */
-    if(filter_flag_)
-      curr_angle_val_ = lpf_angle_.filterFunction(curr_angle_val_);
+    curr_angle_val_ = filter_flag_ ? lpf_angle_.filterFunction(angle) : angle;
 
     if(!init_target_angle_val_)
       {
-        target_angle_val_ = boost::algorithm::clamp(val, lower_limit_, upper_limit_);
+        /* use the unfiltered radian value: val may be in BIT, and the filter starts from zero */
+        target_angle_val_ = boost::algorithm::clamp(angle, lower_limit_, upper_limit_);
         init_target_angle_val_ = true;
       }
   }
@@ -120,7 +139,10 @@ public:
     else
       ROS_ERROR("%s: wrong value type", name_.c_str());
 
-    if(!receive_real_state_) curr_angle_val_ = target_angle_val_;
+    if(!receive_real_state_) {
+      curr_angle_val_ = target_angle_val_;
+      curr_velocity_val_ = 0;
+    }
   }
 
   inline void setCurrTorqueVal(const double& val)
@@ -133,19 +155,31 @@ public:
     target_torque_val_ = val;
   }
 
+  inline void setTargetVelocityVal(const double& val)
+  {
+    target_velocity_val_ = val;
+  }
+
+  inline void setCurrVelocityVal(const double& val)
+  {
+    curr_velocity_val_ = velocity_scale_ * angle_sgn_ * val;
+  }
 
   inline void setName(const string& name){ name_ = name; }
   inline void setId(const int& id){ id_ = id; }
   inline void setAngleSgn(const int& sgn){ angle_sgn_ = sgn; }
   inline void setZeroPointOffset(const int& offset){ zero_point_offset_ = offset; }
   inline void setAngleScale(const double& scale){ angle_scale_ = scale; }
+  inline void setVelocityScale(const double& scale){ velocity_scale_ = scale; }
   inline void setTorqueScale(const double& scale){ torque_scale_ = scale; }
 
   const double getCurrAngleVal(int value_type) const
   {
     if(value_type == ValueType::BIT)
       {
-        return boost::algorithm::clamp(curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
+        return boost::algorithm::clamp(
+          curr_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_,
+          static_cast<double>(INT32_MIN), static_cast<double>(INT32_MAX));
       }
     else // ValueType::RADIAN
       {
@@ -157,7 +191,9 @@ public:
   {
     if(value_type == ValueType::BIT)
       {
-        return boost::algorithm::clamp(target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_, INT16_MIN/2, INT16_MAX/2);
+        return boost::algorithm::clamp(
+          target_angle_val_ * angle_sgn_ / angle_scale_ + zero_point_offset_,
+          static_cast<double>(INT32_MIN), static_cast<double>(INT32_MAX));
       }
     else // ValueType::RADIAN
       {
@@ -168,6 +204,11 @@ public:
   inline const double getCurrTorqueVal() const
   {
     return curr_torque_val_;
+  }
+
+  inline const double getCurrVelocityVal() const
+  {
+    return curr_velocity_val_;
   }
 
   inline const double getTargetTorqueVal(int value_type) const
@@ -182,12 +223,32 @@ public:
       }
   }
 
+  int32_t getTargetVelocityRaw() const
+  {
+    if (velocity_scale_ == 0.0) return 0;
+    return static_cast<int32_t>(boost::algorithm::clamp(
+      target_velocity_val_ * angle_sgn_ / velocity_scale_,
+      static_cast<double>(INT32_MIN), static_cast<double>(INT32_MAX)));
+  }
+
+  int16_t getTargetCurrentRaw() const
+  {
+    if (torque_scale_ == 0.0) return 0;
+    return static_cast<int16_t>(boost::algorithm::clamp(
+      target_torque_val_ * angle_sgn_ / torque_scale_,
+      static_cast<double>(INT16_MIN), static_cast<double>(INT16_MAX)));
+  }
+
+  inline bool hasVelocityScale() const {return velocity_scale_ != 0.0;}
+  inline bool hasTorqueScale() const {return torque_scale_ != 0.0;}
+
 
   inline const string& getName(){return name_; }
   inline const int& getId() const {return id_; }
   inline const int& getAngleSgn() const {return angle_sgn_; }
   inline const int& getZeroPointOffset() const {return zero_point_offset_; }
   inline const double& getAngleScale() const {return angle_scale_; }
+  inline const double& getVelocityScale() const {return velocity_scale_; }
   inline const double& getTorqueScale() const {return torque_scale_; }
 
 private:
@@ -197,11 +258,14 @@ private:
   double target_angle_val_; // radian
   double curr_torque_val_; // Nm
   double target_torque_val_; // Nm
+  double curr_velocity_val_; // rad/s
+  double target_velocity_val_; // rad/s
   int angle_sgn_;
   int zero_point_offset_;
   double angle_scale_;
   double lower_limit_, upper_limit_;
   double torque_scale_;
+  double velocity_scale_;
 
   bool receive_real_state_;
   bool filter_flag_;
@@ -217,6 +281,16 @@ using ServoGroupHandler= vector<SingleServoHandlePtr>;
 class ServoBridge
 {
 protected:
+  enum class StartupTorqueState
+  {
+    DISABLED,
+    WAITING_FOR_CONFIG,
+    WAITING_FOR_FEEDBACK,
+    WAITING_FOR_TORQUE_CONFIRMATION,
+    READY,
+    FAILED
+  };
+
   ros::NodeHandle nh_;
   ros::NodeHandle nhp_;
 
@@ -229,7 +303,6 @@ protected:
   map<string, ros::Subscriber> servo_torque_subs_;
   map<string, bool> no_real_state_flags_;
   map<string, ros::Publisher> servo_target_pos_pubs_;
-  map<string, ros::Publisher> servo_target_torque_pubs_;
   map<string, ros::ServiceServer> servo_enable_srvs_;
   map<string, ros::Publisher> servo_enable_pubs_;
   map<string, vector<ros::Publisher> > servo_target_pos_sim_pubs_; // TODO: should be actionlib, trajectory controller
@@ -239,13 +312,35 @@ protected:
   double moving_angle_thresh_;
   bool send_init_joint_pose_;
   bool simulation_mode_;
+  bool auto_configure_direct_servo_;
+  map<string, bool> startup_torque_enable_;
+  map<uint8_t, bool> startup_expected_torque_enable_;
+  bool startup_torque_params_valid_;
+  StartupTorqueState startup_torque_state_;
+  set<uint8_t> startup_all_servo_ids_;
+  set<uint8_t> startup_real_state_servo_ids_;
+  set<uint8_t> startup_expected_feedback_ids_;
+  set<uint8_t> startup_received_feedback_ids_;
+  ros::Time startup_feedback_barrier_stamp_;
+  ros::WallTimer direct_servo_config_timer_;
+  ros::WallTimer startup_torque_timeout_timer_;
+  std::function<bool()> direct_servo_configure_;
   int send_init_joint_pose_cnt_;
 
   void servoStatesCallback(const spinal::ServoStatesConstPtr& state_msg, const std::string& servo_group_name);
+  void servoTorqueStatesCallback(const spinal::ServoTorqueStatesConstPtr& state_msg);
   void servoCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
   void servoTorqueCtrlCallback(const sensor_msgs::JointStateConstPtr& joints_ctrl_msg, const std::string& servo_group_name);
   bool servoEnableCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res, const std::string& servo_group_name);
+  void updateStartupFeedback(const spinal::ServoStates& state_msg);
+  void applyStartupTorqueConfig();
+  bool publishServoTorque(const map<uint8_t, bool>& torque_enable);
+  bool publishAllServoTorque(bool enable);
+  void startStartupTorqueTimeout(double timeout);
+  void startupTorqueTimeoutCallback(const ros::WallTimerEvent& event);
+  void failStartupTorque(const std::string& reason);
   void uavInfoCallback(const spinal::UavInfoConstPtr& uav_msg);
+  void directServoConfigTimerCallback(const ros::WallTimerEvent& event);
 
 public:
   ServoBridge(ros::NodeHandle nh, ros::NodeHandle nhp);

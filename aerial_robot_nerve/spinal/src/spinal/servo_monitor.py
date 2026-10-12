@@ -3,7 +3,7 @@ import os
 import rospy
 import rospkg
 from spinal.srv import *
-from spinal.msg import ServoTorqueCmd, ServoStates, ServoTorqueStates
+from spinal.msg import ServoInfo, ServoTorqueCmd, ServoStates, ServoTorqueStates
 
 from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
@@ -22,6 +22,41 @@ PYTHON_VERSION = sys.version_info[0]
 
 if PYTHON_VERSION == 3:
     from functools import reduce
+
+CONTROL_MODE_NAMES = {
+    ServoInfo.MODE_DP: 'DP',
+    ServoInfo.MODE_DV: 'DV',
+    ServoInfo.MODE_DC: 'DC',
+    ServoInfo.MODE_MIT: 'MIT',
+    ServoInfo.MODE_EM: 'EM',
+    ServoInfo.MODE_DEP: 'DEP',
+    ServoInfo.MODE_CBP: 'CbP',
+}
+SERVO_MODE_NAMES = {
+    ServoInfo.SERVO_MODE_CURRENT: 'Current',
+    ServoInfo.SERVO_MODE_VELOCITY: 'Velocity',
+    ServoInfo.SERVO_MODE_POSITION: 'Position',
+    ServoInfo.SERVO_MODE_EXTENDED_POSITION: 'Extended Position',
+    ServoInfo.SERVO_MODE_CURRENT_BASED_POSITION: 'Current-based Position',
+    ServoInfo.SERVO_MODE_UNKNOWN: 'Unknown',
+}
+BUS_NAMES = {
+    ServoInfo.BUS_RS485: 'R',
+    ServoInfo.BUS_TTL: 'T',
+    ServoInfo.BUS_UNKNOWN: 'Unknown',
+}
+EXPECTED_SERVO_MODE = {
+    'DP': 'Position',
+    'DEP': 'Extended Position',
+    'DV': 'Velocity',
+    'DC': 'Current',
+    'MIT': 'Current',
+    'CbP': 'Current-based Position',
+}
+
+def format_mit_gain(integer, decimal):
+    return '{}.{:04d}'.format(integer, decimal)
+
 
 class ServoMonitor(Plugin):
 
@@ -95,7 +130,11 @@ class ServoMonitor(Plugin):
             self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
         # Add widget to the user interface
         context.add_widget(self._widget)
-        self._headers = ["torque", "joint name", "board", "index", "id", "angle", "temperature", "load", "error", "pid_gains", "profile_velocity", "current_limit", "send_data_flag"]
+        self._headers = ["torque", "configured", "bus", "mode",
+                         "servo_mode", "mit_pd_raw", "joint name", "board", "index",
+                         "id", "angle", "temperature", "load", "error",
+                         "pid_gains", "profile_velocity", "current_limit",
+                         "send_data_flag"]
 
         self._widget.setLayout(self._widget.gridLayout)
         self.joint_id_name_map = {}
@@ -175,15 +214,10 @@ class ServoMonitor(Plugin):
             return
         
         board_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("board")).text())
-        servo_id = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())
-        req = None
-        if(board_id == 0):
-            req = SetDirectServoConfigRequest()
-            req.data.append(servo_id)
-        else:
-            req = SetBoardConfigRequest()
-            req.data.append(board_id)
-            req.data.append(servo_id)
+        board_servo_index = int(self._widget.servoTableWidget.item(servo_index, self._headers.index("index")).text())
+        req = SetDirectServoConfigRequest()
+        req.board_id = board_id
+        req.servo_index = board_servo_index
         try:
             req.data.append(int(self._widget.homingOffsetLineEdit.text()))
         except ValueError as e:
@@ -202,13 +236,10 @@ class ServoMonitor(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            if(board_id == 0):
-                res = self.set_direct_servo_config_client_(req)
-            else:
-                res = self.set_board_config_client_(req)
+            res = self.set_direct_servo_config_client_(req)
             rospy.loginfo(bool(res.success))
         except rospy.ServiceException as e:
-            print("/set_board_config service call failed: %s"%e)
+            print("/direct_servo_config service call failed: %s"%e)
 
     def boardReboot(self):
         servo_index = self._widget.servoTableWidget.currentIndex().row()
@@ -289,10 +320,21 @@ class ServoMonitor(Plugin):
                 item = QTableWidgetItem(str(self._table_data[i][j]))
 
                 self._widget.servoTableWidget.setItem(i, j, item)
-                if j == 0 and item.text() == "on":
+                if j == self._headers.index("torque") and item.text() == "on":
                     item.setBackground(Qt.cyan)
-                elif j == 0 and item.text() == "off":
+                elif j == self._headers.index("torque") and item.text() == "off":
                     item.setBackground(Qt.gray)
+                elif j == self._headers.index("configured") and item.text() == "False":
+                    item.setBackground(Qt.red)
+                elif j in (self._headers.index("mode"),
+                            self._headers.index("servo_mode")):
+                    control_mode = self._table_data[i][self._headers.index("mode")]
+                    servo_mode = self._table_data[i][self._headers.index("servo_mode")]
+                    if control_mode == 'Unknown' or servo_mode == 'Unknown':
+                        item.setBackground(Qt.yellow)
+                    elif (control_mode in EXPECTED_SERVO_MODE and
+                          EXPECTED_SERVO_MODE[control_mode] != servo_mode):
+                        item.setBackground(Qt.red)
 
         for i, h in enumerate(self._headers):
             item = QTableWidgetItem(str(h))
@@ -316,6 +358,16 @@ class ServoMonitor(Plugin):
                 for i, s in enumerate(b.servos):
                     rowData = []
                     rowData.append(None)
+                    rowData.append(str(bool(s.configured)))
+                    rowData.append(BUS_NAMES.get(s.bus_type, 'Unknown'))
+                    rowData.append(CONTROL_MODE_NAMES.get(s.mode, 'Unknown'))
+                    rowData.append(SERVO_MODE_NAMES.get(s.servo_mode, 'Unknown'))
+                    rowData.append('Kp={}, Kd={}, EffortLimit={}'.format(
+                        format_mit_gain(
+                            s.mit_kp_integer, s.mit_kp_decimal),
+                        format_mit_gain(
+                            s.mit_kd_integer, s.mit_kd_decimal),
+                        s.mit_current_limit))
                     rowData.append(self.joint_id_name_map.get(servo_index))
                     servo_index += 1
                     rowData.append(b.slave_id)

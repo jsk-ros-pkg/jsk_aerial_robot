@@ -2,4 +2,6 @@ uint8 slave_id
 uint8 imu_send_data_flag
 uint8 dynamixel_ttl_rs485_mixed
 uint16 servo_pulley_skip_thresh
+uint16 servo_feedback_frequency
+float32 servo_target_watchdog_timeout
 spinal/ServoInfo[] servos

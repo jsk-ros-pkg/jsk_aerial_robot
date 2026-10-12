@@ -10,6 +10,7 @@
 #endif
 
 #include "imu_mpu9250.h"
+#include <string.h>
 
 uint8_t IMU::adc_[SENSOR_DATA_LENGTH];
 
@@ -184,15 +185,28 @@ void IMU::pollingRead()
   if(i == MAG_PRESCALER) i = 0;
   else i++;
 
-  update_ = true;
+  __atomic_store_n(&update_, true, __ATOMIC_RELEASE);
 }
 
 void IMU::sendData()
 {
 	if (!(send_data_flag_ != 0)) return;
+	/* only send once per new sensor reading */
+	if (!__atomic_exchange_n(&update_, false, __ATOMIC_ACQ_REL)) return;
+#ifdef STM32G4
+	/* one CAN FD frame: [version, sequence, reserved x2, gyro, acc, mag, reserved x2] */
+	uint8_t data[CAN::CANFD_IMU_STATE_DLC] = {};
+	data[0] = CAN::CANFD_PROTOCOL_VERSION;
+	data[1] = state_sequence_++;
+	memcpy(data + 4, gyro_.data(), 6);
+	memcpy(data + 10, acc_.data(), 6);
+	memcpy(data + 16, mag_.data(), 6);
+	sendMessage(CAN::MESSAGEID_SEND_IMU_STATE, m_slave_id, CAN::CANFD_IMU_STATE_DLC, data, 1);
+#else
 	sendMessage(CAN::MESSAGEID_SEND_GYRO, m_slave_id, 6, reinterpret_cast<uint8_t*>(gyro_.data()), 1);
 	sendMessage(CAN::MESSAGEID_SEND_ACC, m_slave_id, 6, reinterpret_cast<uint8_t*>(acc_.data()), 1);
 	sendMessage(CAN::MESSAGEID_SEND_MAG, m_slave_id, 6, reinterpret_cast<uint8_t*>(mag_.data()), 1);
+#endif
 }
 
 void IMU::receiveDataCallback(uint8_t message_id, uint32_t DLC, uint8_t* data)

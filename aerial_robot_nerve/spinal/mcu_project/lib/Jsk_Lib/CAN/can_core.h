@@ -23,7 +23,8 @@
 namespace CAN {
   void init(CAN_HandleTypeDef* hcan);
   CAN_HandleTypeDef* getHcanInstance();
-  void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
+  bool sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
+  uint32_t getTxDropCount();
 
   inline void CAN_START()
   {
@@ -59,7 +60,8 @@ namespace CAN {
 namespace CAN {
   void init(FDCAN_HandleTypeDef* hfdcan);
   FDCAN_HandleTypeDef* getHcanInstance();
-  void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
+  bool sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t DLC, uint8_t* data, uint32_t timeout);
+  uint32_t getTxDropCount();
 
   inline void CAN_START()
   {
@@ -99,7 +101,14 @@ namespace CAN {
     case FDCAN_DLC_BYTES_64:
       return 64;
     }
+    return 0;
+  }
 
+  inline bool validFrameFormat(FDCAN_RxHeaderTypeDef rx_header,
+                               uint32_t dlc) {
+    return (rx_header.FDFormat == FDCAN_CLASSIC_CAN && dlc <= 8) ||
+           (rx_header.FDFormat == FDCAN_FD_CAN &&
+            rx_header.BitRateSwitch == FDCAN_BRS_ON);
   }
 }
 

@@ -1,10 +1,19 @@
 servo_controller:
+  auto_configure_direct_servo: true
+  servo_feedback_frequency: 50 # keep previous dragon settings
+  servo_target_watchdog: 0.1
+  dynamixel_ttl_rs485_mixed: true
+  clamp_joint_position_from_urdf: true
 
   joints:
+    startup_torque_enable: false # desired torque state after valid group feedback
     angle_sgn: 1
     angle_scale: 0.00076699
+    velocity_scale: 0.01199041 # 0.229 [rev/min] -> rad/s, scaled by 2:1 pulley
     zero_point_offset: 2047
     torque_scale:  0.0106 # 0.0036 [A/bit] * (3.4 / 2.3) [Nm/A] * 2 (pulley)
+    mode: CbP # Current-based Position control mode
+    bus_type: R
 
     # for low pass filter
     filter_flag: true
@@ -46,12 +55,16 @@ servo_controller:
         init_value: 1.57
 
   gimbals:
+    startup_torque_enable: false # desired torque state after valid group feedback
     no_real_state: false # true if there is no servo state from real machine
     # ctrl_pub_topic: hoge # other topic than the common one:  "servo/target_states", if necessary
 
     angle_sgn: 1
     angle_scale: 0.001534
+    velocity_scale: 0.02398082 # 0.229 [rev/min] -> rad/s
     zero_point_offset: 2047
+    mode: CbP # Current-based Position control mode
+    bus_type: T
 
     simulation:
       pid: {p: 50.0, i: 0.01, d: 1.0, i_clamp_min: -3.0, i_clamp_max: 3.0}
@@ -64,22 +77,25 @@ servo_controller:
     controller2:
       id: 2
       name: gimbal1_pitch
+      mode: DEP # Extended Position Control
     controller3:
       id: 7
       name: gimbal2_roll
     controller4:
       id: 6
       name: gimbal2_pitch
+      mode: DEP # Extended Position Control
     controller5:
       id: 11
       name: gimbal3_roll
     controller6:
       id: 10
       name: gimbal3_pitch
+      mode: DEP # Extended Position Control
     controller7:
       id: 13
       name: gimbal4_roll
     controller8:
       id: 12
       name: gimbal4_pitch
-
+      mode: DEP # Extended Position Control

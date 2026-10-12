@@ -19,7 +19,7 @@
 
   <include file="$(find rosserial_server)/launch/serial.launch" >
     <arg name="port" value="/dev/ttyUSB0" />
-    <arg name="baud" value="921600" />
+    <arg name="baud" value="2000000" />
   </include>
 
   <node name="motor_test_node" pkg="motor_test" type="motor_test_node"  output="screen">

@@ -12,6 +12,7 @@
 #include <CAN/can_device_manager.h>
 #include <sensors/imu/imu_ros_cmd.h>
 #include <Neuron/neuron.h>
+#include <servo/servo.h>
 
 #include <state_estimate/state_estimate.h>
 #include "flight_control/flight_control.h"
@@ -23,12 +24,14 @@
 #include <spinal/UavInfo.h>
 #include <CANDevice/initializer/can_initializer.h>
 #include <spinal/ServoStates.h>
+#include <spinal/BoardStates.h>
 #include <spinal/ServoControlCmd.h>
 #include <spinal/ServoTorqueCmd.h>
 #include <spinal/ServoTorqueStates.h>
 #include <spinal/Gyro.h>
 #include <spinal/GetBoardInfo.h>
 #include <spinal/SetBoardConfig.h>
+#include <spinal/SetDirectServoConfig.h>
 
 /* STL */
 #include <algorithm>
@@ -50,7 +53,11 @@ namespace Spine
 {
   void send(void);
   void update(void);
-  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh, StateEstimate* estimator, FlightControl* controller, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
+  bool init(CAN_GeranlHandleTypeDef* hcan, ros::NodeHandle* nh,
+            StateEstimate* estimator, FlightControl* controller,
+            GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin,
+            DirectServo* direct_servo = nullptr,
+            const DirectServoBoardSettings* direct_servo_settings = nullptr);
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
   bool connected();
@@ -63,7 +70,9 @@ namespace Spine
   void servoCurrentCallback(const spinal::ServoControlCmd& control_msg);
   void servoTorqueControlCallback(const spinal::ServoTorqueCmd& control_msg);
   void boardInfoCallback(const spinal::GetBoardInfo::Request& req, spinal::GetBoardInfo::Response& res);
-  void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res);
+	  void boardConfigCallback(const spinal::SetBoardConfig::Request& req, spinal::SetBoardConfig::Response& res);
+	  void servoConfigCallback(const spinal::SetDirectServoConfig::Request& req,
+	                           spinal::SetDirectServoConfig::Response& res);
 };
 
 #endif

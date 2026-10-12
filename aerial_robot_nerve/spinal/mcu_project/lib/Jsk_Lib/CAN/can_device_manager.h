@@ -40,6 +40,7 @@ namespace CANDeviceManager
   void useRTOS(osMailQId* handle);
   void tick(int cycle /* ms */);
   bool connected();
+  uint32_t getRxDropCount();
   void receiveMessage();
   void CAN_START();
 }

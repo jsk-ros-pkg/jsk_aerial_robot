@@ -1,4 +1,34 @@
+uint8 MODE_DP=0
+uint8 MODE_DV=1
+uint8 MODE_DC=2
+uint8 MODE_MIT=3
+uint8 MODE_EM=4
+uint8 MODE_DEP=5
+uint8 MODE_CBP=6
+uint8 MODE_UNKNOWN=255
+
+uint8 SERVO_MODE_CURRENT=0
+uint8 SERVO_MODE_VELOCITY=1
+uint8 SERVO_MODE_POSITION=3
+uint8 SERVO_MODE_EXTENDED_POSITION=4
+uint8 SERVO_MODE_CURRENT_BASED_POSITION=5
+uint8 SERVO_MODE_UNKNOWN=255
+
+uint8 BUS_RS485=82
+uint8 BUS_TTL=84
+uint8 BUS_UNKNOWN=255
+uint16 GAIN_DECIMAL_SCALE=10000
+
 uint8 id
+bool configured
+uint8 bus_type
+uint8 mode
+uint8 servo_mode
+int16 mit_kp_integer
+int16 mit_kp_decimal
+int16 mit_kd_integer
+int16 mit_kd_decimal
+uint16 mit_current_limit
 uint16 p_gain
 uint16 i_gain
 uint16 d_gain
@@ -6,6 +36,5 @@ uint16 profile_velocity
 uint16 current_limit
 uint8 send_data_flag
 uint8 external_encoder_flag
-int16 joint_resolution
-int16 servo_resolution
-
+uint16 joint_resolution
+uint16 servo_resolution

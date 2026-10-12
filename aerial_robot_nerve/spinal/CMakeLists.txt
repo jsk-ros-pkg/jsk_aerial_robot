@@ -21,6 +21,8 @@ add_message_files(
   PMatrixPseudoInverseWithInertia.msg
   ServoInfo.msg
   BoardInfo.msg
+  BoardState.msg
+  BoardStates.msg
   ServoState.msg
   ServoStates.msg
   ServoControlCmd.msg

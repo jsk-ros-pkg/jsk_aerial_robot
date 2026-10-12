@@ -76,6 +76,22 @@ const int SPIN_UNAVAILABLE = -3;
     }
 #endif
 
+    /* Serialize the shared rosserial output buffer and enqueue it atomically. */
+    int publish(int id, const Msg* msg) override
+    {
+#if SUPPORT_RTOS
+      if (!parent::hardware_.lock())
+        return -1;
+#endif
+
+      const int result = parent::publish(id, msg);
+
+#if SUPPORT_RTOS
+      parent::hardware_.unlock();
+#endif
+      return result;
+    }
+
     /* This function goes in your loop() function, it handles
      *  serial tx data and ouput for publishers.
      */

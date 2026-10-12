@@ -39,6 +39,7 @@ namespace CANDeviceManager
   void tick(int cycle /* ms */);
   void resetTick();
   bool isTimeout();
+  uint32_t getRxDropCount();
   void userSendMessages();
   void userReceiveMessagesCallback(uint8_t slave_id, uint8_t device_id, uint8_t message_id, uint32_t DLC, uint8_t* data);
   void CAN_START();

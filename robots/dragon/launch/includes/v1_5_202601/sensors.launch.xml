@@ -13,7 +13,7 @@
         <include file="$(find spinal)/launch/bridge.launch" >
           <arg name="mode" value="serial" />
           <arg name="serial_port" value="/dev/flight_controller" />
-          <arg name="serial_baud" value="921600" />
+          <arg name="serial_baud" value="2000000" />
         </include>
 
         <!-- mocap -->

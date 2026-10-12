@@ -154,6 +154,8 @@ private:
 
 #if SUPPORT_RTOS
   osMutexId *tx_mutex_;
+  osThreadId tx_mutex_owner_;
+  uint16_t tx_mutex_depth_;
   bool rtos_mode_;
 #endif
 
@@ -171,6 +173,9 @@ public:
   {
 #if SUPPORT_RTOS
     rtos_mode_ = false;
+    tx_mutex_ = NULL;
+    tx_mutex_owner_ = NULL;
+    tx_mutex_depth_ = 0;
 #endif
 
 #if SUPPORT_LWIP
@@ -183,7 +188,8 @@ public:
 
 #if SUPPORT_RTOS
   void init(UART_HandleTypeDef* huart, osMutexId* mutex, osSemaphoreId  *semaphore);
-  
+  bool lock();
+  void unlock();
 #endif
 
 #if SUPPORT_LWIP

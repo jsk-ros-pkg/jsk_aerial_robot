@@ -278,12 +278,15 @@ int main(void)
 
   DirectServo* servoptr = nullptr;
   bool servo_connect = servo_.init(&huart2, &nh_, NULL);
+  const DirectServoBoardSettings direct_servo_settings =
+    servo_.getBoardSettings();
   if(servo_connect) servoptr = &servo_;
 
   controller_.init(&htim1, &htim4, &estimator_, dshotptr, servoptr, &battery_status_, &nh_, &flightControlMutexHandle);
 
-  bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
-  if(nerve_connect) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spianl
+  bool nerve_connect = Spine::init(
+    &hfdcan1, &nh_, &estimator_, &controller_,
+    LED1_GPIO_Port, LED1_Pin, servoptr, &direct_servo_settings);
 
   /* USER CODE END 2 */
 
@@ -311,6 +314,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
+  if (servo_connect && !servo_.createRTOSObjects()) Error_Handler();
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* Create the timer(s) */
@@ -327,8 +331,9 @@ int main(void)
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* add mail queue for CAN RX */
-  osMailQDef(CanMail, 10, can_msg); // defualt: 20 for 8 data bytes (in case of initializer sendBoardConfig (4 servo: 1 + 4 x 3 = 13 packets)); 10 for 64 data bytes
+  osMailQDef(CanMail, 20, can_msg); // one complete 4-servo config snapshot is 17 CAN frames
   canMsgMailHandle = osMailCreate(osMailQ(CanMail), NULL);
+  if (nerve_connect && canMsgMailHandle != NULL) Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spinal
 
   /* USER CODE END RTOS_QUEUES */
 
@@ -563,7 +568,7 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.MessageRAMOffset = 0;
   hfdcan1.Init.StdFiltersNbr = 1;
   hfdcan1.Init.ExtFiltersNbr = 0;
-  hfdcan1.Init.RxFifo0ElmtsNbr = 1;
+  hfdcan1.Init.RxFifo0ElmtsNbr = 8;
   hfdcan1.Init.RxFifo0ElmtSize = FDCAN_DATA_BYTES_64;
   hfdcan1.Init.RxFifo1ElmtsNbr = 0;
   hfdcan1.Init.RxFifo1ElmtSize = FDCAN_DATA_BYTES_8;
@@ -903,7 +908,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 921600;
+  huart1.Init.BaudRate = 2000000;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;

@@ -14,10 +14,15 @@ namespace CAN {
   namespace {
     //CAN bus registers
     CAN_HandleTypeDef* hcan_;
+    volatile uint32_t tx_drop_count = 0;
 
-    CAN_TxHeaderTypeDef tx_header_;
-    uint32_t tx_mailbox_;
-    uint8_t tx_data_[8];
+    void recordTxDrop()
+    {
+      uint32_t primask = __get_PRIMASK();
+      __disable_irq();
+      tx_drop_count++;
+      if (primask == 0U) __enable_irq();
+    }
   }
 
   void init(CAN_HandleTypeDef* hcan, uint8_t slave_id)
@@ -51,8 +56,6 @@ namespace CAN {
     sFilterConfig.FilterActivation = ENABLE;
     HAL_CAN_ConfigFilter(hcan_, &sFilterConfig);
 
-    tx_header_.RTR = CAN_RTR_DATA;
-    tx_header_.IDE = CAN_ID_STD;
   }
 
   CAN_HandleTypeDef* getHcanInstance()
@@ -60,21 +63,42 @@ namespace CAN {
     return hcan_;
   }
 
-  void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout)
+  uint32_t getTxDropCount()
   {
-    tx_header_.StdId = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
-    tx_header_.DLC = dlc;
-    memcpy(tx_data_, data, sizeof(uint8_t) * dlc);
+    return tx_drop_count;
+  }
+
+  bool sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout)
+  {
+    if (dlc > 8 || (dlc > 0 && data == nullptr)) {
+      recordTxDrop();
+      return false;
+    }
+
+    CAN_TxHeaderTypeDef tx_header = {};
+    uint32_t tx_mailbox = 0;
+    uint8_t tx_data[8] = {};
+    tx_header.RTR = CAN_RTR_DATA;
+    tx_header.IDE = CAN_ID_STD;
+    tx_header.StdId = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+    tx_header.DLC = dlc;
+    if (dlc > 0) memcpy(tx_data, data, sizeof(uint8_t) * dlc);
 
     uint32_t tickstart = HAL_GetTick();
     while (1) {
-
-      if(HAL_CAN_GetTxMailboxesFreeLevel(hcan_) > 0){
-        HAL_CAN_AddTxMessage(hcan_, &tx_header_, tx_data_, &tx_mailbox_);
-        return;
+      HAL_StatusTypeDef status = HAL_BUSY;
+      uint32_t primask = __get_PRIMASK();
+      __disable_irq();
+      if (HAL_CAN_GetTxMailboxesFreeLevel(hcan_) > 0) {
+        status = HAL_CAN_AddTxMessage(hcan_, &tx_header, tx_data, &tx_mailbox);
       }
+      if (primask == 0U) __enable_irq();
+      if (status == HAL_OK) return true;
 
-      if((timeout == 0U)||((HAL_GetTick() - tickstart ) > timeout)) return;
+      if ((timeout == 0U) || ((HAL_GetTick() - tickstart) > timeout)) {
+        recordTxDrop();
+        return false;
+      }
     }
   }
 }
@@ -86,8 +110,15 @@ namespace CAN {
   namespace {
     //CAN bus registers
     FDCAN_HandleTypeDef* hfdcan_;
-    FDCAN_TxHeaderTypeDef tx_header_;
-    uint8_t tx_data_[64];
+    volatile uint32_t tx_drop_count = 0;
+
+    void recordTxDrop()
+    {
+      uint32_t primask = __get_PRIMASK();
+      __disable_irq();
+      tx_drop_count++;
+      if (primask == 0U) __enable_irq();
+    }
   }
 
   void init(FDCAN_HandleTypeDef* hfdcan, uint8_t slave_id)
@@ -121,15 +152,6 @@ namespace CAN {
     */
     HAL_FDCAN_ConfigGlobalFilter(hfdcan_, FDCAN_REJECT, FDCAN_REJECT, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE);
 
-    tx_header_.IdType = FDCAN_STANDARD_ID;
-    tx_header_.TxFrameType = FDCAN_DATA_FRAME;
-    tx_header_.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-
-    tx_header_.BitRateSwitch = FDCAN_BRS_ON; // FDCAN_BRS_OFF;
-
-    tx_header_.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
-    tx_header_.MessageMarker = 0;
-
     // www.programmersought.com/article/43428259685/#TDC_568
     // The SSP location is defined as the sum of the measurement delay from the FDCAN_TX
     // pin to the FDCAN_RX pin, plus the transmitter delay compensation offset configured
@@ -144,71 +166,93 @@ namespace CAN {
     return hfdcan_;
   }
 
-  void sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout)
+  uint32_t getTxDropCount()
   {
-    tx_header_.Identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+    return tx_drop_count;
+  }
 
-    if (dlc <= 8) { // calssic  model
-      tx_header_.FDFormat = FDCAN_CLASSIC_CAN;
-      tx_header_.DataLength =  dlc << 16;
+  bool sendMessage(uint8_t device_id, uint8_t message_id, uint8_t slave_id, uint32_t dlc, uint8_t* data, uint32_t timeout)
+  {
+    if (dlc > 64 || (dlc > 0 && data == nullptr)) {
+      recordTxDrop();
+      return false;
     }
-    else {
-      tx_header_.FDFormat = FDCAN_FD_CAN;
+
+    FDCAN_TxHeaderTypeDef tx_header = {};
+    uint8_t tx_data[64] = {};
+    tx_header.Identifier = (((device_id & ((1 << DEVICE_ID_LEN) - 1))  << (MESSAGE_ID_LEN + SLAVE_ID_LEN))) | ((message_id & ((1 << MESSAGE_ID_LEN) - 1)) << SLAVE_ID_LEN) | (slave_id & ((1 << SLAVE_ID_LEN) - 1));
+    tx_header.IdType = FDCAN_STANDARD_ID;
+    tx_header.TxFrameType = FDCAN_DATA_FRAME;
+    tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    tx_header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    tx_header.MessageMarker = 0;
+
+    if (dlc <= 8) {
+      tx_header.FDFormat = FDCAN_CLASSIC_CAN;
+      tx_header.BitRateSwitch = FDCAN_BRS_OFF;
+      tx_header.DataLength = dlc << 16;
+    } else {
+      tx_header.FDFormat = FDCAN_FD_CAN;
+      tx_header.BitRateSwitch = FDCAN_BRS_ON;
       switch(dlc) {
       case 12:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_12;
+          tx_header.DataLength = FDCAN_DLC_BYTES_12;
           break;
         }
       case 16:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_16;
+          tx_header.DataLength = FDCAN_DLC_BYTES_16;
           break;
         }
       case 20:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_20;
+          tx_header.DataLength = FDCAN_DLC_BYTES_20;
           break;
         }
       case 24:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_24;
+          tx_header.DataLength = FDCAN_DLC_BYTES_24;
           break;
         }
       case 32:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_32;
+          tx_header.DataLength = FDCAN_DLC_BYTES_32;
           break;
         }
       case 48:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_48;
+          tx_header.DataLength = FDCAN_DLC_BYTES_48;
           break;
         }
       case 64:
         {
-          tx_header_.DataLength = FDCAN_DLC_BYTES_64;
+          tx_header.DataLength = FDCAN_DLC_BYTES_64;
           break;
         }
       default:
         {
-          // Not supported
-          return;
+          recordTxDrop();
+          return false;
         }
       }
     }
 
-    memcpy(tx_data_, data, sizeof(uint8_t) * dlc);
+    if (dlc > 0) memcpy(tx_data, data, sizeof(uint8_t) * dlc);
 
     uint32_t tickstart = HAL_GetTick();
     while (1) {
+      uint32_t primask = __get_PRIMASK();
+      __disable_irq();
+      HAL_StatusTypeDef status = HAL_FDCAN_AddMessageToTxFifoQ(
+        getHcanInstance(), &tx_header, tx_data);
+      if (primask == 0U) __enable_irq();
+      if (status == HAL_OK) return true;
 
-      if(HAL_FDCAN_AddMessageToTxFifoQ(getHcanInstance(), &tx_header_, tx_data_) == HAL_OK)
-        {
-          return;
-        }
-
-      if((timeout == 0U)||((HAL_GetTick() - tickstart ) > timeout)) return;
+      if ((timeout == 0U) || ((HAL_GetTick() - tickstart) > timeout)) {
+        recordTxDrop();
+        return false;
+      }
     }
   }
 }
