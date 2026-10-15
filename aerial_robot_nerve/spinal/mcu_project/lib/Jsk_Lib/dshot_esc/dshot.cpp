@@ -38,33 +38,45 @@ void DShot::write(uint16_t* motor_value_array, bool is_telemetry)
   {
     if (num_freq_divide == 1)
     {
-      // send telemetry
       id_telem_ = id_telem_ % 4;
-      is_telemetry_array[id_telem_] = true;
 
       // receive the telemetry of the previous round
+      bool cycle_ok = true;
       if (id_telem_prev_ != -1)
       {
+        bool ok = false;
         switch (id_telem_prev_)
         {
           case 0:
-            esc_reader_.update(esc_reader_.esc_msg_1_);
+            ok = esc_reader_.update(esc_reader_.esc_msg_1_);
             break;
           case 1:
-            esc_reader_.update(esc_reader_.esc_msg_2_);
+            ok = esc_reader_.update(esc_reader_.esc_msg_2_);
             break;
           case 2:
-            esc_reader_.update(esc_reader_.esc_msg_3_);
+            ok = esc_reader_.update(esc_reader_.esc_msg_3_);
             break;
           case 3:
-            esc_reader_.update(esc_reader_.esc_msg_4_);
-            esc_reader_.is_update_all_msg_ = true;
+            ok = esc_reader_.update(esc_reader_.esc_msg_4_);
+            if (ok) esc_reader_.is_update_all_msg_ = true;
             break;
         }
+        if (!ok) cycle_ok = false;
       }
 
-      id_telem_prev_ = id_telem_;
-      id_telem_++;
+      if (cycle_ok)
+      {
+        // send telemetry request for current motor
+        is_telemetry_array[id_telem_] = true;
+        id_telem_prev_ = id_telem_;
+        id_telem_++;
+      }
+      else
+      {
+        // reset cycle to motor 0; no telemetry bit sent this cycle
+        id_telem_ = 0;
+        id_telem_prev_ = -1;
+      }
 
       num_freq_divide = 0;
     }
