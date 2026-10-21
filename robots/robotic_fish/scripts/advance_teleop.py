@@ -314,7 +314,7 @@ class Teleop():
             self.motor_acc = 0.5 * (msg.axes[3] - 1.0) - 0.5 * (msg.axes[4] - 1.0)
             if math.fabs(self.motor_acc) < self.joy_dead_zone:
                 self.motor_acc = 0
-            rospy.loginfo("accelerate, acc = %s", self.motor_acc)
+            rospy.loginfo("accelerate, acc = %.2f, cruise speed = %.2f", self.motor_acc, self.motor_cruise_speed / math.pi)
         else:
             self.motor_acc = 0
 
