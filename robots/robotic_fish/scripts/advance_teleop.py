@@ -27,8 +27,17 @@ class Teleop():
         self.imu_angle_raw = rospy.get_param('imu_angle_raw', 0.0)
         self.tar_angle_ref = rospy.get_param('~tar_angle_ref', 0.0)
         self.servo_axis = 0.0
+
         self.motor_acc = 0.0
         self.motor_acc_rate = rospy.get_param('~motor_acc_rate', 1.0)
+        self.motor_cruise_speed = 0.0
+        self.motor_vari_enable = True # True: variable speed, False: constant speed
+        self.motor_vari_cmd = rospy.get_param('~motor_vari_cmd', 0.0)
+        self.motor_vari_rate = rospy.get_param('~motor_vari_rate', 0.5)
+        self.motor_vari_min_rate = rospy.get_param('~motor_vari_min_rate', 0.05)
+        self.motor_vari_dec_speed = rospy.get_param('~motor_vari_dec_speed', 6.0 * math.pi)
+        self.motor_vari_speed = rospy.get_param('~motor_vari_speed', 10.0 * math.pi)
+        self.motor_pos_control = False
         self.auto_control_mode = False
         self.auto_pattern = 'stop'
         self.auto_button_prev = 0
@@ -114,12 +123,14 @@ class Teleop():
         self.servo_cmd[servo_no] = cmd
 
     def start_auto(self):
+        self.motor_pos_control = False
         self.auto_control_mode = True
         self.auto_pattern = 'fast_start'
         self.auto_start_time = rospy.Time.now()
         rospy.loginfo("start auto mode")
 
     def start_fast_turn(self, tar_angle):
+        self.motor_pos_control = False
         self.auto_control_mode = True
         self.auto_pattern = 'fast_turn'
         self.fast_turn_tar_angle = tar_angle
@@ -131,9 +142,30 @@ class Teleop():
         if not self.auto_pattern == 'cruise':
             rospy.loginfo("start cruise")
         self.auto_pattern = 'cruise'
-        self.servo_cmd[1] = 4.0 * math.pi
+        self.motor_pos_control = False
+        self.motor_cruise_speed = 3.0 * math.pi
+        self.servo_cmd[1] = self.motor_cruise_speed
+
+    def motor_vari(self):
+        speed = self.motor_cruise_speed
+        if speed == 0:
+            return 0.0
+
+        phase = ((self.motor_equ_angles - 1024.0) % 2048.0) / 2048.0
+        if speed < 0:
+            phase = ((1024.0 - self.motor_equ_angles) % 2048.0) / 2048.0
+
+        rate = max(0.0, min(self.motor_vari_rate, 0.99))
+        min_rate = max(0.0, min(self.motor_vari_min_rate, rate))
+        speed_range = max(self.motor_vari_speed - self.motor_vari_dec_speed, 0.001)
+        speed_rate = max(0.0, min((math.fabs(speed) - self.motor_vari_dec_speed) / speed_range, 1.0))
+        rate += (min_rate - rate) * speed_rate
+        # Constant angular deceleration: speed squared is linear in angle.
+        return speed * (math.sqrt(1.0 + rate * (1.0 - 2.0 * phase)) - 1.0)
+
 
     def stop_auto(self):
+        self.motor_pos_control = False
         self.auto_control_mode = False
         if not self.auto_pattern == 'stop':
             rospy.loginfo("motor stop.")
@@ -148,11 +180,7 @@ class Teleop():
             servo_tar = 1024.0
 
         self.pos_control(0, servo_tar, 1.0)
-        self.servo_cmd[1] += self.motor_acc * self.motor_acc_rate
-        if self.servo_cmd[1] > self.max_val:
-            self.servo_cmd[1] = self.max_val
-        if self.servo_cmd[1] < -self.max_val:
-            self.servo_cmd[1] = -self.max_val
+        self.motor_cruise_speed += self.motor_acc * self.motor_acc_rate
 
     def stop_control(self):
         self.pos_control(0, 2048, 1.0)
@@ -161,7 +189,7 @@ class Teleop():
     def fast_start(self):
         t = (rospy.Time.now() - self.auto_start_time).to_sec()
 
-        if t < 1.0:
+        if t < 2.0:
             self.servo_cmd[0] = 250
             self.servo_cmd[1] = 2.0 * math.pi
         else:
@@ -201,6 +229,11 @@ class Teleop():
         motor = ServoExtendedCmd()
         motor.index = 0
         motor.mode = 1
+        self.motor_vari_cmd = 0.0
+        if self.auto_pattern == 'cruise' and not self.motor_pos_control:
+            if self.motor_vari_enable:
+                self.motor_vari_cmd = self.motor_vari()
+            self.servo_cmd[1] = self.motor_cruise_speed + self.motor_vari_cmd
         motor.cmd = -self.servo_cmd[1]
 
         motor_msg = ServoExtendedCmds()
@@ -212,6 +245,8 @@ class Teleop():
     def _controlLoop(self, event):
         if self.auto_control_mode:
             self.auto_control()
+            self.publish_cmd()
+        elif self.auto_pattern == 'cruise' and not self.motor_pos_control:
             self.publish_cmd()
 
     def _joyCallback(self, msg):
@@ -242,6 +277,7 @@ class Teleop():
             return
         self.auto_button_prev = msg.buttons[3]
 
+        self.motor_pos_control = msg.buttons[5] == 1
         if msg.buttons[5] == 1:
             turn_tar = 2048.0 - self.servo_axis * 1024.0
             if turn_tar > 3072.0:
@@ -287,6 +323,8 @@ class Teleop():
 
         if self.auto_pattern != 'stop':
             self.servo_cmd[1] = msg.linear.x
+            if self.auto_pattern == 'cruise':
+                self.motor_cruise_speed = msg.linear.x
             self.publish_cmd()
 
 
