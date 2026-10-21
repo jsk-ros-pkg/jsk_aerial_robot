@@ -31,9 +31,10 @@ class Teleop():
         self.motor_acc = 0.0
         self.motor_acc_rate = rospy.get_param('~motor_acc_rate', 1.0)
         self.motor_cruise_speed = 0.0
+        self.motor_speed_axis_prev = 0.0
         self.motor_vari_enable = True # True: variable speed, False: constant speed
         self.motor_vari_cmd = rospy.get_param('~motor_vari_cmd', 0.0)
-        self.motor_vari_rate = rospy.get_param('~motor_vari_rate', 0.5)
+        self.motor_vari_rate = rospy.get_param('~motor_vari_rate', 0.8)
         self.motor_vari_min_rate = rospy.get_param('~motor_vari_min_rate', 0.05)
         self.motor_vari_dec_speed = rospy.get_param('~motor_vari_dec_speed', 6.0 * math.pi)
         self.motor_vari_speed = rospy.get_param('~motor_vari_speed', 10.0 * math.pi)
@@ -234,7 +235,7 @@ class Teleop():
             if self.motor_vari_enable:
                 self.motor_vari_cmd = self.motor_vari()
             self.servo_cmd[1] = self.motor_cruise_speed + self.motor_vari_cmd
-        motor.cmd = -self.servo_cmd[1]
+        motor.cmd = self.servo_cmd[1]
 
         motor_msg = ServoExtendedCmds()
         motor_msg.stamp.secs = 0
@@ -250,6 +251,12 @@ class Teleop():
             self.publish_cmd()
 
     def _joyCallback(self, msg):
+
+        motor_speed_step = 0.0
+        if msg.axes[10] != self.motor_speed_axis_prev:
+            if msg.axes[10] == 1 or msg.axes[10] == -1:
+                motor_speed_step = msg.axes[10]
+        self.motor_speed_axis_prev = msg.axes[10]
 
         if msg.buttons[1] ==1:
             self.stop_auto()
@@ -316,6 +323,8 @@ class Teleop():
             self.publish_cmd()
         elif self.auto_pattern == 'cruise':
             self.cruise()
+            if motor_speed_step != 0:
+                self.motor_cruise_speed = (round(self.motor_cruise_speed / math.pi) + motor_speed_step) * math.pi
             self.publish_cmd()
 
 
