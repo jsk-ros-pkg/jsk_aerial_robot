@@ -235,7 +235,7 @@ class Teleop():
             if self.motor_vari_enable:
                 self.motor_vari_cmd = self.motor_vari()
             self.servo_cmd[1] = self.motor_cruise_speed + self.motor_vari_cmd
-        motor.cmd = self.servo_cmd[1]
+        motor.cmd = -self.servo_cmd[1]
 
         motor_msg = ServoExtendedCmds()
         motor_msg.stamp.secs = 0
@@ -325,6 +325,7 @@ class Teleop():
             self.cruise()
             if motor_speed_step != 0:
                 self.motor_cruise_speed = (round(self.motor_cruise_speed / math.pi) + motor_speed_step) * math.pi
+                rospy.loginfo("cruise speed = %.3f rad/s (%.0f * pi)", self.motor_cruise_speed, self.motor_cruise_speed / math.pi)
             self.publish_cmd()
 
 
