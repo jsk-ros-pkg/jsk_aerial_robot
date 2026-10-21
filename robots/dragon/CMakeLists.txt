@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_model
   aerial_robot_msgs
   hydrus
-  mujoco_ros_control
+  mujoco_ros_utils
   pluginlib
   roscpp
 )
