@@ -1,7 +1,9 @@
 <launch>
   <arg name="mode" default="serial" />
+  <arg name="dev" default="vim4" />
 
-  <arg name="serial_port" default="/dev/ttyUSB0" />
+  <arg name="serial_port" value="/dev/ttyUSB0" if="$(eval arg('dev') == 'pc')" />
+  <arg name="serial_port" value="/dev/ttyS4" if="$(eval arg('dev') == 'vim4')" />
   <arg name="serial_baud" default="921600" />
 
   <arg name="udp_port" default="12345" />

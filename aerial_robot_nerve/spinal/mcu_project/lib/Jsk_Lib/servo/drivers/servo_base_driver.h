@@ -17,11 +17,12 @@
 class ServoData {
 public:
 	ServoData(){}
-  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0){}
+  ServoData(uint8_t id): id_(id), torque_enable_(false), first_get_pos_flag_(true), internal_offset_(0), goal_velocity_(0), operating_mode_(0){}
 
 	uint8_t id_;
   	int32_t present_position_;
 	int32_t goal_position_;
+        int32_t goal_velocity_;
         int32_t calib_value_;
 	int32_t homing_offset_;
         int32_t internal_offset_;
@@ -43,12 +44,19 @@ public:
 	bool first_get_pos_flag_;
         float angle_scale_;
         uint16_t zero_point_offset_;
+        uint8_t operating_mode_;
 
 	void updateHomingOffset() { homing_offset_ = calib_value_ - present_position_;}
 	void setPresentPosition(int32_t present_position) {present_position_ = present_position + internal_offset_;}
 	int32_t getPresentPosition() const {return present_position_;}
+        void setGoalValue(int32_t goal_value) {
+          if (operating_mode_ == 1) goal_velocity_ = goal_value;
+          else goal_position_ = resolution_ratio_ * goal_value - internal_offset_;
+        }
 	void setGoalPosition(int32_t goal_position) {goal_position_ = resolution_ratio_ * goal_position - internal_offset_;}
+        void setGoalVelocity(int32_t goal_velocity) {goal_velocity_ = goal_velocity;}
         int32_t getGoalPosition() const {return goal_position_;}
+        int32_t getGoalVelocity() const {return goal_velocity_;}
         float getAngleScale() const {return angle_scale_;}
         uint16_t getZeroPointOffset() const {return zero_point_offset_;}
   
