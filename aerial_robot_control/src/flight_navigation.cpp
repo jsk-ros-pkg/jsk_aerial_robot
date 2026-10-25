@@ -874,9 +874,6 @@ bool BaseNavigator::isInflightState()
 
 void BaseNavigator::updateLandCommand()
 {
-  // update pos and vel for z
-  tf::Vector3 curr_pos = estimator_->getPos(Frame::COG, estimate_mode_);
-
   addTargetPosZ(land_descend_vel_ * loop_du_);
   setTargetVelZ(land_descend_vel_);
 

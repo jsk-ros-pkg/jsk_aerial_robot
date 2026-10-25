@@ -92,6 +92,7 @@ namespace aerial_robot_control
     virtual void sendCmd();
 
 
+    void tryEnableRpIntegration();
     void cfgPidCallback(aerial_robot_control::PIDConfig &config, uint32_t level, std::vector<int> controller_indices);
   };
 

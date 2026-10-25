@@ -281,19 +281,10 @@ namespace aerial_robot_control
       }
 
     // roll pitch
+    tryEnableRpIntegration();
+
     double du_rp = du;
-    if(!start_rp_integration_)
-      {
-        if(pos_.z() - navigator_->getInitHeight () > start_rp_integration_height_)
-          {
-            start_rp_integration_ = true;
-            spinal::FlightConfigCmd flight_config_cmd;
-            flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
-            navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
-            ROS_WARN_ONCE("start roll/pitch I control");
-          }
-        du_rp = 0;
-      }
+    if(!start_rp_integration_) du_rp = 0;
     pid_controllers_.at(ROLL).update(target_rpy_.x() - rpy_.x(), du_rp, target_omega_.x() - omega_.x(), target_ang_acc_.x());
     pid_controllers_.at(PITCH).update(target_rpy_.y() - rpy_.y(), du_rp, target_omega_.y() - omega_.y(), target_ang_acc_.y());
 
@@ -354,6 +345,22 @@ namespace aerial_robot_control
   {
     /* ros publish */
     pid_pub_.publish(pid_msg_);
+  }
+
+  void PoseLinearController::tryEnableRpIntegration()
+  {
+    using namespace aerial_robot_navigation;
+    if(start_rp_integration_) return;
+
+    const auto nav_state = navigator_->getNaviState();
+    if(nav_state != TAKEOFF_STATE && nav_state != HOVER_STATE) return;
+    if(pos_.z() - navigator_->getInitHeight () < start_rp_integration_height_) return;
+
+    start_rp_integration_ = true;
+    spinal::FlightConfigCmd flight_config_cmd;
+    flight_config_cmd.cmd = spinal::FlightConfigCmd::INTEGRATION_CONTROL_ON_CMD;
+    navigator_->getFlightConfigPublisher().publish(flight_config_cmd);
+    ROS_WARN_ONCE("start roll/pitch I control");
   }
 
   void PoseLinearController::cfgPidCallback(aerial_robot_control::PIDConfig &config, uint32_t level, std::vector<int> controller_indices)
