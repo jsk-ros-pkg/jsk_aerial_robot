@@ -18,6 +18,7 @@
 #include <sensor_msgs/JointState.h>
 #else
 #include <ros/ros.h>
+#include <mutex>
 #endif
 
 #include <math/AP_Math.h>
@@ -138,6 +139,9 @@ private:
   bool setAttitudeControlCallback(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) { att_control_flag_ = req.data; return true;}
   void setSimVolCallback(const std_msgs::Float32 vol_msg) { sim_voltage_ = vol_msg.data; }
   float sim_voltage_;
+
+  /* ROS callbacks run in multiple threads in gazebo, while osMutex is not available */
+  std::mutex sim_mutex_;
 
 #else
   ros::Subscriber<spinal::FourAxisCommand, AttitudeController> four_axis_cmd_sub_;
