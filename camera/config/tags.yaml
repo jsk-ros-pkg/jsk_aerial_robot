@@ -1,13 +1,6 @@
 standalone_tags:
   [
-  {id: 0, size: 0.0195, name: drone_board_back},
-  {id: 1, size: 0.0195, name: drone_board_front},
-  {id: 2, size: 0.0395, name: drone_gripper_left},
-  {id: 3, size: 0.0395, name: drone_gripper_right},
-  {id: 11, size: 0.155, name: cube_pick},
-  {id: 12, size: 0.155, name: cube_put_floor},
-  {id: 13, size: 0.155, name: cube_pick_desk_1},
-  {id: 14, size: 0.155, name: cube_pick_desk_2},
+  {id: 0, size: 0.15, name: wall},
  
   ]
 # ## Tag bundle definitions
