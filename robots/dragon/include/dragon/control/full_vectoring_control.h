@@ -56,11 +56,7 @@ namespace aerial_robot_control
   {
   public:
     DragonFullVectoringController();
-    ~DragonFullVectoringController()
-    {
-      wrench_estimate_thread_.interrupt();
-      wrench_estimate_thread_.join();
-    }
+    ~DragonFullVectoringController() = default;
 
     void initialize(ros::NodeHandle nh, ros::NodeHandle nhp,
                     boost::shared_ptr<aerial_robot_model::RobotModel> robot_model,
@@ -91,7 +87,6 @@ namespace aerial_robot_control
     ros::Publisher flight_cmd_pub_; //for spinal
     ros::Publisher gimbal_control_pub_;
     ros::Publisher target_vectoring_force_pub_;
-    ros::Publisher estimate_external_wrench_pub_;
     ros::Publisher rotor_interfere_wrench_pub_;
     ros::Publisher interfrence_marker_pub_;
 

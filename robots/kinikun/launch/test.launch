@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_name" default="arm_kinniku"/>
+
+  <arg name="base_id" default="15"/>
+  <arg name="ee_id" default="16"/>
+
+  <node
+    pkg="mocap_optitrack"
+    type="mocap_node"
+    name="mocap_node_$(arg robot_name)"
+    respawn="false"
+    launch-prefix=""
+  >
+    <rosparam subst_value="true">
+      rigid_bodies:
+        '$(arg base_id)':
+          pose: base/mocap/pose
+          pose2d: base/mocap/ground_pose
+          child_frame_id: base
+          parent_frame_id: world
+        '$(arg ee_id)':
+          pose: ee/mocap/pose
+          pose2d: ee/mocap/ground_pose
+          child_frame_id: ee
+          parent_frame_id: world
+
+      optitrack_config:
+        enable_optitrack: true
+        multicast_address: 239.255.42.99
+        command_port: 1510
+        data_port: 1511
+    </rosparam>
+
+    <remap from="~/base/mocap/pose" to="$(arg robot_name)/base/pose"/>
+    <remap from="~/base/mocap/ground_pose" to="$(arg robot_name)/base/ground_pose"/>
+
+    <remap from="~/ee/mocap/pose" to="$(arg robot_name)/ee/pose"/>
+    <remap from="~/ee/mocap/ground_pose" to="$(arg robot_name)/ee/ground_pose"/>
+  </node>
+</launch>

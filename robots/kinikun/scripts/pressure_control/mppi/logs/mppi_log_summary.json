@@ -1,0 +1,115 @@
+{
+  "log_file": "logs/mppi_log.csv",
+  "duration_s": 72.05241990089417,
+  "num_samples": 2943,
+  "tracking": {
+    "rmse_deg": 5.516479521298897,
+    "mae_deg": 3.7095782448516688,
+    "max_error_deg": 23.59469682673568,
+    "mean_error_deg": 1.8867158712554852
+  },
+  "computation": {
+    "mean_ms": 19.447691700631083,
+    "max_ms": 453.0491828918457,
+    "p95_ms": 31.06229305267335,
+    "violations_20ms": 1232
+  },
+  "pressure": {
+    "p1_mean": 0.3647470222838439,
+    "p1_max": 0.7,
+    "p2_mean": 0.35748961864783785,
+    "p2_max": 0.7
+  },
+  "step_responses": [
+    {
+      "step_num": 1,
+      "initial_deg": -1.4259819586217397,
+      "target_deg": 14.999999999999998,
+      "rise_time_s": 0.8893725872039795,
+      "settling_time_s": 1.3836824893951416,
+      "overshoot_pct": 15.846263061233627,
+      "steady_error_deg": 0.05902026894831401,
+      "rmse_deg": 6.050500222851561
+    },
+    {
+      "step_num": 2,
+      "initial_deg": 14.516245826997848,
+      "target_deg": 25.0,
+      "rise_time_s": 1.2400553226470947,
+      "settling_time_s": 1.4815406799316406,
+      "overshoot_pct": 47.445118690390444,
+      "steady_error_deg": -2.879799529030046,
+      "rmse_deg": 4.256434564574216
+    },
+    {
+      "step_num": 3,
+      "initial_deg": 29.52325002785768,
+      "target_deg": 9.999999999999998,
+      "rise_time_s": 0.0,
+      "settling_time_s": 1.1134991645812988,
+      "overshoot_pct": 27.03876294372248,
+      "steady_error_deg": -1.1446776372671121,
+      "rmse_deg": 6.507593676077721
+    },
+    {
+      "step_num": 4,
+      "initial_deg": 10.459910728750257,
+      "target_deg": -9.999999999999998,
+      "rise_time_s": 0.0,
+      "settling_time_s": 0.9793601036071777,
+      "overshoot_pct": 1.8745230093610177,
+      "steady_error_deg": -0.8675517530612205,
+      "rmse_deg": 6.2155634900361845
+    },
+    {
+      "step_num": 5,
+      "initial_deg": -9.313713251132413,
+      "target_deg": -25.0,
+      "rise_time_s": 0.0,
+      "settling_time_s": 0.7457056045532227,
+      "overshoot_pct": 29.871127723093906,
+      "steady_error_deg": 3.7636636901656986,
+      "rmse_deg": 5.4366403297609915
+    },
+    {
+      "step_num": 6,
+      "initial_deg": -29.570731359767272,
+      "target_deg": -14.999999999999998,
+      "rise_time_s": NaN,
+      "settling_time_s": NaN,
+      "overshoot_pct": -16.435607953545965,
+      "steady_error_deg": 3.9715701382666584,
+      "rmse_deg": 7.729441207414742
+    },
+    {
+      "step_num": 7,
+      "initial_deg": -20.934452741286304,
+      "target_deg": 0.0,
+      "rise_time_s": NaN,
+      "settling_time_s": NaN,
+      "overshoot_pct": -17.185960395125722,
+      "steady_error_deg": 5.5552656412063905,
+      "rmse_deg": 7.953307316168174
+    },
+    {
+      "step_num": 8,
+      "initial_deg": -3.5946968267356776,
+      "target_deg": 20.0,
+      "rise_time_s": 1.2141432762145996,
+      "settling_time_s": 2.090609312057495,
+      "overshoot_pct": 14.548716917023901,
+      "steady_error_deg": -0.5191418407134134,
+      "rmse_deg": 8.217586212139572
+    },
+    {
+      "step_num": 9,
+      "initial_deg": 20.91406499658545,
+      "target_deg": 0.0,
+      "rise_time_s": 0.0,
+      "settling_time_s": 0.7147011756896973,
+      "overshoot_pct": 46.45691679467073,
+      "steady_error_deg": 0.015457957062092555,
+      "rmse_deg": 4.45239997262925
+    }
+  ]
+}

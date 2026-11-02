@@ -1,0 +1,23 @@
+<!-- acados.launch (修正版) -->
+<launch>
+  <node pkg="kinikun" type="mpa_acados_node" name="mpa_acados_node" output="screen">
+    <param name="pmax" value="0.7" />
+    <param name="joint_topic" value="/kinikun1/joint_states" />
+    <param name="joint_name"  value="arm1_joint" />
+    <param name="target_topic" value="/target_angle" />
+    <param name="target_in_deg" value="true" />
+    <param name="pub_topic_p12" value="/p1p2_cmd" />
+    <param name="also_pub_counts" value="true" />
+    <param name="pub_topic_counts" value="/mpa_cmd" />
+    <param name="raw_counts_per_MPa" value="4551.11" />
+    <param name="ctrl_rate_hz" value="100.0" />
+  </node>
+
+  <!-- ずっとjointを出す -->
+  <node pkg="rostopic" type="rostopic" name="dummy_joint_pub"
+        args="pub -r 50 /kinikun1/joint_states sensor_msgs/JointState '{name: [arm1_joint], position: [0.0]}'" />
+
+  <!-- ターゲットも消えないように1Hzで送る -->
+  <node pkg="rostopic" type="rostopic" name="dummy_target_pub"
+        args="pub -r 1 /target_angle std_msgs/Float32 '20.0'" />
+</launch>
