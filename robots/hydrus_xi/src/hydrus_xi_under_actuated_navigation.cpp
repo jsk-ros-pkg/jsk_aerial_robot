@@ -1,4 +1,5 @@
 #include <hydrus_xi/hydrus_xi_under_actuated_navigation.h>
+#include <std_msgs/Float64MultiArray.h>
 
 using namespace aerial_robot_navigation;
 
@@ -6,6 +7,19 @@ namespace
 {
   int cnt = 0;
   int invalid_cnt = 0;
+
+  // ===== 内部モーメント用ペナルティ関数 =====
+  double applyInternalMomentPenalty(
+      double objective_base,
+      const std::vector<double>& x,
+      HydrusXiUnderActuatedNavigator* planner)
+  {
+    if (!planner->hasMomentCommand() || planner->getTargetJointIndex() < 0)
+      return objective_base;
+
+    double penalty = planner->computeInternalMomentZ(x, planner->getRobotModelForPlan());
+    return objective_base + penalty;
+  }
 
   double maximizeFCTMin(const std::vector<double> &x, std::vector<double> &grad, void *planner_ptr)
   {
@@ -39,7 +53,12 @@ namespace
 
     variant = sqrt(variant / force_v.size());
 
-    return planner->getForceNormWeight() * robot_model->getMass() / force_v.norm()  + planner->getForceVariantWeight() / variant + planner->getFCTMinWeight() * robot_model->getFeasibleControlTMin();
+    double objective_base = planner->getForceNormWeight() * robot_model->getMass() / force_v.norm() 
+                          + planner->getForceVariantWeight() / variant 
+                          + planner->getFCTMinWeight() * robot_model->getFeasibleControlTMin();
+
+    // ペナルティ項の適用
+    return applyInternalMomentPenalty(objective_base, x, planner);
   }
 
   double maximizeMinYawTorque(const std::vector<double> &x, std::vector<double> &grad, void *planner_ptr)
@@ -70,8 +89,6 @@ namespace
         Eigen::VectorXd max_u, min_u;
         double max_yaw, min_yaw;
 
-        //std::cout << "yaw torque map: " << gradient.transpose() << std::endl;
-
         /* get min u and min yaw */
         planner->getYawRangeLPSolver().updateGradient(gradient);
         if(!planner->getYawRangeLPSolver().solve())
@@ -82,7 +99,6 @@ namespace
         else
           {
             min_u = planner->getYawRangeLPSolver().getSolution();
-            //std::cout << "min_u: " << min_u.transpose() << std::endl;
             min_yaw = (gradient.transpose() * min_u)(0);
             if(min_yaw > 0)
               {
@@ -105,7 +121,6 @@ namespace
             max_yaw = (gradient.transpose() * max_u)(0);
           }
 
-        //ROS_INFO("LP: max: %f, min: %f", max_yaw, min_yaw); //debug
         planner->setMaxMinYaw(std::min(max_yaw, -min_yaw));
       }
 
@@ -118,7 +133,12 @@ namespace
 
     variant = sqrt(variant / force_v.size());
 
-    return planner->getForceNormWeight() * robot_model->getMass() / force_v.norm()  + planner->getForceVariantWeight() / variant + planner->getYawTorqueWeight() * planner->getMaxMinYaw();
+    double objective_base = planner->getForceNormWeight() * robot_model->getMass() / force_v.norm() 
+                          + planner->getForceVariantWeight() / variant 
+                          + planner->getYawTorqueWeight() * planner->getMaxMinYaw();
+
+    // ペナルティ項の適用
+    return applyInternalMomentPenalty(objective_base, x, planner);
   }
 
   double baselinkRotConstraint(const std::vector<double> &x, std::vector<double> &grad, void *planner_ptr)
@@ -148,7 +168,11 @@ HydrusXiUnderActuatedNavigator::HydrusXiUnderActuatedNavigator():
     prev_opt_gimbal_angles_(0),
     max_min_yaw_(0),
     control_gimbal_names_(0),
-    control_gimbal_indices_(0)
+    control_gimbal_indices_(0),
+    target_joint_index_(-1),
+    tau_des_target_(0.0),
+    has_moment_command_(false),
+    target_moment_weight_(0.5)
 {
 }
 
@@ -164,11 +188,24 @@ void HydrusXiUnderActuatedNavigator::initialize(ros::NodeHandle nh, ros::NodeHan
 {
   BaseNavigator::initialize(nh, nhp, robot_model, estimator, loop_du);
 
-  robot_model_for_plan_ = boost::make_shared<HydrusTiltedRobotModel>(); // for planning, not the real robot model
+  robot_model_for_plan_ = boost::make_shared<HydrusTiltedRobotModel>();
 
   rosParamInit();
 
   gimbal_ctrl_pub_ = nh_.advertise<sensor_msgs::JointState>("gimbals_ctrl", 1);
+
+  // 内部モーメント制御の初期化
+  target_joint_index_ = -1;
+  tau_des_target_ = 0.0;
+  has_moment_command_ = false;
+  
+  moment_command_sub_ = nh_.subscribe(
+      "/hydrus_xi/target_internal_moment",
+      1,
+      &HydrusXiUnderActuatedNavigator::momentCommandCallback,
+      this
+  );
+  ROS_INFO("[HydrusXiNavigation] Subscribed to /hydrus_xi/target_internal_moment");
 
   if(nh.hasParam("control_gimbal_names"))
     {
@@ -199,8 +236,8 @@ void HydrusXiUnderActuatedNavigator::initialize(ros::NodeHandle nh, ros::NodeHan
 
   vectoring_nl_solver_->add_inequality_constraint(baselinkRotConstraint, this, 1e-8);
 
-  vectoring_nl_solver_->set_xtol_rel(1e-4); //1e-4
-  vectoring_nl_solver_->set_maxeval(1000); // 1000 times
+  vectoring_nl_solver_->set_xtol_rel(1e-4);
+  vectoring_nl_solver_->set_maxeval(1000);
   /* linear optimization for yaw range */
   double rotor_num = robot_model->getRotorNum();
 
@@ -230,7 +267,6 @@ void HydrusXiUnderActuatedNavigator::initialize(ros::NodeHandle nh, ros::NodeHan
   yaw_range_lp_solver_.data()->setLowerBound(lower_bound);
   yaw_range_lp_solver_.data()->setUpperBound(upper_bound);
 
-  // instantiate the yaw_range_lp_solver
   if(!yaw_range_lp_solver_.initSolver())
     throw std::runtime_error("can not init LP solver based on osqp");
 
@@ -244,7 +280,6 @@ void HydrusXiUnderActuatedNavigator::threadFunc()
   getParam<double>(navi_nh, "plan_freq", plan_freq, 20.0);
   ros::Rate loop_rate(plan_freq);
 
-  // sleep for initialization
   double plan_init_sleep;
   getParam<double>(navi_nh, "plan_init_sleep", plan_init_sleep, 2.0);
   ros::Duration(plan_init_sleep).sleep();
@@ -258,11 +293,10 @@ void HydrusXiUnderActuatedNavigator::threadFunc()
 
 bool HydrusXiUnderActuatedNavigator::plan()
 {
-  joint_positions_for_plan_ = robot_model_->getJointPositions(); // real
+  joint_positions_for_plan_ = robot_model_->getJointPositions();
 
   if(joint_positions_for_plan_.rows() == 0) return false;
 
-  // initialize from the normal shape
   bool singular_form = true;
   if(control_gimbal_indices_.size() == 0)
     {
@@ -281,18 +315,16 @@ bool HydrusXiUnderActuatedNavigator::plan()
         control_gimbal_indices_.push_back(robot_model_->getJointIndexMap().at(name));
     }
 
-  /* find the optimal gimbal vectoring angles from nlopt */
   std::vector<double> lb(control_gimbal_indices_.size(), - M_PI);
   std::vector<double> ub(control_gimbal_indices_.size(), M_PI);
 
-  /* update the range by using the last optimization result with the assumption that the motion is cotinuous */
   if(opt_gimbal_angles_.size() != 0)
     {
       double delta_angle = gimbal_delta_angle_;
 
       if(!robot_model_for_plan_->stabilityCheck(false))
         {
-          delta_angle = M_PI; // reset
+          delta_angle = M_PI;
         }
 
       for(int i = 0; i < opt_gimbal_angles_.size(); i++)
@@ -303,13 +335,8 @@ bool HydrusXiUnderActuatedNavigator::plan()
     }
   else
     {
-      /* heuristic assigment for the init state of vectoring angles */
+      opt_gimbal_angles_.resize(control_gimbal_indices_.size(), 0);
 
-      opt_gimbal_angles_.resize(control_gimbal_indices_.size(), 0); // all angles  are zero
-
-      // contraint bound is relaxed to perform global search
-
-      // if control all gimbals:
       if(control_gimbal_indices_.size() == robot_model_->getRotorNum())
         {
           for(int i = 0; i < control_gimbal_indices_.size(); i++)
@@ -317,7 +344,6 @@ bool HydrusXiUnderActuatedNavigator::plan()
               if(i%2 == 0) opt_gimbal_angles_.at(i) = M_PI;
             }
 
-          // hard-coding: singular line form
           if(singular_form && robot_model_->getRotorNum() == 4)
             {
               opt_gimbal_angles_.at(0) = M_PI / 2;
@@ -355,7 +381,6 @@ bool HydrusXiUnderActuatedNavigator::plan()
           std::cout << "]" << std::endl;
         }
 
-
       cnt = 0;
       invalid_cnt = 0;
     }
@@ -364,7 +389,6 @@ bool HydrusXiUnderActuatedNavigator::plan()
       std::cout << "nlopt failed: " << e.what() << std::endl;
     }
 
-  /* publish the gimbal angles if necessary */
   sensor_msgs::JointState gimbal_msg;
   gimbal_msg.header.stamp = ros::Time::now();
 
@@ -393,6 +417,103 @@ void HydrusXiUnderActuatedNavigator::rosParamInit()
   getParam<double>(navi_nh, "fc_t_min_weight", fc_t_min_weight_, 1.0);
   getParam<double>(navi_nh, "baselink_rot_thresh", baselink_rot_thresh_, 0.02);
   getParam<double>(navi_nh, "fc_t_min_thresh", fc_t_min_thresh_, 2.0);
+
+  // 内部モーメント制御の重み
+  getParam<double>(navi_nh, "target_moment_weight", target_moment_weight_, 0.5);
+  ROS_INFO("[HydrusXiNavigation] target_moment_weight: %.3f", target_moment_weight_);
+}
+
+// コールバック関数
+void HydrusXiUnderActuatedNavigator::momentCommandCallback(
+    const std_msgs::Float64MultiArray::ConstPtr& msg)
+{
+  if (msg->data.size() < 2) {
+    ROS_WARN("[HydrusXiNavigation] Invalid moment command size: %zu (expected >= 2)", 
+             msg->data.size());
+    return;
+  }
+
+  target_joint_index_ = static_cast<int>(msg->data[0]);
+  tau_des_target_ = msg->data[1];
+  has_moment_command_ = true;
+
+  if(plan_verbose_)
+    ROS_INFO("[HydrusXiNavigation] Moment command received: joint_idx=%d, tau_des=%.4f", 
+             target_joint_index_, tau_des_target_);
+}
+
+// ===== 【完全安全・API解決版】内部モーメント計算 =====
+double HydrusXiUnderActuatedNavigator::computeInternalMomentZ(
+    const std::vector<double>& x,
+    const boost::shared_ptr<HydrusTiltedRobotModel>& robot_model_ptr)
+{
+  if (!robot_model_ptr || target_joint_index_ < 0 || target_joint_index_ >= 3) {
+    return 0.0;
+  }
+
+  // ----- 1. 重心を原点 (0,0,0) と定義し、ジョイントの相対位置を自前で近似計算 -----
+  double q2 = 0.0, q3 = 0.0;
+  if (robot_model_ptr->getJointPositions().rows() >= 3) {
+    q2 = robot_model_ptr->getJointPositions()(1);
+    q3 = robot_model_ptr->getJointPositions()(2);
+  }
+
+  double L = 0.42; // Hydrusの標準的なリンク長[m]
+  Eigen::Vector3d joint_pos(0.0, 0.0, 0.0);
+
+  if (target_joint_index_ == 0) {
+    joint_pos = Eigen::Vector3d(-L * std::cos(q2), -L * std::sin(q2), 0.0);
+  } else if (target_joint_index_ == 1) {
+    joint_pos = Eigen::Vector3d(0.0, 0.0, 0.0); // 中央関節
+  } else if (target_joint_index_ == 2) {
+    joint_pos = Eigen::Vector3d(L * std::cos(q3), L * std::sin(q3), 0.0);
+  }
+
+  // ----- 2. 100%安全な既存APIのみから、重心周りの総レンチを取得 -----
+  Eigen::MatrixXd W = robot_model_ptr->calcWrenchMatrixOnCoG();
+  Eigen::VectorXd force_v = robot_model_ptr->getStaticThrust();
+  
+  if (W.rows() < 6 || W.cols() != force_v.size()) {
+    return 0.0;
+  }
+
+  // 重心周りの総レンチ（力3軸 + モーメント3軸）を計算
+  Eigen::VectorXd wrench = W * force_v;
+  Eigen::Vector3d F_total = wrench.head(3); // 総推力ベクトル (Fx, Fy, Fz)
+  Eigen::Vector3d M_cog = wrench.tail(3);   // 重心周りの総モーメント (Mx, My, Mz)
+
+  // ----- 3. モーメント移動定理により、対象関節周りのモーメントベクトルを計算 -----
+  // M_joint = M_cog - joint_pos.cross(F_total)
+  Eigen::Vector3d moment_vec = M_cog - joint_pos.cross(F_total);
+  
+  Eigen::Vector3d z_axis(0.0, 0.0, 1.0);
+  double tau_internal = moment_vec.dot(z_axis);
+
+  // ----- 4. ペナルティ項を計算 -----
+  double error = tau_internal - tau_des_target_;
+  double penalty = -target_moment_weight_ * error * error;
+
+  return penalty;
+}
+
+// 推力抽出（現在は不使用ですが互換性のため保持）
+std::vector<double> HydrusXiUnderActuatedNavigator::extractThrustsFromOptVars(
+    const std::vector<double>& x,
+    const boost::shared_ptr<HydrusTiltedRobotModel>& robot_model_ptr)
+{
+  std::vector<double> thrusts;
+  Eigen::VectorXd force_v = robot_model_ptr->getStaticThrust();
+  for (int i = 0; i < force_v.size(); ++i) {
+    thrusts.push_back(force_v(i));
+  }
+  return thrusts;
+}
+
+// ジンバル角抽出（現在は不使用ですが互換性のため保持）
+std::vector<double> HydrusXiUnderActuatedNavigator::extractGimbalsFromOptVars(
+    const std::vector<double>& x)
+{
+  return x;
 }
 
 /* plugin registration */

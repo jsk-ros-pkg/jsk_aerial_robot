@@ -46,6 +46,7 @@
     </collision>
   </xacro:macro>
 
+
   <xacro:macro name="extra_module" params="name parent *origin *inertial visible:=0 model_url:=0">
     <joint name="${parent}2${name}" type="fixed">
       <parent link="${parent}"/>

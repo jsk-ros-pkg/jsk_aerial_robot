@@ -15,8 +15,7 @@
   <depend>nlopt</depend>
   <depend>osqp-eigen</depend>
   <depend>roscpp</depend>
-
-  <exec_depend>aerial_robot_base</exec_depend>
+  <depend>sensor_msgs</depend> <depend>std_msgs</depend>    <exec_depend>aerial_robot_base</exec_depend>
   <exec_depend>aerial_robot_control</exec_depend>
   <exec_depend>aerial_robot_model</exec_depend>
   <exec_depend>aerial_robot_simulation</exec_depend>
