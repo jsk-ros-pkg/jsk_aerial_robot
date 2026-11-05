@@ -66,6 +66,8 @@ namespace aerial_robot_model {
       // jacobian
       virtual void calcBasicKinematicsJacobian();
       virtual void calcCoGMomentumJacobian();
+      virtual void calcInertiaJacobian();
+      const std::vector<Eigen::Matrix3d>& getInertiaJacobian() const {return inertia_jacobian_;}
       const Eigen::MatrixXd& getCOGJacobian() const {return cog_jacobian_;}
       const std::vector<Eigen::MatrixXd>& getCOGCoordJacobians() const {return cog_coord_jacobians_;}
       const Eigen::MatrixXd& getLMomentumJacobian() const {return l_momentum_jacobian_;}
@@ -110,6 +112,7 @@ namespace aerial_robot_model {
       std::vector<Eigen::MatrixXd> p_jacobians_; //thrust position index:rotor
       Eigen::MatrixXd cog_jacobian_; //cog jacobian
       Eigen::MatrixXd l_momentum_jacobian_; //angular_momemtum jacobian
+      std::vector<Eigen::Matrix3d> inertia_jacobian_; //inertia around CoG, index: full body dof
       std::vector<Eigen::MatrixXd> cog_coord_jacobians_;
       Eigen::MatrixXd joint_torque_jacobian_; // joint torque
       Eigen::MatrixXd lambda_jacobian_; //thrust force
@@ -130,6 +133,7 @@ namespace aerial_robot_model {
       void setJointTorqueJacobian(const Eigen::MatrixXd joint_torque_jacobian) {joint_torque_jacobian_ = joint_torque_jacobian;}
       void setLambdaJacobian(const Eigen::MatrixXd lambda_jacobian) {lambda_jacobian_ = lambda_jacobian;}
       void setLMomentumJacobian(const Eigen::MatrixXd l_momentum_jacobian) {l_momentum_jacobian_ = l_momentum_jacobian;}
+      void setInertiaJacobian(const std::vector<Eigen::Matrix3d> inertia_jacobian) {inertia_jacobian_ = inertia_jacobian;}
       void setPJacobians(const std::vector<Eigen::MatrixXd> p_jacobians) {p_jacobians_ = p_jacobians;}
       void setThrustTCoordJacobians(const std::vector<Eigen::MatrixXd> thrust_coord_jacobians) {thrust_coord_jacobians_ = thrust_coord_jacobians;}
       void setUJacobians(const std::vector<Eigen::MatrixXd> u_jacobians) {u_jacobians_ = u_jacobians;}

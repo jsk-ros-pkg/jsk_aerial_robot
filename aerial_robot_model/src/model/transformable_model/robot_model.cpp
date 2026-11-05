@@ -62,6 +62,8 @@ void RobotModel::updateJacobians(const KDL::JntArray& joint_positions, bool upda
 
   calcCoGMomentumJacobian(); // should be processed first
 
+  calcInertiaJacobian();
+
   calcBasicKinematicsJacobian(); // need cog_jacobian_
 
   calcLambdaJacobian();

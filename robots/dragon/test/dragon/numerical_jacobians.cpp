@@ -36,6 +36,7 @@ bool DragonNumericalJacobian::checkJacobians()
   if(check_thrust_force_) flag &= checkThrsutForceJacobian(link_joint_indices);
   if(check_joint_torque_) flag &= checkJointTorqueJacobian(link_joint_indices);
   if(check_cog_motion_) flag &= checkCoGMomentumJacobian(link_joint_indices);
+  if(check_inertia_) flag &= checkInertiaJacobian(link_joint_indices);
   if(check_rotor_overlap_) flag &= checkRotorOverlapJacobian();
   if(check_feasible_control_roll_pitch_) flag &= checkFeasibleControlRollPitchJacobian(link_joint_indices);
 

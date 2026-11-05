@@ -93,3 +93,60 @@ void RobotModel::calcCoGMomentumJacobian()
   l_momentum_jacobian_.middleCols(3, 3) = getInertia<Eigen::Matrix3d>() * root_rot; // aready converted
   l_momentum_jacobian_.rightCols(joint_num) = root_rot * l_momentum_jacobian_.rightCols(joint_num);
 }
+
+void RobotModel::calcInertiaJacobian()
+{
+  const auto& segment_map = getTree().getSegments();
+  const auto seg_frames = getSegmentsTf();
+  const auto& inertia_map = getInertiaMap();
+  const auto& joint_names = getJointNames();
+  const auto& joint_segment_map = getJointSegmentMap();
+  const auto& joint_parent_link_names = getJointParentLinkNames();
+  const int joint_num = getJointNum();
+  const int full_body_dof = 6 + joint_num;
+
+  const Eigen::Matrix3d root_rot = aerial_robot_model::kdlToEigen(getCogDesireOrientation<KDL::Rotation>() * seg_frames.at(getBaselinkName()).M.Inverse());
+  const auto cog_all = getCog<KDL::Frame>().p;
+  const Eigen::Matrix3d inertia_cog = getInertia<Eigen::Matrix3d>();
+
+  inertia_jacobian_.assign(full_body_dof, Eigen::Matrix3d::Zero());
+
+  // joint part
+  int col_index = 0;
+  for (const auto& joint_name : joint_names) {
+    std::string joint_child_segment_name = joint_segment_map.at(joint_name).at(0);
+    KDL::Segment joint_child_segment = GetTreeElementSegment(segment_map.at(joint_child_segment_name));
+    KDL::Vector a = seg_frames.at(joint_parent_link_names.at(col_index)).M * joint_child_segment.getJoint().JointAxis();
+
+    KDL::Vector r = seg_frames.at(joint_child_segment_name).p;
+    KDL::RigidBodyInertia inertia = KDL::RigidBodyInertia::Zero();
+    for (const auto& seg : joint_segment_map.at(joint_name)) {
+      if (seg.find("thrust") == std::string::npos) {
+        KDL::Frame f = seg_frames.at(seg);
+        inertia = inertia + f * inertia_map.at(seg);
+      }
+    }
+    KDL::Vector c = inertia.getCOG();
+    double m = inertia.getMass();
+
+    // inertia of the subtree around its own CoG, expressed in the root frame
+    const Eigen::Matrix3d inertia_sub = aerial_robot_model::kdlToEigen(inertia.RefPoint(c).getRotationalInertia());
+
+    const Eigen::Matrix3d a_skew = aerial_robot_model::skew(aerial_robot_model::kdlToEigen(a));
+    const Eigen::Matrix3d d_skew = aerial_robot_model::skew(aerial_robot_model::kdlToEigen(c - cog_all));
+    const Eigen::Matrix3d c_dot_skew = aerial_robot_model::skew(aerial_robot_model::kdlToEigen(a * (c - r)));
+
+    const Eigen::Matrix3d inertia_jacobian_col
+      = a_skew * inertia_sub - inertia_sub * a_skew
+      + m * (c_dot_skew.transpose() * d_skew + d_skew.transpose() * c_dot_skew);
+
+    inertia_jacobian_.at(6 + col_index) = root_rot * inertia_jacobian_col * root_rot.transpose();
+    col_index++;
+  }
+
+  // virtual 6dof root
+  for (int i = 0; i < 3; i++) {
+    const Eigen::Matrix3d axis_skew = aerial_robot_model::skew(root_rot.col(i));
+    inertia_jacobian_.at(3 + i) = axis_skew * inertia_cog - inertia_cog * axis_skew;
+  }
+}

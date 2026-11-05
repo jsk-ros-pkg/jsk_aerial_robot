@@ -18,12 +18,14 @@ namespace aerial_robot_model {
     nhp_.param("check_thrust_force", check_thrust_force_, true);
     nhp_.param("check_joint_torque", check_joint_torque_, true);
     nhp_.param("check_cog_motion", check_cog_motion_, true);
+    nhp_.param("check_inertia", check_inertia_, true);
     nhp_.param("check_feasible_control", check_feasible_control_, true);
 
     nhp_.param("thrust_force_diff_thre", thrust_force_diff_thre_, 0.001);
     nhp_.param("joint_torque_diff_thre", joint_torque_diff_thre_, 0.001);
     nhp_.param("cog_vel_diff_thre", cog_vel_diff_thre_, 0.001);
     nhp_.param("l_momentum_diff_thre", l_momentum_diff_thre_, 0.001);
+    nhp_.param("inertia_diff_thre", inertia_diff_thre_, 0.001);
     nhp_.param("feasible_control_force_diff_thre", feasible_control_force_diff_thre_, 0.001);
     nhp_.param("feasible_control_torque_diff_thre", feasible_control_torque_diff_thre_, 0.001);
   }
@@ -49,6 +51,7 @@ namespace aerial_robot_model {
     if(check_thrust_force_) flag &= checkThrsutForceJacobian();
     if(check_joint_torque_) flag &= checkJointTorqueJacobian();
     if(check_cog_motion_) flag &= checkCoGMomentumJacobian();
+    if(check_inertia_) flag &= checkInertiaJacobian();
     if(check_feasible_control_) flag &= checkFeasibleControlJacobian();
 
     return flag;
@@ -442,6 +445,53 @@ namespace aerial_robot_model {
   }
 
 
+  const std::vector<Eigen::Matrix3d> NumericalJacobian::inertiaNumericalJacobian(std::vector<int> joint_indices)
+  {
+    const auto nominal_seg_frames = getRobotModel().getSegmentsTf();
+    const KDL::JntArray joint_positions = getRobotModel().getJointPositions();
+    const std::string baselink = getRobotModel().getBaselinkName();
+    const int full_body_dof = 6 + joint_indices.size();
+
+    const KDL::Rotation nominal_baselink_rot = getRobotModel().getCogDesireOrientation<KDL::Rotation>();
+    const KDL::Rotation nominal_root_rot = nominal_baselink_rot * nominal_seg_frames.at(baselink).M.Inverse();
+    const Eigen::Matrix3d nominal_inertia = getRobotModel().getInertia<Eigen::Matrix3d>();
+
+    std::vector<Eigen::Matrix3d> J_inertia(full_body_dof, Eigen::Matrix3d::Zero());
+
+    /* joint part: the CoG frame orientation w.r.t. the root frame (root_rot) is kept constant,
+       so the desire orientation has to be updated with the perturbated baselink frame */
+    int col_index = 6;
+    for (const auto& joint_index : joint_indices) {
+      KDL::JntArray perturbation_joint_positions(joint_positions);
+      perturbation_joint_positions(joint_index) += delta_;
+      getRobotModel().updateRobotModel(perturbation_joint_positions);
+      getRobotModel().setCogDesireOrientation(nominal_root_rot * getRobotModel().getSegmentsTf().at(baselink).M);
+      getRobotModel().updateRobotModel(perturbation_joint_positions);
+      J_inertia.at(col_index) = (getRobotModel().getInertia<Eigen::Matrix3d>() - nominal_inertia) / delta_;
+      col_index++;
+    }
+
+    /* virtual 6dof root: the translation part has no effect, since the inertia is around CoG */
+    auto rootRotPerturbation = [&](int col, KDL::Rotation delta_rot) {
+      getRobotModel().setCogDesireOrientation(nominal_root_rot * delta_rot * nominal_seg_frames.at(baselink).M);
+      getRobotModel().updateRobotModel(joint_positions);
+      J_inertia.at(col) = (getRobotModel().getInertia<Eigen::Matrix3d>() - nominal_inertia) / delta_;
+    };
+
+    // roll
+    rootRotPerturbation(3, KDL::Rotation::RPY(delta_, 0, 0));
+    // pitch
+    rootRotPerturbation(4, KDL::Rotation::RPY(0, delta_, 0));
+    // yaw
+    rootRotPerturbation(5, KDL::Rotation::RPY(0, 0, delta_));
+
+    // reset
+    getRobotModel().setCogDesireOrientation(nominal_baselink_rot);
+    getRobotModel().updateRobotModel(joint_positions);
+
+    return J_inertia;
+  }
+
   bool NumericalJacobian::checkThrsutForceJacobian(std::vector<int> joint_indices)
   {
     if(joint_indices.empty()) joint_indices = getRobotModel().getJointIndices();
@@ -535,6 +585,50 @@ namespace aerial_robot_model {
     else
       {
         ROS_WARN_STREAM("max diff of L momentum jacobian: " << max_diff << ", exceed!");
+        flag = false;
+      }
+
+    return flag;
+  }
+
+  bool NumericalJacobian::checkInertiaJacobian(std::vector<int> joint_indices)
+  {
+    if(joint_indices.empty()) joint_indices = getRobotModel().getJointIndices();
+
+    bool flag = true;
+
+    const std::vector<Eigen::Matrix3d> analytical_jacobi = getRobotModel().getInertiaJacobian();
+    const std::vector<Eigen::Matrix3d> numerical_jacobi = inertiaNumericalJacobian(joint_indices);
+
+    if(analytical_jacobi.size() != numerical_jacobi.size())
+      {
+        ROS_ERROR_STREAM("the size of inertia jacobian is different: analytical: " << analytical_jacobi.size()
+                         << ", numerical: " << numerical_jacobi.size());
+        return false;
+      }
+
+    double max_diff = 0;
+    size_t max_diff_index = 0;
+    for(size_t i = 0; i < numerical_jacobi.size(); i++)
+      {
+        ROS_DEBUG_STREAM("analytical inertia jacobian for dof " << i << ": \n" << analytical_jacobi.at(i));
+        ROS_DEBUG_STREAM("diff of inertia jacobian for dof " << i << ": \n" << numerical_jacobi.at(i) - analytical_jacobi.at(i));
+
+        const double diff = (numerical_jacobi.at(i) - analytical_jacobi.at(i)).cwiseAbs().maxCoeff();
+        if(diff > max_diff)
+          {
+            max_diff = diff;
+            max_diff_index = i;
+          }
+      }
+
+    if(max_diff < inertia_diff_thre_)
+      {
+        ROS_INFO_STREAM("max diff of inertia jacobian: " << max_diff << " at dof " << max_diff_index);
+      }
+    else
+      {
+        ROS_WARN_STREAM("max diff of inertia jacobian: " << max_diff << " at dof " << max_diff_index << ", exceed!");
         flag = false;
       }
 

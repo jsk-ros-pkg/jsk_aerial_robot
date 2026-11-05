@@ -213,6 +213,8 @@ void HydrusLikeRobotModel::updateJacobians(const KDL::JntArray& joint_positions,
 
   calcCoGMomentumJacobian(); // should be processed first!
 
+  calcInertiaJacobian();
+
   calcBasicKinematicsJacobian(); // need cog_jacobian_
 
   calcLambdaJacobian();
@@ -255,6 +257,20 @@ void HydrusLikeRobotModel::updateJacobians(const KDL::JntArray& joint_positions,
   setCOGJacobian(cog_jacobian * gimbal_jacobian_);
   Eigen::MatrixXd l_momentum_jacobian = getLMomentumJacobian();
   setLMomentumJacobian(l_momentum_jacobian * gimbal_jacobian_);
+
+  /* the inertia jacobian is a set of 3x3 matrices instead of a matrix,
+     so the chain rule with gimbal_jacobian_ has to be applied by hand */
+  const std::vector<Eigen::Matrix3d> full_inertia_jacobian = getInertiaJacobian();
+  std::vector<Eigen::Matrix3d> inertia_jacobian(gimbal_jacobian_.cols(), Eigen::Matrix3d::Zero());
+  for(int j = 0; j < gimbal_jacobian_.cols(); j++)
+    {
+      for(int i = 0; i < gimbal_jacobian_.rows(); i++)
+        {
+          if(gimbal_jacobian_(i, j) == 0) continue;
+          inertia_jacobian.at(j) += full_inertia_jacobian.at(i) * gimbal_jacobian_(i, j);
+        }
+    }
+  setInertiaJacobian(inertia_jacobian);
 
   Eigen::MatrixXd lambda_jacobian = getLambdaJacobian();
   setLambdaJacobian(lambda_jacobian * gimbal_jacobian_);

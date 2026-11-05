@@ -51,6 +51,7 @@ namespace aerial_robot_model  {
     virtual bool checkThrsutForceJacobian(std::vector<int> joint_indices = std::vector<int>());
     virtual bool checkJointTorqueJacobian(std::vector<int> joint_indices = std::vector<int>());
     virtual bool checkCoGMomentumJacobian(std::vector<int> joint_indices = std::vector<int>());
+    virtual bool checkInertiaJacobian(std::vector<int> joint_indices = std::vector<int>());
     virtual bool checkFeasibleControlJacobian(std::vector<int> joint_indices = std::vector<int>());
 
     const bool getInitialized() {return initialized_;}
@@ -70,12 +71,14 @@ namespace aerial_robot_model  {
     bool check_thrust_force_;
     bool check_joint_torque_;
     bool check_cog_motion_;
+    bool check_inertia_;
     bool check_feasible_control_;
 
     double thrust_force_diff_thre_;
     double joint_torque_diff_thre_;
     double cog_vel_diff_thre_;
     double l_momentum_diff_thre_;
+    double inertia_diff_thre_;
     double feasible_control_force_diff_thre_;
     double feasible_control_torque_diff_thre_;
 
@@ -88,6 +91,7 @@ namespace aerial_robot_model  {
     virtual const Eigen::MatrixXd thrustForceNumericalJacobian(std::vector<int> joint_indices);
     virtual const Eigen::MatrixXd jointTorqueNumericalJacobian(std::vector<int> joint_indices);
     virtual const std::vector<Eigen::MatrixXd> cogMomentumNumericalJacobian(std::vector<int> joint_indices);
+    virtual const std::vector<Eigen::Matrix3d> inertiaNumericalJacobian(std::vector<int> joint_indices);
     virtual const std::vector<Eigen::MatrixXd> feasibleControlNumericalJacobian(std::vector<int> joint_indices);
   };
 };
