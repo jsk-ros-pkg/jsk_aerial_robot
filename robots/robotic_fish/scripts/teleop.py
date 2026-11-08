@@ -45,10 +45,9 @@ class Teleop():
     def _servoStateCallback(self, msg):
         angles = self.servo_equ_angles[:]
         received = [False] * len(angles)
-        for servo in msg.servos:
-            if servo.index < len(angles):
-                angles[servo.index] = servo.angle % 4096
-                received[servo.index] = True
+        for servo_no, servo in enumerate(msg.servos[:len(angles)]):
+            angles[servo_no] = servo.angle % 4096
+            received[servo_no] = True
         self.servo_equ_angles = angles
         self.servo_state_received = received
         #rospy.loginfo("servo 0 at angle %s", msg.servos[0].angle)
@@ -87,17 +86,25 @@ class Teleop():
 
         if self.is_center():
             self.imu_kp = kp
-        self.servo_cmd[0] = self.pos_control(0, 2048 - self.max_turn_angle_val * self.imu_kp, 1.0) #direction?
+        self.pos_control(0, 2048 - self.max_turn_angle_val * self.imu_kp, 1.0) #direction?
         # rospy.loginfo(2048 - self.max_turn_angle_val*self.imu_kp)
         # rospy.loginfo(diff)
 
     def pos_control(self, servo_no, tar, rate):
-        # Returns velocity commands; Dynamixel must use operating mode 1.
-        if servo_no < 0 or servo_no >= len(self.servo_state_received) or not self.servo_state_received[servo_no]:
-            return 0.0
+        # Writes velocity commands; Dynamixel must use operating mode 1.
+        if servo_no < 0 or servo_no >= len(self.servo_cmd):
+            rospy.logwarn_throttle(1.0, "Invalid servo index: %s", servo_no)
+            return
+        if servo_no >= len(self.servo_state_received) or not self.servo_state_received[servo_no]:
+            self.servo_cmd[servo_no] = 0.0
+            rospy.logwarn_throttle(1.0, "No position feedback for servo %s", servo_no)
+            return
 
         tar = tar % 4096
         pos = self.servo_equ_angles[servo_no]
+        val = self.max_val
+        kp = 2.8
+        deadzone = 50
         if math.fabs(tar - pos) > 2048:
             if tar-pos < 0:
                 tar += 4096
@@ -108,27 +115,25 @@ class Teleop():
         else:
             direction = 1
 
-        kp = 2.8
         if math.fabs(tar-pos) > 700:
-            return direction * rate*self.max_val
-        if math.fabs(tar-pos) > 50:
-            # if (tar-pos)/2048 * kp >= 1:
-            #     return direction*self.max_val
-            return (tar-pos)/2048.0 * kp * rate*self.max_val
+            cmd = direction * rate * val
+        elif math.fabs(tar-pos) > deadzone:
+            cmd = (tar-pos)/2048.0 * kp * rate * val
         else:
-            return 0.0
+            cmd = 0.0
+        self.servo_cmd[servo_no] = cmd
 
     def servo_sync(self):
-        self.servo_cmd[0] = self.pos_control(0, 2048, 1)
-        self.servo_cmd[1] = self.pos_control(1, 2048, 1)
+        self.pos_control(0, 2048, 1)
+        self.pos_control(1, 2048, 1)
 
     def left_pose(self):
-        self.servo_cmd[0] = self.pos_control(0, 1024, 1)
-        self.servo_cmd[1] = self.pos_control(1, 3072, 1)
+        self.pos_control(0, 1024, 1)
+        self.pos_control(1, 3072, 1)
 
     def right_pose(self):
-        self.servo_cmd[0] = self.pos_control(0, 3072, 1)
-        self.servo_cmd[1] = self.pos_control(1, 1024, 1)
+        self.pos_control(0, 3072, 1)
+        self.pos_control(1, 1024, 1)
 
     def turn_mode(self):
         self.turning = False
@@ -171,7 +176,7 @@ class Teleop():
             self.turning = False
         turn_angle = 2048 + msg.axes[2]*self.max_turn_angle_val
         if self.turning:
-            self.servo_cmd[0] = self.pos_control(0, turn_angle, 1)
+            self.pos_control(0, turn_angle, 1)
 
         # only control one servo with L2 & R2 & square
         if msg.buttons[6] == 1: #L2
@@ -258,7 +263,7 @@ class Teleop():
                 forward_kp = 0.2
 
             if math.fabs(msg.axes[0]) < 0.5:
-                self.servo_cmd[0] = self.pos_control(0, 2048*(1-msg.axes[0]), 1)
+                self.pos_control(0, 2048*(1-msg.axes[0]), 1)
 
 
         #for mid-actuation disk, reverse servo 0
