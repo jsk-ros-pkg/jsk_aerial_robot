@@ -46,6 +46,14 @@
 //#define WHEEL_TEST
 //#define SET_HOMING_OFFSET
 
+//################ define - Dynamixel operating mode table ######################
+#define CURRENT_CONTROL_MODE 0
+#define VELOCITY_CONTROL_MODE 1
+#define POSITION_CONTROL_MODE 3
+#define EXTENDED_POSITION_CONTROL_MODE 4
+#define CURRENT_BASE_POSITION_CONTROL_MODE 5
+#define PWM_CONTROL_MODE 16
+
 //#########################################################################
 //################ define - Dynamixel Hex control table ######################
 
@@ -125,6 +133,7 @@
 #define LED_BYTE_LEN					1
 #define STATUS_RETURN_LEVEL_BYTE_LEN	1
 #define GOAL_POSITION_BYTE_LEN			4
+#define GOAL_VELOCITY_BYTE_LEN			4
 #define PRESENT_POSITION_BYTE_LEN		4
 #define PRESENT_CURRENT_BYTE_LEN		2
 #define PRESENT_TEMPERATURE_BYTE_LEN	1
@@ -133,6 +142,7 @@
 #define POSITION_GAINS_BYTE_LEN			6
 #define PROFILE_VELOCITY_BYTE_LEN		4
 #define CURRENT_LIMIT_BYTE_LEN			2
+#define OPERATING_MODE_BYTE_LEN 		1
 
 //#########################################################################
 //############################ Specials ###################################
@@ -199,6 +209,8 @@
 #define INST_SET_POSITION_GAINS			13
 #define INST_SET_PROFILE_VELOCITY		14
 #define INST_SET_TORQUE					15
+#define INST_GET_OPERATING_MODE			17
+#define INST_SET_GOAL_VEL 				18
 
 //instruction frequency: 0 means no process
 #define SET_POS_DU 20 //[msec], 20ms => 50Hz
@@ -304,6 +316,7 @@ public:
 
 private:
   bool direct_ttl_mode_;
+  bool mixed_goal_command_mode_ = false;
 
   RingBufferDx<std::pair<uint8_t, uint8_t>, 64> instruction_buffer_;
 
@@ -331,6 +344,9 @@ private:
   inline void cmdReadPresentPosition(uint8_t servo_index);
   inline void cmdReadPresentTemperature(uint8_t servo_index);
   inline void cmdReadProfileVelocity(uint8_t servo_index);
+  inline void cmdReadOperatingMode(uint8_t servo_index);
+  inline void cmdWriteGoalPosition(uint8_t servo_index);
+  inline void cmdWriteGoalVelocity(uint8_t servo_index);
   inline void cmdWriteCurrentLimit(uint8_t servo_index);
   inline void cmdWriteHomingOffset(uint8_t servo_index);
   inline void cmdWritePositionGains(uint8_t servo_index);
@@ -346,6 +362,7 @@ private:
   inline void cmdSyncReadPresentPosition(bool send_all = true);
   inline void cmdSyncReadPresentTemperature(bool send_all = true);
   inline void cmdSyncReadProfileVelocity(bool send_all = true);
+  inline void cmdSyncReadOperatingMode(bool send_all = true);
   inline void cmdSyncWriteGoalPosition();
   inline void cmdSyncWriteLed();
   inline void cmdSyncWritePositionGains();
@@ -357,6 +374,7 @@ private:
   inline void getCurrentLimit() override;
   inline void getPositionGains() override;
   inline void getProfileVelocity() override;
+  inline void getOperatingMode();
 
   uint16_t calcCRC16(uint16_t crc_accum, uint8_t *data_blk_ptr, int data_blk_size);
 };

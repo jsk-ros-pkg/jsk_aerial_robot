@@ -183,7 +183,7 @@ void DirectServo::setGoalAngle(const std::map<uint8_t, float>& servo_map, uint8_
 
 void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_msg)
 {
-  if (control_msg.index_length != control_msg.angles_length) return;
+  if (control_msg.index_length != control_msg.cmd_length) return;
   for (unsigned int i = 0; i < control_msg.index_length; i++) {
     uint8_t index = control_msg.index[i];
     if(index >= servo_handler_.getServoNum())
@@ -192,8 +192,8 @@ void DirectServo::servoControlCallback(const spinal::ServoControlCmd& control_ms
         return;
       }
     ServoData& s = servo_handler_.getServo()[index];
-    int32_t goal_pos = static_cast<int32_t>(control_msg.angles[i]);
-    s.setGoalPosition(goal_pos);
+    int32_t cmd = static_cast<int32_t>(control_msg.cmd[i]);
+    s.setGoalValue(cmd);
     if (! s.torque_enable_) {
       s.torque_enable_ = true;
       servo_handler_.setTorque(index);
@@ -226,7 +226,7 @@ void DirectServo::servoConfigCallback(const spinal::SetDirectServoConfig::Reques
   /* special case : data[0] is flag value */
   if(command == spinal::SetDirectServoConfig::Request::SET_DYNAMIXEL_TTL_RS485_MIXED)
     {
-      // servo_handler_.setTTLRS485Mixed(req.data[0]);
+      servo_handler_.setTTLRS485Mixed(req.data[0]);
       FlashMemory::erase();
       FlashMemory::write();
       res.success = true;

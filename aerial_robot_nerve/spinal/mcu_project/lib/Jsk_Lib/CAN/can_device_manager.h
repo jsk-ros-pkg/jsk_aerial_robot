@@ -37,6 +37,7 @@ namespace CANDeviceManager
   void init(FDCAN_HandleTypeDef* hcan, GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 #endif
   void addDevice(CANDevice& device);
+  void addDirectDevice(CANDirectDevice* device);
   void useRTOS(osMailQId* handle);
   void tick(int cycle /* ms */);
   bool connected();
