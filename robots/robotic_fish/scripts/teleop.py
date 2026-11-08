@@ -47,7 +47,11 @@ class Teleop():
         #rospy.loginfo("servo 0 at angle %s", msg.servos[0].angle)
 
     def _imuCallback(self, msg):
-        self.imu_angle = msg.angles[2]
+        x = msg.quaternion[0]
+        y = msg.quaternion[1]
+        z = msg.quaternion[2]
+        w = msg.quaternion[3]
+        self.imu_angle = math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
         # rospy.loginfo(self.imu_angle)
 
     def set_imu_tar_angle(self):
