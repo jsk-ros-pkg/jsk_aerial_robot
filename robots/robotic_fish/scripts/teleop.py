@@ -21,8 +21,9 @@ class Teleop():
         self.max_val = rospy.get_param('~max_val', 250)
         self.max_turn_angle_val = rospy.get_param('~max_turn_angle', 1024)
         self.keep_vel = rospy.get_param('~keep_vel', [0.0, 0.0])
-        self.servo_equ_angles = rospy.get_param('~servos_angle', [0, 0, 0])
-        self.servo_cmd = rospy.get_param('~servo_cmd', [0, 0, 1024.0])
+        self.servo_equ_angles = rospy.get_param('~servos_angle', [0, 0])
+        self.servo_state_received = [False] * len(self.servo_equ_angles)
+        self.servo_cmd = rospy.get_param('~servo_cmd', [0, 0])
         self.turning = rospy.get_param('~turning', False)
         self.imu_angle = rospy.get_param('imu_angle', 0.0)
         self.tar_angle = rospy.get_param('~tar_angle', 0.0)
@@ -32,18 +33,24 @@ class Teleop():
         self.demo2 = rospy.get_param('~demo2', False)
         self.fast_turn = rospy.get_param('~fast_turn', False)
         # self.servo_arrived = rospy.get_param('~servo_arrived', [0, 0])
-        self.fin_angle_rate = rospy.get_param('fin_angle_rate', 512.0)
+
+        self.cmd_pub = rospy.Publisher('/servo/target_states', ServoControlCmd, queue_size=1)
 
         self.joy_sub = rospy.Subscriber('/joy', Joy, self._joyCallback)
         self.twist_sub = rospy.Subscriber('/cmd_vel', Twist, self._twistCallback)
         self.servo_pos_sub = rospy.Subscriber('/servo/states', ServoStates, self._servoStateCallback)
         self.imu_sub = rospy.Subscriber('/imu', Imu, self._imuCallback)
 
-        self.cmd_pub = rospy.Publisher('/servo/target_states', ServoControlCmd, queue_size=1)
-
 
     def _servoStateCallback(self, msg):
-        self.servo_equ_angles = [msg.servos[0].angle % 4096, msg.servos[1].angle % 4096, msg.servos[2].angle]
+        angles = self.servo_equ_angles[:]
+        received = [False] * len(angles)
+        for servo in msg.servos:
+            if servo.index < len(angles):
+                angles[servo.index] = servo.angle % 4096
+                received[servo.index] = True
+        self.servo_equ_angles = angles
+        self.servo_state_received = received
         #rospy.loginfo("servo 0 at angle %s", msg.servos[0].angle)
 
     def _imuCallback(self, msg):
@@ -85,6 +92,11 @@ class Teleop():
         # rospy.loginfo(diff)
 
     def pos_control(self, servo_no, tar, rate):
+        # Returns velocity commands; Dynamixel must use operating mode 1.
+        if servo_no < 0 or servo_no >= len(self.servo_state_received) or not self.servo_state_received[servo_no]:
+            return 0.0
+
+        tar = tar % 4096
         pos = self.servo_equ_angles[servo_no]
         if math.fabs(tar - pos) > 2048:
             if tar-pos < 0:
@@ -102,7 +114,7 @@ class Teleop():
         if math.fabs(tar-pos) > 50:
             # if (tar-pos)/2048 * kp >= 1:
             #     return direction*self.max_val
-            return (tar-pos)/2048 * kp * rate*self.max_val
+            return (tar-pos)/2048.0 * kp * rate*self.max_val
         else:
             return 0.0
 
@@ -119,13 +131,18 @@ class Teleop():
         self.servo_cmd[1] = self.pos_control(1, 1024, 1)
 
     def turn_mode(self):
+        self.turning = False
+        if not self.servo_state_received[0]:
+            return
         if math.fabs(self.servo_equ_angles[0] -2048) > self.max_turn_angle_val + 50:
             return
         else:
             self.turning = True
 
     def is_center(self):
-        diff = self.servo_equ_angles[0] - self.servo_equ_angles[1]
+        if len(self.servo_state_received) < 2 or not all(self.servo_state_received[:2]):
+            return False
+        diff = (self.servo_equ_angles[0] - self.servo_equ_angles[1] + 2048) % 4096 - 2048
         if math.fabs(diff) < 100:
             return True
         else:
@@ -171,11 +188,6 @@ class Teleop():
                     self.servo_cmd[0] = -vel_0 * self.vel_rate
                 else:
                     self.servo_cmd[1] = vel_0 * self.vel_rate
-
-        #TODO2: fin control
-        fin_angle_ctrl = msg.axes[5] # stick_r vertical
-        fin_angle = -fin_angle_ctrl * self.fin_angle_rate + 2048.0
-        self.servo_cmd[2] = self.pos_control(1, fin_angle, 0.5)
 
         # TODO1: Speed Keep
         if msg.buttons[5] == 1: #R2
@@ -235,9 +247,7 @@ class Teleop():
         #     self.imu_feedback(tar_angle)
 
         # demo2: rapid return
-        if self.demo2:
-            if msg.axes[0] == 0.0 and msg.axes[1] == 0.0:
-                return
+        if self.demo2 and (msg.axes[0] != 0.0 or msg.axes[1] != 0.0):
             forward_kp = 0.0
             rotate_kp = 0.0
             if msg.axes[1] > 0.5:
@@ -248,7 +258,7 @@ class Teleop():
                 forward_kp = 0.2
 
             if math.fabs(msg.axes[0]) < 0.5:
-                self.pos_control(0, 2048*(1-msg.axes[0]), 1)
+                self.servo_cmd[0] = self.pos_control(0, 2048*(1-msg.axes[0]), 1)
 
 
         #for mid-actuation disk, reverse servo 0
@@ -259,7 +269,6 @@ class Teleop():
         msg_0.index = [0,1]
         msg_0.cmd.append(int(self.servo_cmd[0]))
         msg_0.cmd.append(int(self.servo_cmd[1]))
-        # msg_0.cmd.append(int(self.servo_cmd[2]))
         self.cmd_pub.publish(msg_0)
 
 
@@ -267,9 +276,9 @@ class Teleop():
 
         vel = msg.linear.x
         val = vel * self.vel_rate
-        if vel > self.max_val:
+        if val > self.max_val:
             val = self.max_val
-        if vel < -self.max_val:
+        if val < -self.max_val:
             val = -self.max_val
         msg = ServoControlCmd()
         msg.index = [0]
