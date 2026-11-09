@@ -1,4 +1,5 @@
 #include <aerial_robot_dynamics/robot_model.h>
+#include <regex>
 
 using namespace aerial_robot_dynamics;
 
@@ -123,13 +124,14 @@ PinocchioRobotModel::PinocchioRobotModel(std::string robot_description, std::str
   if (verbose)
     std::cout << "Joint torque limits: " << joint_torque_limits_.transpose() << std::endl;
 
-  // get rotor number
+  // get rotor number (only frames named exactly "rotorN", e.g. exclude "rotor_arm1")
   rotor_num_ = 0;
   rotor_names_.clear();
+  const std::regex rotor_name_pattern("rotor[0-9]+");
   for (int i = 0; i < model_->nframes; i++)
   {
     std::string frame_name = model_->frames[i].name;
-    if (frame_name.find("rotor") != std::string::npos)
+    if (std::regex_match(frame_name, rotor_name_pattern))
     {
       rotor_names_.push_back(frame_name);
       rotor_num_++;
