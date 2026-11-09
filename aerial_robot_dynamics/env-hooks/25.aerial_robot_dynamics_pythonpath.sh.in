@@ -1,0 +1,31 @@
+_aerial_robot_dynamics_new=
+_aerial_robot_dynamics_ifs=$IFS
+IFS=:
+for _aerial_robot_dynamics_ws in ${CMAKE_PREFIX_PATH:-}; do
+  IFS=$_aerial_robot_dynamics_ifs
+
+  for _aerial_robot_dynamics_py in \
+    "$_aerial_robot_dynamics_ws"/lib/python3.*/site-packages \
+    "$_aerial_robot_dynamics_ws"/lib/python3.*/dist-packages
+  do
+    if [ ! -d "$_aerial_robot_dynamics_py" ]; then
+      continue
+    fi
+
+    # Skip anything already exported, either by catkin or by an earlier space.
+    case ":${PYTHONPATH:-}:${_aerial_robot_dynamics_new}:" in
+      *:"$_aerial_robot_dynamics_py":*)
+        continue
+        ;;
+    esac
+
+    _aerial_robot_dynamics_new="${_aerial_robot_dynamics_new:+$_aerial_robot_dynamics_new:}$_aerial_robot_dynamics_py"
+  done
+done
+IFS=$_aerial_robot_dynamics_ifs
+
+if [ -n "$_aerial_robot_dynamics_new" ]; then
+  export PYTHONPATH="${_aerial_robot_dynamics_new}${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
+unset _aerial_robot_dynamics_new _aerial_robot_dynamics_ifs _aerial_robot_dynamics_ws _aerial_robot_dynamics_py

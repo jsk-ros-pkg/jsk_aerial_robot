@@ -1,0 +1,8 @@
+<launch>
+  <arg name="link_num" default="4"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(find aerial_robot_dynamics)/urdf/robot.urdf link_num:=$(arg link_num)"/>
+
+  <node name="pinocchio_robot_description_generator" pkg="aerial_robot_dynamics" type="pinocchio_robot_description_generator.py" output="screen"/>
+
+</launch>
