@@ -1,0 +1,23 @@
+aerial_robot_control_name: aerial_robot_control/fwddyn_mpc_controller
+
+mpc:
+  num_nodes: 50
+  max_iter: 2
+  max_init_iter: 100
+  dt: 0.02
+  num_threads: 4
+  com_track_weight: [1000.0, 1000.0, 10000.0]
+  centroidal_momentum_weight: [1000, 1000, 100, 10, 10, 10]
+  control_weight: 0.01
+  thrust_reg_weight: 0.01
+  thrust_barrier_weight: 10.0
+  delta_thrust_max: 100000.0
+  x_state_weight: [0, 0, 0, 10000, 10000, 1000,
+                   0.1, 0.1,
+                   0.0, 0.0, 0.0, 10000, 10000, 1000,
+                   1.0, 1.0]
+
+  x_ref: [0, 0, 0, 0, 0, 0, 1,
+          0, 0,
+          0, 0, 0, 0, 0, 0,
+          0, 0]

@@ -125,6 +125,78 @@ void StateEstimator::setOrientationWzB(int frame, int estimate_mode, tf::Vector3
   setOrientation(frame, estimate_mode, rot);
 }
 
+tf::Transform StateEstimator::getRoot2BaselinkTf() const
+{
+  tf::Transform root2baselink_tf;
+  root2baselink_tf.setIdentity();
+  const auto seg_tfs = robot_model_->getSegmentsTf();
+  if (!seg_tfs.empty())
+    tf::transformKDLToTF(seg_tfs.at(robot_model_->getBaselinkName()), root2baselink_tf);
+  return root2baselink_tf;
+}
+
+tf::Matrix3x3 StateEstimator::getRootOrientation(int estimate_mode)
+{
+  tf::Transform root2baselink_tf = getRoot2BaselinkTf();
+  boost::lock_guard<boost::mutex> lock(state_mutex_);
+  // R_world_root = R_world_baselink * R_root_baselink^T
+  return base_rots_.at(estimate_mode) * root2baselink_tf.getBasis().transpose();
+}
+
+tf::Vector3 StateEstimator::getRootAngularVel(int estimate_mode)
+{
+  tf::Transform root2baselink_tf = getRoot2BaselinkTf();
+  boost::lock_guard<boost::mutex> lock(state_mutex_);
+  // omega_root = R_root_baselink * omega_baselink (both in body frame)
+  return root2baselink_tf.getBasis() * base_omegas_.at(estimate_mode);
+}
+
+tf::Vector3 StateEstimator::getRootPos(int estimate_mode)
+{
+  tf::Transform root2baselink_tf = getRoot2BaselinkTf();
+  boost::lock_guard<boost::mutex> lock(state_mutex_);
+  tf::Matrix3x3 R_world_root = base_rots_.at(estimate_mode) * root2baselink_tf.getBasis().transpose();
+  // p_world_root = p_world_baselink - R_world_root * p_root_baselink_in_root
+  tf::Vector3 p_world_baselink(
+    (state_[State::X_BASE][estimate_mode].second)[0],
+    (state_[State::Y_BASE][estimate_mode].second)[0],
+    (state_[State::Z_BASE][estimate_mode].second)[0]);
+  return p_world_baselink - R_world_root * root2baselink_tf.getOrigin();
+}
+
+tf::Vector3 StateEstimator::getRootVel(int estimate_mode)
+{
+  tf::Transform root2baselink_tf = getRoot2BaselinkTf();
+  boost::lock_guard<boost::mutex> lock(state_mutex_);
+  tf::Matrix3x3 R_world_baselink = base_rots_.at(estimate_mode);
+  tf::Matrix3x3 R_world_root = R_world_baselink * root2baselink_tf.getBasis().transpose();
+  // v_world_root = v_world_baselink - omega_world x (R_world_root * p_root_baselink_in_root)
+  tf::Vector3 omega_world = R_world_baselink * base_omegas_.at(estimate_mode);
+  tf::Vector3 p_offset_world = R_world_root * root2baselink_tf.getOrigin();
+  tf::Vector3 v_world_baselink(
+    (state_[State::X_BASE][estimate_mode].second)[1],
+    (state_[State::Y_BASE][estimate_mode].second)[1],
+    (state_[State::Z_BASE][estimate_mode].second)[1]);
+  return v_world_baselink - omega_world.cross(p_offset_world);
+}
+
+tf::Vector3 StateEstimator::getRootVelLocal(int estimate_mode)
+{
+  tf::Transform root2baselink_tf = getRoot2BaselinkTf();
+  boost::lock_guard<boost::mutex> lock(state_mutex_);
+  tf::Matrix3x3 R_world_baselink = base_rots_.at(estimate_mode);
+  tf::Matrix3x3 R_world_root = R_world_baselink * root2baselink_tf.getBasis().transpose();
+  tf::Vector3 omega_world = R_world_baselink * base_omegas_.at(estimate_mode);
+  tf::Vector3 p_offset_world = R_world_root * root2baselink_tf.getOrigin();
+  tf::Vector3 v_world_baselink(
+    (state_[State::X_BASE][estimate_mode].second)[1],
+    (state_[State::Y_BASE][estimate_mode].second)[1],
+    (state_[State::Z_BASE][estimate_mode].second)[1]);
+  tf::Vector3 v_world_root = v_world_baselink - omega_world.cross(p_offset_world);
+  // express in root body frame
+  return R_world_root.transpose() * v_world_root;
+}
+
 void StateEstimator::statePublish(const ros::TimerEvent & e)
 {
   static ros::Time prev_pub_stamp = ros::Time(0);

@@ -44,25 +44,25 @@ servo_controller:
 
     controller2:
       id: 1
-      angle_sgn: 1      
+      angle_sgn: 1
       name: gimbal1_pitch
 
     controller3:
       id: 2
-      angle_sgn: 1      
+      angle_sgn: 1
       name: gimbal2_roll
 
     controller4:
       id: 3
-      angle_sgn: -1      
+      angle_sgn: -1
       name: gimbal2_pitch
 
     controller5:
       id: 4
-      angle_sgn: 1      
+      angle_sgn: 1
       name: gimbal3_roll
 
     controller6:
       id: 5
-      angle_sgn: -1      
+      angle_sgn: -1
       name: gimbal3_pitch

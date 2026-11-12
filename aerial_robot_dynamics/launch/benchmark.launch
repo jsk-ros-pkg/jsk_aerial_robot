@@ -1,0 +1,25 @@
+<launch>
+  <arg name="link_num" default="4"/>
+  <arg name="benchmark_args" default=""/>
+
+  <include file="$(find aerial_robot_dynamics)/launch/set_robot_description.launch">
+    <arg name="link_num" value="$(arg link_num)"/>
+  </include>
+
+  <param name="dynamics/is_floating_base" value="false"/>
+  <param name="dynamics/thrust_hessian_weight" value="1.0"/>
+  <param name="dynamics/verbose" value="false"/>
+
+  <node name="run_all_benchmarks" pkg="aerial_robot_dynamics" type="run_all_benchmarks.py"
+        output="screen" required="true">
+    <rosparam param="benchmarks">
+      - tauext_partial_q_derivative_rnea_benchmark
+      - tauext_partial_q_derivative_static_torque_benchmark
+      - tauext_partial_q_derivative_numerical_benchmark
+      - tauext_partial_q_derivative_hessian_benchmark
+      - inverse_dynamics_proxqp_benchmark
+    </rosparam>
+    <param name="benchmark_args" value="$(arg benchmark_args)"/>
+  </node>
+
+</launch>

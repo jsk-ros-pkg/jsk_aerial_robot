@@ -5,6 +5,7 @@
   <arg name="sim" default="False" />
   <arg name="real_machine" default="$(arg rm)" />
   <arg name="simulation" default="$(arg sim)" />
+  <arg name="mpc" default="False" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="sim_estimate_mode"  default= "2" />
   <arg name="headless" default="True" />
@@ -42,7 +43,8 @@
     <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
     ###########  Control  ###########
-    <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" />
+    <rosparam file="$(arg config_dir)/FlightControl.yaml" command="load" unless="$(arg mpc)"/>
+    <rosparam file="$(arg config_dir)/Mpc.yaml" command="load" if="$(arg mpc)"/>
 
     ###########  Sensor Fusion  ###########
     <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
@@ -50,13 +52,19 @@
 
     ###########  Navigation  ###########
     <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
+
+    <node name="pinocchio_robot_description_generator"
+          pkg="aerial_robot_dynamics"
+          type="pinocchio_robot_description_generator.py"
+          output="screen" />
+
   </group>
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
-    <param name="main_rate" value="40"/>
+    <param name="main_rate" value="200"/>
   </node>
 
   ###########  Robot Model  ###########

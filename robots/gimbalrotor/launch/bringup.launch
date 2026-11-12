@@ -5,6 +5,7 @@
   <arg name="sim" default="False" />
   <arg name="real_machine" default="$(arg rm)" />
   <arg name="simulation" default="$(arg sim)" />
+  <arg name="mpc" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="estimate_mode"  default= "1" />
   <arg name="sim_estimate_mode"  default= "2" />
@@ -33,20 +34,25 @@
     <param name="estimation/mode" value= "$(arg estimate_mode)" if="$(arg real_machine)"/>
 
    ###########  Robot Model  ###########
-   <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" />
+   <rosparam file="$(arg config_dir)/RobotModel.yaml" command="load" unless="$(arg mpc)"/>
+   <rosparam file="$(arg config_dir)/TransformableMultirotorRobotModel.yaml" command="load" if="$(arg mpc)"/>
 
    ###########  Motor Config  ###########
    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
    ###########  Servo Config  ###########
-   <rosparam file="$(arg config_dir)/$(arg airframe)/Servo.yaml" command="load"/>
+   <rosparam file="$(arg config_dir)/$(arg airframe)/Servo.yaml" command="load" unless="$(arg mpc)"/>
+   <rosparam file="$(arg config_dir)/$(arg airframe)/Servo_sim.yaml" command="load" if="$(arg mpc)"/>
 
    ###########  Battery Config  ###########
    <rosparam file="$(arg config_dir)/Battery.yaml" command="load" />
 
    ###########  Control  ###########
-   <rosparam file="$(arg config_dir)/$(arg airframe)/GimbalrotorControl.yaml" command="load" unless="$(arg simulation)"/>
-   <rosparam file="$(arg config_dir)/$(arg airframe)/GimbalrotorControl_sim.yaml" command="load" if="$(arg simulation)"/>
+   <group unless="$(arg mpc)">
+     <rosparam file="$(arg config_dir)/$(arg airframe)/GimbalrotorControl.yaml" command="load" unless="$(arg simulation)"/>
+     <rosparam file="$(arg config_dir)/$(arg airframe)/GimbalrotorControl_sim.yaml" command="load" if="$(arg simulation)"/>
+   </group>
+   <rosparam file="$(arg config_dir)/$(arg airframe)/GimbalrotorMpc.yaml" command="load" if="$(arg mpc)"/>
 
    ###########  Sensor Fusion  ###########
    <rosparam file="$(arg config_dir)/StateEstimation.yaml" command="load" />
@@ -56,13 +62,19 @@
    <param name="flight_navigation_plugin_name" value="aerial_robot_navigation/gimbalrotor_navigation" />
    <rosparam file="$(arg config_dir)/NavigationConfig.yaml" command="load" />
 
+    ###########  PinocchioRobotModel ###########
+    <node name="pinocchio_robot_description_generator"
+          pkg="aerial_robot_dynamics"
+          type="pinocchio_robot_description_generator.py"
+          output="screen" />
+
   </group>
 
   ###########  Base Platform  ###########
   <node pkg="aerial_robot_base" type="aerial_robot_base_node" name="aerial_robot_base_node" ns="$(arg robot_ns)" output="screen" >
     <param name="tf_prefix" value="$(arg robot_ns)"/>
     <param name="param_verbose" value="false"/>
-    <param name="main_rate" value="40"/>
+    <param name="main_rate" value="200"/>
   </node>
 
   ###########  Robot Model  ###########

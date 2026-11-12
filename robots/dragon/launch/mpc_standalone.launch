@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="link_num"      default="quad"/>
+  <arg name="model_name"    default="v1_5_202601"/>
+  <arg name="robot_ns"      value="dragon"/>
+  <arg name="config_dir"    default="$(find dragon)/config/$(arg link_num)/$(arg model_name)"/>
+  <arg name="noise_enable"  default="false"/>
+  <arg name="headless" default="False" />
+
+  <group ns="$(arg robot_ns)">
+    <!-- Robot URDF (needed by PinocchioRobotModel and robot_state_publisher) -->
+    <param name="robot_description"
+           command="$(find xacro)/xacro $(find dragon)/robots/$(arg link_num)/$(arg model_name).urdf.xacro"/>
+
+    <!-- MPC parameters -->
+    <rosparam file="$(arg config_dir)/DragonMpcControl_sim.yaml" command="load"/>
+
+    <!-- noise flag passed through to the node -->
+    <param name="mpc_standalone/noise/enable" value="$(arg noise_enable)"/>
+
+    <!-- Generate pinocchio robot description (PinocchioRobotModel polls for this param) -->
+    <node name="pinocchio_robot_description_generator" pkg="aerial_robot_dynamics"
+          type="pinocchio_robot_description_generator.py" output="screen"/>
+
+    <!-- Standalone MPC node -->
+    <node name="mpc_standalone_node" pkg="aerial_robot_control"
+          type="mpc_standalone_node" output="screen"/>
+
+    <!-- robot_state_publisher: reads joint_states and publishes TF for robot links.
+         tf_prefix ensures all link frames are published as "dragon/<link>". -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher"
+          type="robot_state_publisher" output="screen">
+      <param name="tf_prefix" value="$(arg robot_ns)"/>
+    </node>
+
+    <!-- rotor_tf_publisher: publishes TF for rotor frames from robot_description -->
+    <node name="rotor_tf_publisher" pkg="aerial_robot_model" type="rotor_tf_publisher" output="screen">
+      <param name="tf_prefix" value="$(arg robot_ns)"/>
+    </node>
+  </group>
+
+  <!-- RViz -->
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find dragon)/config/rviz_config" output="screen" unless="$(arg headless)"/>
+</launch>

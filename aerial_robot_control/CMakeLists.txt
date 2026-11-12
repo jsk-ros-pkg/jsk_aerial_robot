@@ -4,6 +4,7 @@ project(aerial_robot_control)
 add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
+  aerial_robot_dynamics
   aerial_robot_estimation
   aerial_robot_model
   aerial_robot_msgs
@@ -15,6 +16,10 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
+find_package(pinocchio REQUIRED)
+find_package(crocoddyl REQUIRED)
+find_package(OpenMP REQUIRED)
+find_package(OsqpEigen REQUIRED)
 
 generate_dynamic_reconfigure_options(
   cfg/PID.cfg
@@ -39,13 +44,16 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 -g -DNDEBUG")
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES control_utils flight_control_pluginlib flight_navigation trajectory_generation
-  CATKIN_DEPENDS aerial_robot_estimation aerial_robot_model aerial_robot_msgs dynamic_reconfigure pluginlib roscpp spinal tf
+  CATKIN_DEPENDS aerial_robot_dynamics aerial_robot_estimation aerial_robot_model aerial_robot_msgs dynamic_reconfigure pluginlib roscpp spinal tf
 )
 
 include_directories(
  include
  ${catkin_INCLUDE_DIRS}
  ${EIGEN3_INCLUDE_DIRS}
+ ${pinocchio_INCLUDE_DIRS}
+ ${crocoddyl_INCLUDE_DIRS}
+ ${OsqpEigen_INCLUDE_DIRS}
 )
 
 ### control utils
@@ -60,9 +68,16 @@ add_library(flight_control_pluginlib
   src/control/fully_actuated_controller.cpp
   src/control/under_actuated_controller.cpp
   src/control/under_actuated_lqi_controller.cpp
-  src/control/under_actuated_tilted_lqi_controller.cpp)
+  src/control/under_actuated_tilted_lqi_controller.cpp
+  src/control/fwddyn_mpc_control_problem.cpp
+  src/control/fwddyn_mpc_controller.cpp)
 
-target_link_libraries(flight_control_pluginlib ${catkin_LIBRARIES} control_utils)
+target_link_libraries(flight_control_pluginlib
+  ${catkin_LIBRARIES}
+  control_utils
+  ${pinocchio_LIBRARIES}
+  crocoddyl::crocoddyl
+  OsqpEigen::OsqpEigen)
 add_dependencies(flight_control_pluginlib  ${PROJECT_NAME}_gencfg)
 
 ### flight navigation
@@ -87,6 +102,14 @@ target_link_libraries (trajectory_generation ${catkin_LIBRARIES})
 
 add_executable(trajectory_generation_node src/trajectory/test.cpp)
 target_link_libraries (trajectory_generation_node ${catkin_LIBRARIES} trajectory_generation)
+
+add_executable(mpc_standalone_node src/mpc_standalone_node.cpp)
+target_link_libraries(mpc_standalone_node
+  ${catkin_LIBRARIES}
+  ${pinocchio_LIBRARIES}
+  crocoddyl::crocoddyl
+  OsqpEigen::OsqpEigen
+  flight_control_pluginlib)
 
 
 
