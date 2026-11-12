@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   aerial_robot_msgs
   aerial_robot_control
   aerial_robot_model
-  mujoco_ros_control
+  mujoco_ros_utils
   spinal
   eigen_conversions
   tf_conversions

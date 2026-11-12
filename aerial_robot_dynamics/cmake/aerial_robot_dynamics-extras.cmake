@@ -11,6 +11,7 @@ include(CMakeFindDependencyMacro)
 find_dependency(Eigen3)
 find_dependency(pinocchio)
 find_dependency(OsqpEigen)
+find_dependency(proxsuite)
 
 # linking against the imported targets propagates their include directories,
 # compile definitions (PINOCCHIO_WITH_*) and compile features
@@ -18,6 +19,7 @@ list(APPEND aerial_robot_dynamics_LIBRARIES
   Eigen3::Eigen
   pinocchio::pinocchio
   OsqpEigen::OsqpEigen
+  proxsuite::proxsuite
   )
 
 # For dependent packages which only use ${aerial_robot_dynamics_INCLUDE_DIRS}.
@@ -29,6 +31,7 @@ list(APPEND aerial_robot_dynamics_INCLUDE_DIRS
   ${EIGEN3_INCLUDE_DIRS}
   ${pinocchio_INCLUDE_DIRS}
   ${OsqpEigen_INCLUDE_DIRS}
+  ${proxsuite_INCLUDE_DIRS}
   )
 
 list(REMOVE_DUPLICATES aerial_robot_dynamics_LIBRARIES)

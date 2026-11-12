@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import rospy
-import xml.etree.ElementTree as ET
-from std_msgs.msg import String
+
+from aerial_robot_dynamics.robot_description import make_pinocchio_robot_description
 
 
 def get_robot_description():
@@ -11,18 +11,7 @@ def get_robot_description():
 
 
 def generate_pinocchio_robot_description(robot_description):
-    root = ET.fromstring(robot_description)
-    for joint in root.findall("joint"):
-        name = joint.attrib.get("name")
-        if "rotor" in name:
-            joint.attrib["type"] = "fixed"
-            rospy.loginfo("{} is modified to fixed joint".format(name))
-
-            # remove limit tag
-            existing_limit = joint.find("limit")
-            if existing_limit is not None:
-                joint.remove(existing_limit)
-    return ET.tostring(root, encoding="unicode")
+    return make_pinocchio_robot_description(robot_description, logger=rospy.loginfo)
 
 
 def main():

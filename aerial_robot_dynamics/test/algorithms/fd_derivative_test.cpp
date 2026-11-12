@@ -8,7 +8,7 @@
 
 using namespace aerial_robot_dynamics;
 
-TEST(ForwardDynamicsDerivatives, MatchNumericalDerivatives)
+TEST(ForwardDynamicsDerivatives, ForwardDynamicsDerivativesTest)
 {
   PinocchioRobotModel& robot_model = getTestRobotModel();
   const bool verbose = testVerbose();

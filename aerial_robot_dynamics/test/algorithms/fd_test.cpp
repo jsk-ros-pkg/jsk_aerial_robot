@@ -8,7 +8,7 @@
 
 using namespace aerial_robot_dynamics;
 
-TEST(ForwardDynamics, MatchesEquationOfMotion)
+TEST(ForwardDynamics, ForwardDynamicsTest)
 {
   PinocchioRobotModel& robot_model = getTestRobotModel();
   const bool verbose = testVerbose();

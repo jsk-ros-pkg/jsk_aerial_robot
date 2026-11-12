@@ -10,9 +10,11 @@ int main(int argc, char** argv)
 
   aerial_robot_dynamics::PinocchioRobotModelRos pinocchio_robot_model_ros(nh);
 
+  aerial_robot_dynamics::PinocchioRobotModel::Config config;
+  config.verbose = false;  // print only the benchmark output
   aerial_robot_dynamics::PinocchioRobotModel pinocchio_robot_model(
       pinocchio_robot_model_ros.getPinocchioRobotModel()->getRobotDescription(),
-      pinocchio_robot_model_ros.getPinocchioRobotModel()->getPinocchioRobotDescription(), true);
+      pinocchio_robot_model_ros.getPinocchioRobotModel()->getPinocchioRobotDescription(), true, config);
 
   const int DATA_SIZE = 4096;
   std::vector<Eigen::VectorXd> q_vec(DATA_SIZE);
@@ -25,7 +27,7 @@ int main(int argc, char** argv)
     aerial_robot_dynamics::addNoise(thrust_vec[i], 0.1);
   }
 
-  benchmark::RegisterBenchmark("BM_tauext_partial_q_rnea", [&](benchmark::State& state) {
+  benchmark::RegisterBenchmark("ThrustGenforceDqRneaBenchmark", [&](benchmark::State& state) {
     size_t idx = 0;
 
     for (auto _ : state)

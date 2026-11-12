@@ -11,9 +11,10 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>benchmark</build_depend>
-
   <depend>eigen</depend>
+  <depend>eigenpy</depend>
   <depend>osqp-eigen</depend>
+  <depend>proxsuite</depend>
   <depend>pinocchio</depend>
   <depend>roscpp</depend>
   <depend>urdf</depend>

@@ -1,0 +1,7 @@
+<library path="lib/librotor_controllers">
+  <class name="rotor_controllers/RotorController" type="rotor_controllers::RotorController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      The rotor controller.
+    </description>
+  </class>
+</library>

@@ -9,7 +9,7 @@
 
 using namespace aerial_robot_dynamics;
 
-TEST(TauExtByThrustDerivativeQDerivatives, MatchNumericalDerivatives)
+TEST(TauExtByThrustDerivativeQDerivatives, ThrustGenforceUnitsDqTest)
 {
   PinocchioRobotModel& robot_model = getTestRobotModel();
   const bool verbose = testVerbose();
@@ -20,6 +20,7 @@ TEST(TauExtByThrustDerivativeQDerivatives, MatchNumericalDerivatives)
 
     Eigen::VectorXd q = robot_model.getResetConfiguration();
 
+    // hessian based method
     auto start = std::chrono::high_resolution_clock::now();
     std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q_ana =
         robot_model.computeTauExtByThrustDerivativeQDerivatives(q);  // compute analytical derivatives
@@ -27,6 +28,8 @@ TEST(TauExtByThrustDerivativeQDerivatives, MatchNumericalDerivatives)
     std::cout << "TauExt by Thrust Derivative Q Derivatives Analytical time: "
               << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms"
               << std::endl;
+
+    // numerical method
     start = std::chrono::high_resolution_clock::now();
     std::vector<Eigen::MatrixXd> tauext_partial_thrust_partial_q_num =
         robot_model.computeTauExtByThrustDerivativeQDerivativesNum(q);  // compute numerical derivatives

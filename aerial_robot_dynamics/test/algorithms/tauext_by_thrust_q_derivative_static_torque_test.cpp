@@ -8,7 +8,7 @@
 
 using namespace aerial_robot_dynamics;
 
-TEST(TauExtByThrustQDerivative, MatchesNumericalDerivative)
+TEST(TauExtByThrustQDerivative, ThrustGenforceDqStaticTorqueTest)
 {
   PinocchioRobotModel& robot_model = getTestRobotModel();
   const bool verbose = testVerbose();
@@ -22,30 +22,18 @@ TEST(TauExtByThrustQDerivative, MatchesNumericalDerivative)
 
     addNoise(thrust, 0.1);
 
+    // Static torque based analytical derivative
     auto start = std::chrono::high_resolution_clock::now();
-    Eigen::MatrixXd tauext_by_thrust_q_derivative_ana = robot_model.computeTauExtByThrustQDerivative(q, thrust);
+    Eigen::MatrixXd tauext_by_thrust_q_derivative_ana =
+        robot_model.computeTauExtByThrustQDerivativeStaticTorque(q, thrust);
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "TauExt by Thrust Q Derivative Analytical time: "
               << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms"
               << std::endl;
 
+    // Numerical derivative
     start = std::chrono::high_resolution_clock::now();
-    Eigen::MatrixXd tauext_by_thrust_q_derivative_num =
-        Eigen::MatrixXd::Zero(robot_model.getModel()->nv, robot_model.getModel()->nv);
-
-    double epsilon = 1e-6;
-    Eigen::VectorXd original_q = q;
-    Eigen::VectorXd original_tauext_by_thrust = robot_model.computeTauExtByThrust(original_q, thrust);
-    for (int i = 0; i < robot_model.getModel()->nv; i++)
-    {
-      Eigen::VectorXd v = Eigen::VectorXd::Zero(robot_model.getModel()->nv);
-      v(i) = 1.0;
-
-      Eigen::VectorXd tmp_q = pinocchio::integrate(*(robot_model.getModel()), original_q, v * epsilon);
-
-      Eigen::VectorXd tauext_by_thrust_plus = robot_model.computeTauExtByThrust(tmp_q, thrust);
-      tauext_by_thrust_q_derivative_num.col(i) = (tauext_by_thrust_plus - original_tauext_by_thrust) / epsilon;
-    }
+    Eigen::MatrixXd tauext_by_thrust_q_derivative_num = robot_model.computeTauExtByThrustQDerivativeNum(q, thrust);
     end = std::chrono::high_resolution_clock::now();
     std::cout << "TauExt by Thrust Q Derivative Numerical time: "
               << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << " ms"

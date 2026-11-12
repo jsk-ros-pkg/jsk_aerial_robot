@@ -3,7 +3,9 @@ find_package(benchmark REQUIRED)
 set(benchmark_targets
   tauext_partial_q_derivative_hessian_benchmark
   tauext_partial_q_derivative_rnea_benchmark
+  tauext_partial_q_derivative_static_torque_benchmark
   tauext_partial_q_derivative_numerical_benchmark
+  inverse_dynamics_proxqp_benchmark
   )
 
 foreach(benchmark_target ${benchmark_targets})

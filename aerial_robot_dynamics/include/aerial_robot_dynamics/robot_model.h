@@ -15,6 +15,13 @@
 
 #include <OsqpEigen/OsqpEigen.h>
 
+// osqp/constants.h defines WARM_START as a macro, which mangles
+// proxsuite::proxqp::InitialGuessStatus::WARM_START and breaks the whole enum
+#ifdef WARM_START
+#undef WARM_START
+#endif
+#include <proxsuite/proxqp/dense/dense.hpp>
+
 #include <chrono>
 #include <urdf/model.h>
 #include <tinyxml.h>
@@ -29,6 +36,8 @@ public:
   struct Config
   {
     double thrust_hessian_weight = 1.0;
+    bool verbose = true;
+    bool warm_start_inverse_dynamics = true;
   };
 
   PinocchioRobotModel(std::string robot_description, std::string pinocchio_robot_description, bool is_floating_base);
@@ -49,8 +58,18 @@ public:
                                   Eigen::VectorXd& thrust);
   Eigen::MatrixXd forwardDynamicsDerivatives(const Eigen::VectorXd& q, const Eigen::VectorXd& v,
                                              const Eigen::VectorXd& tau, Eigen::VectorXd& thrust);
-  bool inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
-                       Eigen::VectorXd& tau);
+  [[deprecated("Use inverseDynamicsOsqp instead.")]] bool
+  inverseDynamics(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a, Eigen::VectorXd& tau)
+  {
+    return inverseDynamicsOsqp(q, v, a, tau);
+  }
+  bool inverseDynamicsOsqp(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                           Eigen::VectorXd& tau, const Eigen::VectorXd& base_residual_lower = Eigen::VectorXd::Zero(6),
+                           const Eigen::VectorXd& base_residual_upper = Eigen::VectorXd::Zero(6));
+  bool inverseDynamicsProxqp(const Eigen::VectorXd& q, const Eigen::VectorXd& v, const Eigen::VectorXd& a,
+                             Eigen::VectorXd& tau,
+                             const Eigen::VectorXd& base_residual_lower = Eigen::VectorXd::Zero(6),
+                             const Eigen::VectorXd& base_residual_upper = Eigen::VectorXd::Zero(6));
 
   std::vector<pinocchio::Force> computeFExtByThrust(const Eigen::VectorXd& thrust);  // external force is expressed in
                                                                                      // the LOCAL frame
@@ -58,7 +77,15 @@ public:
   std::vector<Eigen::MatrixXd> computeTauExtByThrustDerivativeQDerivativesNum(const Eigen::VectorXd& q);
   Eigen::VectorXd computeTauExtByThrust(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
   Eigen::MatrixXd computeTauExtByThrustDerivative(const Eigen::VectorXd& q);
-  Eigen::MatrixXd computeTauExtByThrustQDerivative(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
+  [[deprecated("Use computeTauExtByThrustQDerivativeRnea instead.")]] Eigen::MatrixXd
+  computeTauExtByThrustQDerivative(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust)
+  {
+    return computeTauExtByThrustQDerivativeRnea(q, thrust);
+  }
+  Eigen::MatrixXd computeTauExtByThrustQDerivativeRnea(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
+  Eigen::MatrixXd computeTauExtByThrustQDerivativeStaticTorque(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
+  Eigen::MatrixXd computeTauExtByThrustQDerivativeHessian(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
+  Eigen::MatrixXd computeTauExtByThrustQDerivativeNum(const Eigen::VectorXd& q, const Eigen::VectorXd& thrust);
 
   const std::string& getRobotDescription() const
   {
@@ -141,6 +168,9 @@ private:
   Eigen::VectorXd lower_bound_;
   Eigen::VectorXd upper_bound_;
 
+  // ProxQP solver for Inverse Dynamics
+  std::unique_ptr<proxsuite::proxqp::dense::QP<double>> id_solver_proxqp_;
+
   // model parameters
   bool is_floating_base_ = true;
   int rotor_num_;
@@ -150,5 +180,9 @@ private:
   Eigen::VectorXd thrust_lower_limits_;
 
   Config config_;
+
+  // joint torque box for the QP
+  void jointTorqueBounds(const Eigen::VectorXd& base_residual_lower, const Eigen::VectorXd& base_residual_upper,
+                         Eigen::VectorXd& lower, Eigen::VectorXd& upper) const;
 };
 }  // namespace aerial_robot_dynamics

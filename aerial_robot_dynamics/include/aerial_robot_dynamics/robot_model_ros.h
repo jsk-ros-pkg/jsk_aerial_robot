@@ -36,6 +36,7 @@ public:
     // the defaults of Config are kept for the parameters which are not set
     PinocchioRobotModel::Config config;
     getParam<double>(dynamics_nh, "thrust_hessian_weight", config.thrust_hessian_weight, config.thrust_hessian_weight);
+    getParam<bool>(dynamics_nh, "verbose", config.verbose, config.verbose);
 
     pinocchio_robot_model_ =
         std::make_shared<PinocchioRobotModel>(robot_description, pinocchio_robot_description, is_floating_base, config);

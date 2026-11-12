@@ -23,9 +23,6 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "pinocchio_robot_model_gtest");
   testing::InitGoogleTest(&argc, argv);
 
-  // PinocchioRobotModelRos waits for these parameters forever, so check them
-  // here to fail with a readable message instead of hitting the rostest
-  // time-limit
   for (const std::string& param_name : { "/robot_description", "/pinocchio_robot_description" })
   {
     if (!waitForParam(param_name, ros::WallDuration(10.0)))

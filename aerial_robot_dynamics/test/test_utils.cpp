@@ -7,8 +7,6 @@ namespace aerial_robot_dynamics
 {
 PinocchioRobotModel& getTestRobotModel()
 {
-  // ros::init() and the check for the robot description parameters are done by
-  // main(), so the model can be built on first use
   ros::NodeHandle nh;
   static PinocchioRobotModelRos robot_model_ros(nh);
   return *robot_model_ros.getPinocchioRobotModel();

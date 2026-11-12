@@ -9,7 +9,8 @@ set(algorithm_test_sources
   algorithms/id_test.cpp
   algorithms/tauext_by_thrust_derivative_q_derivative_test.cpp
   algorithms/tauext_by_thrust_q_derivative_comparison_test.cpp
-  algorithms/tauext_by_thrust_q_derivative_test.cpp
+  algorithms/tauext_by_thrust_q_derivative_rnea_test.cpp
+  algorithms/tauext_by_thrust_q_derivative_static_torque_test.cpp
 )
 
 add_executable(pinocchio_robot_model_gtest
