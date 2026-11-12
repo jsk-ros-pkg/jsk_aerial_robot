@@ -24,7 +24,7 @@ void GimbalrotorRobotModel::updateRobotModelImpl(const KDL::JntArray& joint_posi
   /* get local coords of thrust links */
   for (int i = 0; i < getRotorNum(); ++i)
   {
-    std::string thrust = "motor_arm" + std::to_string(i + 1);
+    std::string thrust = "rotor_arm" + std::to_string(i + 1);
     KDL::Frame f;
     fk_solver.JntToCart(joint_positions, f, thrust);
     thrust_coords_rot_[i] = cog_frame.Inverse() * f.M;
