@@ -186,6 +186,7 @@ void UnderActuatedLQIController::controlCore()
   // feed-forward term for z
   Eigen::MatrixXd q_mat_inv = getQInv();
   double ff_acc_z = navigator_->getTargetAcc().z();
+  if(compensate_gravity_) ff_acc_z += robot_model_->getGravity3d().z();
   Eigen::VectorXd ff_term = q_mat_inv.col(0) * ff_acc_z;
   target_thrust_z_term += ff_term;
 
