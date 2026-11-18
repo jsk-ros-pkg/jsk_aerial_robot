@@ -70,9 +70,9 @@ class VerticalAuto():
         self.vertical_window_time = None
         self.vertical_decision_sample = 0
         self.vertical_decision_time = 0.0
-        self.vertical_button_pressed = False
-        self.vertical_button_time = None
-        self.vertical_button_latched = False
+        self.vertical_trigger_axis = 0
+        self.vertical_trigger_time = None
+        self.vertical_trigger_latched = False
 
         self.joy_timeout = rospy.get_param('~joy_timeout', 0.5)
         self.feedback_timeout = rospy.get_param('~feedback_timeout', 0.5)
@@ -291,7 +291,7 @@ class VerticalAuto():
     def stop_auto(self):
         self.vertical_auto_mode = False
         self.vertical_state = 'manual'
-        self.vertical_button_time = None
+        self.vertical_trigger_time = None
         self.motor_pos_control = False
         self.auto_control_mode = False
         if not self.auto_pattern == 'stop':
@@ -378,19 +378,19 @@ class VerticalAuto():
 
     def update_vertical_trigger(self, now):
         if (self.joy_time is None or now - self.joy_time > self.joy_timeout
-                or not self.vertical_button_pressed):
-            self.vertical_button_time = None
+                or self.vertical_trigger_axis == 0):
+            self.vertical_trigger_time = None
             return
-        if self.vertical_button_latched:
+        if self.vertical_trigger_latched:
             return
-        if self.vertical_button_time is None:
-            self.vertical_button_time = now
-        if now - self.vertical_button_time >= self.vertical_hold_seconds:
-            self.vertical_button_latched = True
+        if self.vertical_trigger_time is None:
+            self.vertical_trigger_time = now
+        if now - self.vertical_trigger_time >= self.vertical_hold_seconds:
+            self.vertical_trigger_latched = True
             if not self.auto_control_mode:
-                self.start_vertical_auto(now)
+                self.start_vertical_auto(now, -self.vertical_trigger_axis)
 
-    def start_vertical_auto(self, now):
+    def start_vertical_auto(self, now, side):
         if (not self.feedback_ready(now) or not self.imu_valid or self.imu_time is None
                 or now - self.imu_time > self.feedback_timeout):
             rospy.logwarn('vertical auto needs fresh IMU, servo and motor feedback')
@@ -399,7 +399,7 @@ class VerticalAuto():
         self.auto_control_mode = True
         self.auto_pattern = 'vertical_auto'
         self.vertical_auto_mode = True
-        self.vertical_side = -1
+        self.vertical_side = side
         self.vertical_reversals = 0
         self.vertical_initial_reverse = True
         self.motor_acc = 0.0
@@ -471,13 +471,14 @@ class VerticalAuto():
         elapsed = now - self.vertical_state_time
 
         if self.vertical_state == 'prepare':
-            # Same feedback position control as R1 + stick, with separate targets.
-            self.pos_control(0, 1024.0, 1.0)
-            self.pos_control(1, 3072.0, 1.0)
+            # Same logical position target for both axes, as in R1 + stick.
+            servo_tar = 2048.0 + self.vertical_side * 1024.0
+            self.pos_control(0, servo_tar, 1.0)
+            self.pos_control(1, servo_tar, 1.0)
             prepare_seconds = self.vertical_position_seconds + self.vertical_prepare_seconds
-            if (elapsed >= prepare_seconds and abs(self.servo_equ_angles - 1024.0) <= 50.0
-                    and abs(self.motor_equ_angles - 3072.0) <= 50.0):
-                self.vertical_side = 1
+            if (elapsed >= prepare_seconds and abs(self.servo_equ_angles - servo_tar) <= 50.0
+                    and abs(self.motor_equ_angles - servo_tar) <= 50.0):
+                self.vertical_side *= -1
                 self.set_vertical_state('reverse', now)
             elif elapsed > prepare_seconds + self.vertical_reverse_timeout:
                 self.finish_vertical_auto('preparation position timeout')
@@ -541,7 +542,7 @@ class VerticalAuto():
                 return
             if self.auto_control_mode:
                 self.auto_control()
-            elif self.auto_pattern == 'stop':
+            elif self.auto_pattern == 'stop' and not self.motor_pos_control:
                 # Keep homing from onboard feedback even when the joystick is offline.
                 self.stop_control()
             elif self.joy_time is None or now - self.joy_time > self.joy_timeout:
@@ -570,14 +571,16 @@ class VerticalAuto():
                 return
             now = time.monotonic()
             if self.joy_time is None or now - self.joy_time > self.joy_timeout:
-                self.vertical_button_time = None
+                self.vertical_trigger_time = None
             self.joy_time = now
-            self.vertical_button_pressed = msg.buttons[13] == 1
-            if not self.vertical_button_pressed:
-                self.vertical_button_time = None
-                self.vertical_button_latched = False
-            elif self.vertical_button_time is None and not self.vertical_button_latched:
-                self.vertical_button_time = now
+            trigger_axis = 1 if msg.axes[9] > 0 else -1 if msg.axes[9] < 0 else 0
+            if trigger_axis == 0:
+                self.vertical_trigger_time = None
+                self.vertical_trigger_latched = False
+            elif not self.vertical_trigger_latched:
+                if trigger_axis != self.vertical_trigger_axis or self.vertical_trigger_time is None:
+                    self.vertical_trigger_time = now
+            self.vertical_trigger_axis = trigger_axis
 
             motor_speed_step = 0.0
             if msg.axes[10] != self.motor_speed_axis_prev:
@@ -586,7 +589,7 @@ class VerticalAuto():
             self.motor_speed_axis_prev = msg.axes[10]
 
             if msg.buttons[1] == 1:
-                self.vertical_button_latched = self.vertical_button_pressed
+                self.vertical_trigger_latched = self.vertical_trigger_axis != 0
                 if self.vertical_auto_mode:
                     self.finish_vertical_auto('joystick stop')
                 else:

@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- Onboard runs control and bridge; the PC runs role:=joystick. -->
+  <!-- Run spinal bridge separately; the PC runs role:=joystick. -->
   <arg name="role" default="onboard" doc="choose between [onboard, joystick, all]"/>
-  <arg name="dev" default="vim4" doc="choose between [pc, vim4]"/>
-  <arg name="bridge" default="true"/>
   <arg name="joy_dev" default="/dev/input/js0"/>
   <arg name="auto_reversals" default="2"/>
   <arg name="auto_motor_speed" default="12.566370614359172"/>
@@ -11,10 +9,6 @@
   <arg name="motor_angle_ref" default="2768.0"/>
 
   <group if="$(eval arg('role') in ['onboard', 'all'])">
-    <include file="$(find spinal)/launch/bridge.launch" if="$(arg bridge)">
-      <arg name="dev" value="$(arg dev)"/>
-    </include>
-
     <node pkg="robotic_fish" type="vertical_auto.py" name="vertical_auto" output="screen" required="true">
       <param name="max_val" value="250.0"/>
       <param name="auto_hold_seconds" value="3.0"/>
@@ -36,7 +30,7 @@
     <node pkg="joy" type="joy_node" name="vertical_auto_joy" output="screen">
       <param name="dev" value="$(arg joy_dev)"/>
       <param name="coalesce_interval" value="0.025"/>
-      <!-- A held button must keep arriving throughout the 3-second hold. -->
+      <!-- The held axis direction must keep arriving throughout the 3-second hold. -->
       <param name="autorepeat_rate" value="50.0"/>
     </node>
   </group>
