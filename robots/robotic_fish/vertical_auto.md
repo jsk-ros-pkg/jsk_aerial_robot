@@ -19,7 +19,7 @@ roscore
 roslaunch spinal bridge.launch dev:=vim4
 
 # Onboard，终端 3：只启动控制器。
-roslaunch robotic_fish vertical_auto.launch auto_reversals:=2
+roslaunch robotic_fish vertical_auto.launch auto_reversals:=6
 
 # 上位机：只启动蓝牙手柄对应的 joy_node。
 roslaunch robotic_fish vertical_auto.launch role:=joystick
@@ -27,6 +27,9 @@ roslaunch robotic_fish vertical_auto.launch role:=joystick
 # 本机 USB 联调：独立 master 保持运行，以下两条分别在不同终端启动。
 roslaunch spinal bridge.launch dev:=pc
 roslaunch robotic_fish vertical_auto.launch role:=all
+
+# 下潜 prepare 阶段直接给 motor 摆动转速；默认 false，保持两轴位置控制。
+roslaunch robotic_fish vertical_auto.launch auto_prepare_fast_start:=true
 ```
 
 只运行一个电机指令发布程序；不要同时启动 `advance_teleop.launch`。
@@ -37,8 +40,14 @@ roslaunch robotic_fish vertical_auto.launch role:=all
 - `axes[9]` 同一非零方向连续保持 3 秒进入自动：`+1` 从两轴 1024 开始准备，
   `-1` 从两轴 3072 开始准备。回零、换向或输入中断会重置触发计时。
   一次持续输入只触发一次；触发后需要先回零才能再次启动。`buttons[13]` 不再触发自动。
-- 自动启动需要新鲜的 IMU、servo 和 motor 反馈；默认允许的反馈间隔为 0.5 秒。
-- 自动执行期间不依赖 `/joy` 或 `/cmd_vel`；收到 `buttons[1]` 仍可中止。
+- `axes[10]=+1` 持续 3 秒触发 `vertical_up_auto`：两轴定位 1024 保持 10 秒，
+  随后 servo 继续保持 1024，motor 按现有 1024 侧方向转动 20 秒，再停止回中。
+  若两个触发轴同时有效，上升模式优先；切换触发模式会重新计时，触发后需两轴均释放
+  （`axes[9]=0` 且 `axes[10]!=+1`）才能再次触发。
+- 下潜启动需要新鲜的 IMU、servo 和 motor 反馈；默认允许的反馈间隔为 0.5 秒。
+  上升是定时动作，只要求 servo、motor 反馈新鲜，不使用 IMU 窗口切换。
+- 两种自动模式执行期间都不依赖 `/joy` 或 `/cmd_vel`；收到 `buttons[1]` 可随时中止，
+  包括上升准备和 motor 转动阶段。
 - 自动结束或中止后回到手动 `stop` 状态，清除旧巡航速度、加速度和转向量。
   servo、motor 各自位置控制回校正坐标 2048；只要执行器反馈有效，回中控制持续运行，
   不依赖手柄重新连接或 IMU。到位后速度归零，仍保持位置控制。
@@ -57,7 +66,7 @@ roslaunch robotic_fish vertical_auto.launch role:=all
 | 手柄 | `_joyCallback()` | 处理按键和摇杆，计算手动指令，记录触发轴方向和保持时间并发布 |
 | 外部速度 | `_twistCallback()` | 接受 `/cmd_vel` 的 motor 速度；自主机动期间不接受该输入 |
 | 定时调度 | `_controlLoop()` | 检查轴方向保持时间、反馈和输入超时，执行自动动作或回中，再发布指令 |
-| 自主任务 | `start_vertical_auto()`、`vertical_control()`、`finish_vertical_auto()` | 启动、运行和结束自主状态机 |
+| 自主任务 | `start_vertical_auto()`、`vertical_control()`、`start_vertical_up_auto()`、`vertical_up_control()`、`finish_vertical_auto()` | 启动、运行和结束下潜/上升状态机 |
 | 反摆窗口 | `update_vertical_peak()`、`vertical_reverse_ready()` | 检测当前/预测 roll 峰及姿态许可 |
 | 执行器控制 | `pos_control()`、`manual_control()`、`stop_control()` | 根据位置或巡航目标计算速度指令 |
 | 指令发布 | `publish_cmd()` | 更新巡航 motor 速度，并包装、发布两轴指令 |
@@ -78,12 +87,13 @@ roslaunch robotic_fish vertical_auto.launch role:=all
 
 | 变量 | 含义 |
 |---|---|
-| `auto_pattern` | `stop / cruise / fast_start / fast_turn / vertical_auto`，当前动作类别 |
+| `auto_pattern` | `stop / cruise / fast_start / fast_turn / vertical_auto / vertical_up_auto`，当前动作类别 |
 | `auto_control_mode` | 定时器是否调用 `auto_control()`；包含旧快速动作和新自主任务 |
-| `motor_pos_control` | R1 位置控制标志；自主任务的 `prepare` 阶段也设为 True |
-| `vertical_auto_mode` | 是否正在执行新自主任务 |
-| `vertical_state` | 新任务内部的 `manual / prepare / reverse / gait` |
-| `vertical_trigger_axis` | `axes[9]` 的方向：+1 准备 1024，-1 准备 3072，0 不触发 |
+| `motor_pos_control` | R1 或 prepare 位置控制标志；下潜 prepare 加速起步时为 False，上升 prepare 时为 True |
+| `vertical_auto_mode` | 是否正在执行下潜或上升自主任务，共用手动屏蔽和停止逻辑 |
+| `vertical_state` | 新任务内部的 `manual / prepare / reverse / gait / up` |
+| `vertical_trigger_mode` | 当前候选触发模式：空值、`vertical_auto` 或 `vertical_up_auto` |
+| `vertical_trigger_axis` | 下潜触发方向：+1 准备 1024，-1 准备 3072；上升触发时置 0 |
 
 R1 位置控制不改变 `auto_pattern`，而是保持先前的 `stop` 或 `cruise`，同时将
 `motor_pos_control` 设为 True。原快速起步、快速转向与立体机动均由 `auto_control()` 分发。
@@ -99,7 +109,7 @@ R1 位置控制不改变 `auto_pattern`，而是保持先前的 `stop` 或 `crui
 | `buttons[5] + axes[2]` | R1＋摇杆，两轴使用同一个逻辑位置目标 |
 | `buttons[4] + buttons[5] + axes[2]` | 原快速转向 |
 | `buttons[6]/[7] + axes[3]/[4]` | 调整巡航速度 |
-| `axes[10]` | 按 π/s 步进调整巡航速度 |
+| `axes[10]` | 保留原来的 π/s 巡航速度步进；+1 持续 3 秒后进入上升模式 |
 | `axes[9]` 同一非零方向保持 3 秒 | 启动新自主任务；+1 准备 1024，-1 准备 3072 |
 
 ### 指令计算与发布
@@ -117,7 +127,7 @@ R1 位置控制不改变 `auto_pattern`，而是保持先前的 `stop` 或 `crui
 
 `_controlLoop()` 每 20 ms 按以下顺序执行：
 
-1. 检查 `axes[9]` 同一非零方向是否保持 3 秒，并锁定准备侧。
+1. 检查 `axes[9]` 下潜触发或 `axes[10]=+1` 上升触发是否保持 3 秒，并锁定任务。
 2. 执行器反馈超时则结束自动（若正在执行）、输出零速度并返回。
 3. 自动模式执行 `auto_control()`。
 4. 否则，`auto_pattern == 'stop'` 且不在位置控制时执行回中。
@@ -137,19 +147,22 @@ elif self.auto_pattern == 'stop' and not self.motor_pos_control:
 本次修正只增加 `not self.motor_pos_control`，保留其他调度、超时和发布逻辑。
 当输入及反馈正常时，定时器可重复发布 R1 已算出的指令，但不会重新计算回中目标。
 
-## 自动状态机
+## 下潜状态机
 
 `prepare -> reverse -> gait <-> reverse -> manual stop`
 
 | 状态 | 动作 / 切换 |
 |---|---|
-| `prepare` | 根据触发方向，两轴都定位到 1024 或都定位到 3072，并持续保持；准备时间为两个参数相加，默认 2+10=12 秒，到时还要求两者距目标均不超过 50 tick |
+| `prepare` | 默认两轴都定位到 1024 或都定位到 3072，保持 4 秒；加速起步开关为 True 时仅 servo 定位，motor 直接按准备侧方向以 `vertical_motor_speed` 转动 |
 | 初始 `reverse` | 从准备侧切向另一侧，motor 按新侧以 ±4π/s 转动；至少经过 0.5 秒且 servo 距目标不超过 50 tick 后进入 `gait`，这次准备反摆不计数 |
 | `gait` | 保持本侧 servo 目标和固定 motor 转速；四元数观测满足 roll 窗口时切到另一侧 |
 | 后续 `reverse` | 同一控制周期翻转 servo 目标和 motor 方向；至少经过 0.5 秒且 servo 到位后计为一次完成的反摆 |
-| 完成 | 达到 `auto_reversals`（默认 2）后回手动 `stop`，servo、motor 持续位置控制回各自的 2048 |
+| 完成 | 达到 `auto_reversals`（默认 6）后回手动 `stop`，servo、motor 持续位置控制回各自的 2048 |
 
-当前准备阶段没有分开执行“2 秒定位”和“10 秒保持”，全程执行相同的位置控制。
+准备总时长由 `auto_prepare_seconds` 单独指定，默认 4 秒；不再叠加 `auto_position_seconds`。
+`auto_prepare_fast_start` 默认 False。False 时，准备结束要求两轴均距位置目标不超过
+50 tick；True 时 motor 已连续转动，只检查 servo 到位，不等待 motor 的位置目标。
+加速起步的 motor 内部速度为 `side * auto_motor_direction * vertical_motor_speed`。
 后续反摆完成条件只检查最短持续时间和 servo 到位，不检查 motor 累计转角。
 
 | 触发方向 | 准备侧 | servo / motor 逻辑目标 | 初始反摆后的 servo 目标 / motor 内部速度 |
@@ -164,14 +177,15 @@ elif self.auto_pattern == 'stop' and not self.motor_pos_control:
 IMU 无效、IMU 超时或执行器反馈超时会终止自动。
 准备结束后再过 2.5 秒仍未定位，也终止自动。执行器反馈超时期间输出零速度，
 反馈恢复后继续 `stop` 回中。
-任务结束按反摆计数判断，没有水面检测或自动上浮判据。
+下潜任务结束按反摆计数判断，上升任务按持续时间结束，均没有水面检测判据。
 
 `side=+1` 对应 servo=3072、控制器内 motor=+4π/s；`side=-1` 对应
 servo=1024、motor=-4π/s。最终发布保留旧程序的 `motor.cmd = -self.servo_cmd[1]`。
 如需交换电机物理方向，设置 `auto_motor_direction:=-1`，servo 目标不变。
 `reverse` / `gait` 使用恒定速度，不叠加旧巡航的相位变速。
-`prepare` 和停止时使用 R1＋摇杆同一个 `pos_control()`，以反馈位置误差生成速度，
-到位后速度归零。准备阶段 motor 的位置目标不受 `auto_motor_direction` 影响。
+默认 `prepare` 和停止时使用 R1＋摇杆同一个 `pos_control()`，以反馈位置误差生成速度，
+到位后速度归零。位置目标不受 `auto_motor_direction` 影响；开启准备加速起步后，
+motor 转速方向使用该参数。
 
 motor 的位置目标使用原程序的校正坐标：
 
@@ -180,17 +194,32 @@ motor_equ_angles = (motor_angle_raw - motor_angle_ref + 2048) % 4096
 motor_angle_raw_target = (logical_target + motor_angle_ref - 2048) % 4096
 ```
 
-`motor_angle_ref` 默认 `2048+720=2768`：准备目标 1024 对应原始编码器 1744，
-准备目标 3072 对应原始编码器 3792，停止目标 2048 对应原始编码器 2768。
-偏置已在反馈换算中处理，位置目标不重复加 720，也不额外取负；方向沿用原程序发布
+`motor_angle_ref` 默认 720：准备目标 1024 对应原始编码器 3792，
+准备目标 3072 对应原始编码器 1744，停止目标 2048 对应原始编码器 720。
+偏置已在反馈换算中处理，位置目标不重复加减参考值，也不额外取负；方向沿用原程序发布
 速度时的负号。原 R1＋摇杆和自动准备均给两轴同一个逻辑位置目标。
-可通过 `motor_angle_ref:=2768` 修改默认参考；原初始化按键 `buttons[2]` 仍将当前 motor
+可通过 `motor_angle_ref:=720` 修改默认参考；原初始化按键 `buttons[2]` 仍将当前 motor
 原始角度设为新的参考零位。
 
 servo 编码器方向和实际弯曲方向仍需真机核对；这里约定正侧对应身体向左弯。
-准备阶段保持原来的 12 秒总时序；初始定位时间参数改名为 `auto_position_seconds`，
-替代 `auto_straight_seconds`。执行动作已改成真机的双轴位置控制和后续 motor 速度控制，
+准备阶段为 4 秒，旧的 `auto_position_seconds` 参数已移除。执行动作使用真机的位置控制
+和 motor 速度控制，
 不是仿真关节轨迹的精确复现。
+
+## 螺旋上升状态机
+
+`vertical_up_auto: prepare (10 s) -> up (20 s) -> manual stop`
+
+| 阶段 | servo | motor | 切换 |
+|---|---|---|---|
+| `prepare` | 位置目标 1024 | 校正位置目标 1024 | 进入模式 10 秒后切换 |
+| `up` | 继续位置控制在 1024 | 沿用 1024 侧方向：内部速度为 `-auto_motor_direction * vertical_motor_speed`，默认 −4π/s | 转动满 20 秒后停止 |
+| 停止 | 回到 2048 | 校正坐标回到 2048 | 也可通过 `buttons[1]` 随时进入 |
+
+上升的准备时间和转动时间分别由 `auto_up_prepare_seconds=10`、`auto_up_seconds=20`
+控制，不受下潜 prepare 的 4 秒设置或 `auto_prepare_fast_start` 开关影响。
+上升不反摆、不统计反摆次数，也不根据 IMU 判断已经到达水面；servo 始终保持同侧目标，
+直到停止时回中。最终 motor 发布值仍统一取负，默认上升期间发布 +4π/s。
 
 ## 四元数判断
 

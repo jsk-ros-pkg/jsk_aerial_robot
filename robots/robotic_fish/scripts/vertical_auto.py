@@ -24,7 +24,7 @@ class VerticalAuto():
         self.servo_cmd = rospy.get_param('~servo_cmd', [0, 0]) # 0 for servo, 1 for motor
         self.motor_equ_angles = rospy.get_param('~motor_angle', 0.0)
         self.motor_angle_raw = rospy.get_param('~motor_angle_raw', 0.0)
-        self.motor_angle_ref = rospy.get_param('~motor_angle_ref', 2048+720)
+        self.motor_angle_ref = rospy.get_param('~motor_angle_ref', 720)
         self.imu_angle = rospy.get_param('imu_angle', 0.0)
         self.imu_angle_raw = rospy.get_param('imu_angle_raw', 0.0)
         self.tar_angle_ref = rospy.get_param('~tar_angle_ref', 0.0)
@@ -53,12 +53,14 @@ class VerticalAuto():
         self.vertical_state = 'manual'
         self.vertical_side = -1
         self.vertical_reversals = 0
-        self.vertical_reverse_limit = rospy.get_param('~auto_reversals', 2)
+        self.vertical_reverse_limit = rospy.get_param('~auto_reversals', 6)
         self.vertical_motor_speed = rospy.get_param('~auto_motor_speed', 4.0 * math.pi)
         self.vertical_motor_direction = rospy.get_param('~auto_motor_direction', 1)
         self.vertical_hold_seconds = rospy.get_param('~auto_hold_seconds', 3.0)
-        self.vertical_position_seconds = rospy.get_param('~auto_position_seconds', 2.0)
-        self.vertical_prepare_seconds = rospy.get_param('~auto_prepare_seconds', 10.0)
+        self.vertical_prepare_seconds = rospy.get_param('~auto_prepare_seconds', 4.0)
+        self.vertical_prepare_fast_start = rospy.get_param('~auto_prepare_fast_start', False)
+        self.vertical_up_prepare_seconds = rospy.get_param('~auto_up_prepare_seconds', 10.0)
+        self.vertical_up_seconds = rospy.get_param('~auto_up_seconds', 20.0)
         self.vertical_reverse_seconds = rospy.get_param('~auto_reverse_seconds', 0.5)
         self.vertical_gait_timeout = rospy.get_param('~auto_gait_timeout', 20.0)
         self.vertical_reverse_timeout = rospy.get_param('~auto_reverse_timeout', 2.5)
@@ -71,6 +73,7 @@ class VerticalAuto():
         self.vertical_decision_sample = 0
         self.vertical_decision_time = 0.0
         self.vertical_trigger_axis = 0
+        self.vertical_trigger_mode = ''
         self.vertical_trigger_time = None
         self.vertical_trigger_latched = False
 
@@ -94,7 +97,8 @@ class VerticalAuto():
         self.imu_previous_sin = 0.0
 
         positive_parameters = [self.vertical_motor_speed, self.vertical_hold_seconds,
-                               self.vertical_position_seconds, self.vertical_prepare_seconds,
+                               self.vertical_prepare_seconds, self.vertical_up_prepare_seconds,
+                               self.vertical_up_seconds,
                                self.vertical_reverse_seconds, self.vertical_gait_timeout,
                                self.vertical_reverse_timeout, self.joy_timeout, self.feedback_timeout]
         if any(not math.isfinite(value) or value <= 0 for value in positive_parameters):
@@ -339,7 +343,10 @@ class VerticalAuto():
 
     def auto_control(self):
         if self.vertical_auto_mode:
-            self.vertical_control()
+            if self.auto_pattern == 'vertical_up_auto':
+                self.vertical_up_control()
+            else:
+                self.vertical_control()
         elif self.auto_pattern == 'fast_start':
             self.fast_start()
         elif self.auto_pattern == 'fast_turn':
@@ -378,7 +385,7 @@ class VerticalAuto():
 
     def update_vertical_trigger(self, now):
         if (self.joy_time is None or now - self.joy_time > self.joy_timeout
-                or self.vertical_trigger_axis == 0):
+                or self.vertical_trigger_mode == ''):
             self.vertical_trigger_time = None
             return
         if self.vertical_trigger_latched:
@@ -388,7 +395,10 @@ class VerticalAuto():
         if now - self.vertical_trigger_time >= self.vertical_hold_seconds:
             self.vertical_trigger_latched = True
             if not self.auto_control_mode:
-                self.start_vertical_auto(now, -self.vertical_trigger_axis)
+                if self.vertical_trigger_mode == 'vertical_up_auto':
+                    self.start_vertical_up_auto(now)
+                else:
+                    self.start_vertical_auto(now, -self.vertical_trigger_axis)
 
     def start_vertical_auto(self, now, side):
         if (not self.feedback_ready(now) or not self.imu_valid or self.imu_time is None
@@ -407,6 +417,20 @@ class VerticalAuto():
         self.set_vertical_state('prepare', now)
         rospy.loginfo('start vertical auto: %s reversals', self.vertical_reverse_limit)
 
+    def start_vertical_up_auto(self, now):
+        if not self.feedback_ready(now):
+            rospy.logwarn('vertical up auto needs fresh servo and motor feedback')
+            return
+        self.auto_control_mode = True
+        self.auto_pattern = 'vertical_up_auto'
+        self.vertical_auto_mode = True
+        self.vertical_side = -1
+        self.vertical_reversals = 0
+        self.motor_acc = 0.0
+        self.motor_cruise_speed = 0.0
+        self.set_vertical_state('prepare', now)
+        rospy.loginfo('start vertical up auto')
+
     def set_vertical_state(self, state, now):
         self.vertical_state = state
         self.vertical_state_time = now
@@ -416,7 +440,9 @@ class VerticalAuto():
         self.vertical_window_time = None
         self.vertical_decision_sample = self.imu_sample
         self.vertical_decision_time = now
-        self.motor_pos_control = state == 'prepare'
+        self.motor_pos_control = (state == 'prepare'
+                                  and (self.auto_pattern == 'vertical_up_auto'
+                                       or not self.vertical_prepare_fast_start))
         rospy.loginfo('vertical auto: %s, side %s, reversals %s/%s',
                       state, self.vertical_side, self.vertical_reversals, self.vertical_reverse_limit)
 
@@ -471,13 +497,16 @@ class VerticalAuto():
         elapsed = now - self.vertical_state_time
 
         if self.vertical_state == 'prepare':
-            # Same logical position target for both axes, as in R1 + stick.
+            # Hold the servo position; optionally start the motor at swimming speed.
             servo_tar = 2048.0 + self.vertical_side * 1024.0
             self.pos_control(0, servo_tar, 1.0)
-            self.pos_control(1, servo_tar, 1.0)
-            prepare_seconds = self.vertical_position_seconds + self.vertical_prepare_seconds
+            if self.vertical_prepare_fast_start:
+                self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
+            else:
+                self.pos_control(1, servo_tar, 1.0)
+            prepare_seconds = self.vertical_prepare_seconds
             if (elapsed >= prepare_seconds and abs(self.servo_equ_angles - servo_tar) <= 50.0
-                    and abs(self.motor_equ_angles - servo_tar) <= 50.0):
+                    and (self.vertical_prepare_fast_start or abs(self.motor_equ_angles - servo_tar) <= 50.0)):
                 self.vertical_side *= -1
                 self.set_vertical_state('reverse', now)
             elif elapsed > prepare_seconds + self.vertical_reverse_timeout:
@@ -528,6 +557,21 @@ class VerticalAuto():
             else:
                 self.vertical_window_time = None
 
+    def vertical_up_control(self):
+        now = time.monotonic()
+        elapsed = now - self.vertical_state_time
+        self.pos_control(0, 1024.0, 1.0)
+        if self.vertical_state == 'prepare':
+            self.pos_control(1, 1024.0, 1.0)
+            if elapsed < self.vertical_up_prepare_seconds:
+                return
+            self.set_vertical_state('up', now)
+        if self.vertical_state == 'up':
+            if now - self.vertical_state_time >= self.vertical_up_seconds:
+                self.finish_vertical_auto('vertical up duration completed')
+                return
+            self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
+
     def _controlLoop(self, event):
         with self.control_lock:
             now = time.monotonic()
@@ -574,13 +618,19 @@ class VerticalAuto():
                 self.vertical_trigger_time = None
             self.joy_time = now
             trigger_axis = 1 if msg.axes[9] > 0 else -1 if msg.axes[9] < 0 else 0
-            if trigger_axis == 0:
+            trigger_mode = 'vertical_auto' if trigger_axis != 0 else ''
+            if msg.axes[10] == 1:
+                trigger_mode = 'vertical_up_auto'
+                trigger_axis = 0
+            if trigger_mode == '':
                 self.vertical_trigger_time = None
                 self.vertical_trigger_latched = False
             elif not self.vertical_trigger_latched:
-                if trigger_axis != self.vertical_trigger_axis or self.vertical_trigger_time is None:
+                if (trigger_mode != self.vertical_trigger_mode or trigger_axis != self.vertical_trigger_axis
+                        or self.vertical_trigger_time is None):
                     self.vertical_trigger_time = now
             self.vertical_trigger_axis = trigger_axis
+            self.vertical_trigger_mode = trigger_mode
 
             motor_speed_step = 0.0
             if msg.axes[10] != self.motor_speed_axis_prev:
@@ -589,7 +639,7 @@ class VerticalAuto():
             self.motor_speed_axis_prev = msg.axes[10]
 
             if msg.buttons[1] == 1:
-                self.vertical_trigger_latched = self.vertical_trigger_axis != 0
+                self.vertical_trigger_latched = self.vertical_trigger_mode != ''
                 if self.vertical_auto_mode:
                     self.finish_vertical_auto('joystick stop')
                 else:
