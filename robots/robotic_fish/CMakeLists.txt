@@ -17,7 +17,12 @@ catkin_install_python(PROGRAMS
         scripts/loop_send_servo_cmd.py
         scripts/servo_keyboard_cmd.py
         scripts/teleop.py
+        scripts/vertical_auto.py
         DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(FILES launch/vertical_auto.launch
+        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
 
 install(PROGRAMS

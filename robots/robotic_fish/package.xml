@@ -62,6 +62,8 @@
   <exec_depend>image_view</exec_depend>
   <exec_depend>spinal</exec_depend>
   <exec_depend>joy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
