@@ -36,6 +36,12 @@ install(DIRECTORY bin
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   USE_SOURCE_PERMISSIONS
   )
+
+catkin_install_python(PROGRAMS
+  scripts/demo.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 add_library(crobat_robot_model src/model/crobat_robot_model.cpp)
 target_link_libraries(crobat_robot_model ${catkin_LIBRARIES})
 
