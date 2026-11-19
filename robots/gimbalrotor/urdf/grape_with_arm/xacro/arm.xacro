@@ -39,9 +39,9 @@
       xyz="0 0 0"
       rpy="${'0 0 0' if legacy else '0 0 ' + str(pi)}"/>
 
-    <!-- Joint 2: Yaw -->
+    <!-- Yaw: joint 2 on the original arm, joint 3 on the compact arm. -->
     <xacro:screw_hinge_module_dynamixel
-      prefix="arm_joint2_"
+      prefix="${'arm_joint2_' if legacy else 'arm_joint3_'}"
       parent_link="arm_pipe_dummy_link"
       xyz="0 0 0"
       rpy="0 0 0"/>
@@ -58,7 +58,7 @@
     <!-- Joint 4: Pitch -->
     <xacro:screw_hinge_module_dynamixel
       prefix="arm_joint4_"
-      parent_link="${'arm_joint3_dummy_link' if legacy else 'arm_joint2_dummy_link'}"
+      parent_link="arm_joint3_dummy_link"
       xyz="0 0 0"
       rpy="0 3.14 0"/>
 
@@ -89,31 +89,29 @@
           <mechanicalReduction>1</mechanicalReduction>
         </actuator>
       </transmission>
-    </xacro:if>
 
-    <transmission name="arm_joint2_tran">
-      <type>transmission_interface/SimpleTransmission</type>
-      <joint name="arm_joint2_joint1">
-        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-      </joint>
-      <actuator name="arm_servo2">
-        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-        <mechanicalReduction>1</mechanicalReduction>
-      </actuator>
-    </transmission>
-
-    <xacro:if value="${legacy}">
-      <transmission name="arm_joint3_tran">
+      <transmission name="arm_joint2_tran">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="arm_joint3_joint1">
+        <joint name="arm_joint2_joint1">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
-        <actuator name="arm_servo3">
+        <actuator name="arm_servo2">
           <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
           <mechanicalReduction>1</mechanicalReduction>
         </actuator>
       </transmission>
     </xacro:if>
+
+    <transmission name="arm_joint3_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm_joint3_joint1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="arm_servo3">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
 
     <transmission name="arm_joint4_tran">
       <type>transmission_interface/SimpleTransmission</type>

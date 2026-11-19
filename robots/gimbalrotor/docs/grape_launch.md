@@ -21,7 +21,20 @@ rosrun aerial_robot_base keyboard_command.py
 
 `airframe:=grape_with_arm` で `with_arm:=true` の場合、既定の `arm_variant:=original` がこれまでの構成を選ぶ。省自由度版を使うときは、実機・Gazebo それぞれの `bringup.launch` に `arm_variant:=compact` を追加する。
 
-省自由度版は機体から **200 mm パイプ → yaw → pitch → ドライブ → グリッパ** の順。yaw、pitch、グリッパ駆動には従来の関節名とサーボ ID（順に `arm_joint2_joint1` / 5、`arm_joint4_joint1` / 7、`arm_joint5_joint1` / 8）を使う。実機の取付向き、干渉、サーボ ID は組み替え後に確認する。
+省自由度版は機体から **200 mm パイプ → yaw → pitch → ドライブ → グリッパ** の順。`bringup.launch` は `arm_variant:=compact` のとき [Servo_compact_arm.yaml](../config/grape_with_arm/Servo_compact_arm.yaml) を読み込む。`original` は `Servo.yaml`、アームなしは `Servo_no_arm.yaml` を使う。
+
+| 省自由度版の軸 | URDF の関節名 | ServoBridge の `id` |
+| --- | --- | --- |
+| yaw | `arm_joint3_joint1` | 7 |
+| pitch | `arm_joint4_joint1` | 8 |
+| グリッパ駆動 | `arm_joint5_joint1` | 9 |
+
+YAML の `id` は Spinal が ROS に出す `/gimbalrotor/servo/states` の `index` に対応する。表の 7、8、9 は省自由度版の実機で確認済み。配線や構成を変更した場合は、起動後に設定値と実機の値を確認する。
+
+```bash
+rosparam get /gimbalrotor/servo_controller/joints
+rostopic echo -n 1 /gimbalrotor/servo/states
+```
 
 先端保持の自動評価は従来構成を使う。`with_arm:=false` ではアームなしになる。
 
@@ -34,7 +47,14 @@ roslaunch gimbalrotor bringup.launch \
 ```
 
 `headless:=true` で GUI を省略できる。
-with_arm:=falseでアームなしのジンバルローターになる
+
+省自由度版を起動する場合は次のコマンドを使う。
+
+```bash
+roslaunch gimbalrotor bringup.launch \
+  airframe:=grape_with_arm with_arm:=true arm_variant:=compact \
+  simulation:=true real_machine:=false headless:=false
+```
 
 ### 省自由度版のアームを動かす
 
@@ -67,7 +87,7 @@ roslaunch gimbalrotor bringup.launch \
   simulation:=false real_machine:=true
 ```
 
-この設定ではフライトコントローラへのシリアル接続（`/dev/flight_controller`）、mocap、Livox MID-360、FAST-LIO を起動する。既定の ROS 名前空間は `/gimbalrotor`。先端保持ノードは別端末から起動する。
+省自由度版の実機では `arm_variant:=compact` を追加する。この設定ではフライトコントローラへのシリアル接続（`/dev/flight_controller`）、mocap、Livox MID-360、FAST-LIO を起動する。既定の ROS 名前空間は `/gimbalrotor`。先端保持ノードは従来構成で使う場合に別端末から起動する。
 
 実機側で `rospack find livox_ros_driver2` と `rospack find fast_lio` が通ることを確認する。手元のシミュレーション用ワークスペースでは `fast_lio` が見つからず、実機用 launch の展開はそこまでの確認に留まった。
 
