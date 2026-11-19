@@ -28,7 +28,7 @@
 2つは別フライトで、URDFの第1軸トルク上限も変えているので、表だけを純粋な速度上限の効果とは扱わない。
 
 - [100%・速度制限比較のRViz実モデル動画](gazebo_take9_xl430_12v/arm_world_rviz_speed_comparison.mp4)
-- [100%・先端補償なし／ありのRViz実モデル動画](gazebo_take9_xl430_12v/arm_world_rviz.mp4)：左は関節角固定（ワールド補償なし）、右は先端補償あり。どちらも飛行制御と関節角の位置サーボは有効。
+- [100%・先端補償なし／ありのRViz実モデル動画](gazebo_take9_xl430_12v/arm_world_rviz_native.mp4)：左は関節角固定（ワールド補償なし）、右は先端補償あり。どちらも飛行制御と関節角の位置サーボは有効。
 - [XL430上限でのGazebo集計](gazebo_take9_xl430_12v/summary.json)
 - [同一ベース軌跡での速度・到達範囲の分離解析](gazebo_take9_xl430_12v/limit_analysis/summary.json)
 - [解析グラフ](gazebo_take9_xl430_12v/limit_analysis/limits.png)
