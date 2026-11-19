@@ -19,7 +19,7 @@ msg = JointState()
 msg.name = ["gimbal1", "gimbal2", "gimbal3", "gimbal4"]
 
 # 繰り返すシーケンス
-sequence = [0.0, -0.35, 0.0, 0.35]
+sequence = [0.0, -0.7, 0.0, 0.7]
 
 # publisher安定待ち
 time.sleep(0.5)
