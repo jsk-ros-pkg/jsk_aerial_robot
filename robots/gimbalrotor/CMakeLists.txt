@@ -38,6 +38,23 @@ install(DIRECTORY config plugins launch
   USE_SOURCE_PERMISSIONS
   )
 
+catkin_install_python(PROGRAMS
+  script/arm_world_eval.py
+  script/analyze_base_sway.py
+  script/analyze_arm_world_limits.py
+  script/render_arm_world_video.py
+  script/render_arm_world_rviz.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(FILES script/arm_world_core.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(FILES
+  evaluation/base_sway/take9_2026-10-28-19-03-07_sway.npz
+  evaluation/base_sway/take9_2026-10-28-19-03-07_summary.json
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/evaluation/base_sway
+)
+
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   add_subdirectory(test)

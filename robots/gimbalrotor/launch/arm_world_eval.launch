@@ -1,0 +1,19 @@
+<launch>
+  <arg name="headless" default="true"/>
+  <arg name="sway" default="$(find gimbalrotor)/evaluation/base_sway/take9_2026-10-28-19-03-07_sway.npz"/>
+  <arg name="scale" default="0.25"/>
+  <arg name="output" default="/tmp/arm_world_eval"/>
+  <arg name="duration" default="10"/>
+  <arg name="joint_speed_cap" default="0" doc="0: use URDF velocity limits; positive: additional rad/s cap"/>
+  <include file="$(find gimbalrotor)/launch/bringup.launch">
+    <arg name="simulation" value="true"/>
+    <arg name="real_machine" value="false"/>
+    <arg name="airframe" value="grape_with_arm"/>
+    <arg name="with_arm" value="true"/>
+    <arg name="headless" value="$(arg headless)"/>
+  </include>
+  <node pkg="gimbalrotor" type="arm_world_eval.py" name="arm_world_hold" output="screen"
+        args="--sway $(arg sway) --scale $(arg scale) --duration $(arg duration) --joint-speed-cap $(arg joint_speed_cap) --output $(arg output)">
+    <env name="PYTHONUNBUFFERED" value="1"/>
+  </node>
+</launch>
