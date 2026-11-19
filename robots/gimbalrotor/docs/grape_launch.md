@@ -17,6 +17,14 @@ rosrun aerial_robot_base keyboard_command.py
 
 ## シミュレーション
 
+### アーム構成を選ぶ
+
+`airframe:=grape_with_arm` で `with_arm:=true` の場合、既定の `arm_variant:=original` がこれまでの構成を選ぶ。省自由度版を使うときは、実機・Gazebo それぞれの `bringup.launch` に `arm_variant:=compact` を追加する。
+
+省自由度版は機体から **200 mm パイプ → yaw → pitch → ドライブ → グリッパ** の順。yaw、pitch、グリッパ駆動には従来の関節名とサーボ ID（順に `arm_joint2_joint1` / 5、`arm_joint4_joint1` / 7、`arm_joint5_joint1` / 8）を使う。実機の取付向き、干渉、サーボ ID は組み替え後に確認する。
+
+先端保持の自動評価は従来構成を使う。`with_arm:=false` ではアームなしになる。
+
 ### Gazebo の機体だけを起動する
 
 ```bash
@@ -27,6 +35,16 @@ roslaunch gimbalrotor bringup.launch \
 
 `headless:=true` で GUI を省略できる。
 with_arm:=falseでアームなしのジンバルローターになる
+
+### 省自由度版のアームを動かす
+
+`arm_variant:=compact` で Gazebo を起動し、非武装のまま別端末で実行する。
+
+```bash
+rosrun gimbalrotor arm_set_pre_hover_pose_compact.py
+```
+
+指令角の順は yaw、pitch、グリッパ駆動、単位は rad。`[0.3, 0, -3.0]` と `[-0.5, -0.2, -3.0]` を続けて送り、以後は既定で1.5秒間隔で `[0.5, -0.2, -3.0]`、`[0, 0, -3.0]` を送る。待ち時間は `_move_time:=2.0` のように指定できる。
 
 ### 先端保持を自動評価する
 
@@ -59,7 +77,7 @@ with_arm:=falseでアームなしのジンバルローターになるのはシ�
 
 ### アームの姿勢を送る
 
-`with_arm:=true` で起動した機体に、関節角を一度だけ送る。各値は第1軸から第5軸（グリッパ）までの順で、単位は rad。姿勢を送る前にアームの周囲に干渉がないことを確認する。
+以下の2本は `with_arm:=true arm_variant:=original` の機体に関節角を一度だけ送る。各値は第1軸から第5軸（グリッパ）までの順で、単位は rad。姿勢を送る前にアームの周囲に干渉がないことを確認する。
 
 | 用途 | コマンド | 指令角 |
 | --- | --- | --- |

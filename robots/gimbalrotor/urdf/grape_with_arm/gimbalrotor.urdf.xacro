@@ -2,6 +2,7 @@
 <robot name="gimbalrotor" xmlns:xacro="http://www.ros.org/wiki/xacro">  
 
   <xacro:arg name="with_arm" default="true"/>
+  <xacro:arg name="arm_variant" default="original"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/common.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/gimbal_inertial.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/arm.xacro"/>
@@ -438,9 +439,11 @@
   <!--   <origin xyz="0 0 -0.08" rpy="3.14159 0 0"/> -->
   <!-- </joint> -->
 
+  <xacro:property name="arm_variant" value="$(arg arm_variant)"/>
+
   <!-- Include the arm macro -->
   <xacro:if value="$(arg with_arm)">
-    <xacro:arm parent_link="main_body"/>
+    <xacro:arm parent_link="main_body" legacy="${dict(original=True, compact=False)[arm_variant]}"/>
   </xacro:if>
   
 </robot>

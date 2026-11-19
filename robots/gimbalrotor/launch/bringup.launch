@@ -22,6 +22,7 @@
   <arg name="robot_ns" value="gimbalrotor$(arg robot_id)" />
   <arg name="airframe" default="quad" />
   <arg name="with_arm" default="true" doc="Include the arm for grape_with_arm" />
+  <arg name="arm_variant" default="original" doc="original or compact (grape_with_arm)" />
   <!-- Mass variants apply to airframe:=grape_with_arm. -->
   <arg name="gimbal_mass_variant" default="guard_reinforced" doc="original, guard, or guard_reinforced (grape_with_arm)" />
 
@@ -42,9 +43,10 @@
    <rosparam file="$(arg config_dir)/MotorInfo.yaml" command="load" />
 
    ###########  Servo Config  ###########
-   <rosparam file="$(arg config_dir)/$(arg airframe)/Servo.yaml" command="load" unless="$(eval arg('airframe') == 'grape_with_arm' and not arg('with_arm'))"/>
+   <rosparam file="$(arg config_dir)/$(arg airframe)/Servo.yaml" command="load" if="$(eval arg('airframe') != 'grape_with_arm' or (arg('with_arm') and arg('arm_variant') == 'original'))"/>
+   <rosparam file="$(arg config_dir)/grape_with_arm/Servo_compact_arm.yaml" command="load" if="$(eval arg('airframe') == 'grape_with_arm' and arg('with_arm') and arg('arm_variant') == 'compact')"/>
+   <group ns="servo_controller/joints" clear_params="true" if="$(eval arg('airframe') == 'grape_with_arm')"/>
    <group if="$(eval arg('airframe') == 'grape_with_arm' and not arg('with_arm'))">
-     <rosparam command="delete" param="servo_controller/joints"/>
      <rosparam file="$(arg config_dir)/grape_with_arm/Servo_no_arm.yaml" command="load"/>
    </group>
    
@@ -78,7 +80,7 @@
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
     <arg name="robot_model" value="$(find gimbalrotor)/robots/$(arg airframe)/gimbalrotor.$(arg description_mode).xacro"/>
-    <arg name="model_options" value="gimbal_mass_variant:=$(arg gimbal_mass_variant) with_arm:=$(arg with_arm)"/>
+    <arg name="model_options" value="gimbal_mass_variant:=$(arg gimbal_mass_variant) with_arm:=$(arg with_arm) arm_variant:=$(arg arm_variant)"/>
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />

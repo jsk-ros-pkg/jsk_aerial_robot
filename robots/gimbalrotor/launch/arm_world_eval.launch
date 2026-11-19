@@ -10,6 +10,7 @@
     <arg name="real_machine" value="false"/>
     <arg name="airframe" value="grape_with_arm"/>
     <arg name="with_arm" value="true"/>
+    <arg name="arm_variant" value="original"/>
     <arg name="headless" value="$(arg headless)"/>
   </include>
   <node pkg="gimbalrotor" type="arm_world_eval.py" name="arm_world_hold" output="screen"
