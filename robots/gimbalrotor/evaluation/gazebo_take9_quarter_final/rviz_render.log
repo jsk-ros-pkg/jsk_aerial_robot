@@ -1,0 +1,30 @@
+... logging to /tmp/arm_world_rviz_ros/log/3cbc9ac9-d360-11f1-b975-fc5cee253534/roslaunch-leus-ThinkPad-P16s-Gen-2-309292.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;roscore
+[1mstarted roslaunch server http://127.0.0.1:37431/[0m
+ros_comm version 1.17.3
+
+
+SUMMARY
+========
+
+PARAMETERS
+ * /rosdistro: one
+ * /rosversion: 1.17.3
+
+NODES
+
+auto-starting new master
+[1mprocess[master]: started with pid [309300][0m
+[1mROS_MASTER_URI=http://127.0.0.1:11329/[0m
+]2;roscore http://127.0.0.1:11329/
+[1msetting /run_id to 3cbc9ac9-d360-11f1-b975-fc5cee253534[0m
+[1mprocess[rosout-1]: started with pid [309310][0m
+started core service [/rosout]
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m

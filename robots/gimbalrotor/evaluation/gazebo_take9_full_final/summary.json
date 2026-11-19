@@ -1,0 +1,172 @@
+{
+  "completed": true,
+  "landed": true,
+  "events": [
+    {
+      "phase": "preflight_sensor_warmup",
+      "sim_time": 1.9020000000000001,
+      "flight_state": 0
+    },
+    {
+      "phase": "preflight_arm_home",
+      "sim_time": 10.182,
+      "flight_state": 0
+    },
+    {
+      "phase": "arm",
+      "sim_time": 13.188,
+      "flight_state": 0
+    },
+    {
+      "phase": "takeoff",
+      "sim_time": 13.209,
+      "flight_state": 2
+    },
+    {
+      "phase": "settle",
+      "sim_time": 28.37,
+      "flight_state": 5
+    },
+    {
+      "phase": "fixed_joints_reset",
+      "sim_time": 36.376,
+      "flight_state": 5
+    },
+    {
+      "phase": "fixed_joints",
+      "sim_time": 44.379,
+      "flight_state": 5
+    },
+    {
+      "phase": "world_hold_reset",
+      "sim_time": 54.388,
+      "flight_state": 5
+    },
+    {
+      "phase": "world_hold",
+      "sim_time": 62.396,
+      "flight_state": 5
+    },
+    {
+      "phase": "recover",
+      "sim_time": 72.403,
+      "flight_state": 5
+    },
+    {
+      "phase": "land",
+      "sim_time": 78.413,
+      "flight_state": 5
+    },
+    {
+      "phase": "complete",
+      "sim_time": 82.981,
+      "flight_state": 0
+    }
+  ],
+  "configuration": {
+    "control_only": false,
+    "robot_ns": "/gimbalrotor",
+    "pose_topic": "",
+    "pose_type": "odom",
+    "base_link": "fc",
+    "tip_link": "arm_gripper_base_link",
+    "world_frame": "world",
+    "tcp": [
+      0,
+      0,
+      0.047
+    ],
+    "sensor_to_base": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "home": [
+      0.0,
+      -0.6,
+      0.9,
+      -0.3
+    ],
+    "height": 1.2,
+    "duration": 10.0,
+    "rate": 30.0,
+    "sway": "/home/leus/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/robots/gimbalrotor/evaluation/base_sway/take9_2026-10-28-19-03-07_sway.npz",
+    "scale": 1.0,
+    "output": "/home/leus/ros/jsk_aerial_robot_ws/src/jsk_aerial_robot/robots/gimbalrotor/evaluation/gazebo_take9_full_final",
+    "position_noise": 0.0,
+    "angle_noise_deg": 0.0,
+    "latency": 0.0,
+    "seed": 42
+  },
+  "target_world": [
+    [
+      0.2717122536274058,
+      -0.29716366731943844,
+      0.9153503187599704,
+      0.6907676549492534
+    ],
+    [
+      0.08805293423209386,
+      0.9548202283679955,
+      0.2838397651359091,
+      0.021678437678827517
+    ],
+    [
+      -0.9583418659339874,
+      0.003476539162946366,
+      0.2856024889135486,
+      1.1482632396169954
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "truth": "Gazebo arm_joint4_link1 pose plus fixed URDF transform to configured TCP",
+  "disturbance": "take9 waveform used as flight setpoint offsets, not exact physical replay",
+  "trials": {
+    "fixed_joints": {
+      "samples": 280,
+      "position_rms_m": 0.10842382794699859,
+      "position_p95_m": 0.20064025707649888,
+      "position_max_m": 0.21280912284465658,
+      "orientation_rms_deg": 6.633047282837054,
+      "base_position_std_m": [
+        0.01783315457094122,
+        0.04062072577556076,
+        0.0286466115518115
+      ],
+      "base_rotation_std_deg": [
+        1.7007193528242126,
+        0.8972776584341785,
+        5.795186884109673
+      ],
+      "saturation_fraction": 0.0,
+      "fk_truth_position_disagreement_rms_m": 0.002889543416505063
+    },
+    "world_hold": {
+      "samples": 282,
+      "position_rms_m": 0.0789053547270923,
+      "position_p95_m": 0.17762563841057002,
+      "position_max_m": 0.19091550983771619,
+      "orientation_rms_deg": 14.924316858134322,
+      "base_position_std_m": [
+        0.018006418965968288,
+        0.04479898709226495,
+        0.02805181542965935
+      ],
+      "base_rotation_std_deg": [
+        1.6716654413663123,
+        0.8795890094652979,
+        5.641946772965923
+      ],
+      "saturation_fraction": 0.5780141843971631,
+      "fk_truth_position_disagreement_rms_m": 0.003157468320922796
+    }
+  }
+}

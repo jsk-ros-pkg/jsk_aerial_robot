@@ -1,0 +1,43 @@
+{
+  "source": "evaluation/gazebo_take9_full_final",
+  "assumption": "Ideal servo, fixed recorded base trace; no torque/load dynamics",
+  "velocity_urdf_rad_s": [
+    6.387905062299246,
+    6.387905062299246,
+    6.387905062299246,
+    6.387905062299246
+  ],
+  "outer_reach_radius_m": 0.6018872996392856,
+  "definitely_outside_outer_reach_fraction": 0.06028368794326241,
+  "outer_reach_excess_max_m": 0.009961397822971785,
+  "replay": {
+    "cap_0_6": {
+      "position_rms_m": 0.07408726865433933,
+      "position_max_m": 0.1830242404142084,
+      "velocity_limited_fraction": 0.5780141843971631,
+      "joint_limit_clipped_fraction": 0.0,
+      "minimum_position_singular_value": 0.04708447486540179
+    },
+    "cap_2_0": {
+      "position_rms_m": 0.03827133482440246,
+      "position_max_m": 0.10307735065490697,
+      "velocity_limited_fraction": 0.3191489361702128,
+      "joint_limit_clipped_fraction": 0.0,
+      "minimum_position_singular_value": 0.028981048566981853
+    },
+    "catalog_12v": {
+      "position_rms_m": 0.026105532257353316,
+      "position_max_m": 0.056274276572924914,
+      "velocity_limited_fraction": 0.13120567375886524,
+      "joint_limit_clipped_fraction": 0.0,
+      "minimum_position_singular_value": 0.0271485350112491
+    }
+  },
+  "position_only_snapshot_ik": {
+    "samples": 71,
+    "rms_residual_m": 0.003345707673887617,
+    "max_residual_m": 0.013835032837422838,
+    "fraction_residual_over_1cm": 0.04225352112676056,
+    "caveat": "Multistart numerical best found, not a proof of global optimality; no velocity/orientation requirement"
+  }
+}
