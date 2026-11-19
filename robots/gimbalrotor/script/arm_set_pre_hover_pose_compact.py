@@ -3,7 +3,6 @@
 
 import rospy
 from sensor_msgs.msg import JointState
-from spinal.msg import ServoControlCmd
 
 
 def main():
@@ -22,9 +21,6 @@ def main():
     # Publisher接続待ち
     rospy.sleep(0.5)
 
-    # =========================================================
-    # 1. /arm/joints_ctrl を publish
-    # =========================================================
     joint_msg = JointState()
 
     joint_msg.header.seq = 0
@@ -32,9 +28,7 @@ def main():
     joint_msg.header.frame_id = ""
 
     joint_msg.name = [
-        # "arm_joint1_joint1",
-        "arm_joint2_joint1",
-        # "arm_joint3_joint1",
+        "arm_joint3_joint1",
         "arm_joint4_joint1",
         "arm_joint5_joint1",
     ]
