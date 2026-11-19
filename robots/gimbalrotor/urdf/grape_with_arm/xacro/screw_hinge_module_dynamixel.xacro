@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="screw_hinge_module_dynamixel">
-  <xacro:macro name="screw_hinge_module_dynamixel" params="prefix:='' parent_link:=world xyz:='0 0 0' rpy:='0 0 0' package_name:=gimbalrotor">
+  <xacro:macro name="screw_hinge_module_dynamixel" params="prefix:='' parent_link:=world xyz:='0 0 0' rpy:='0 0 0' package_name:=gimbalrotor lower:=-3.141592 upper:=3.141592">
     <joint name="${parent_link}_to_${prefix}base_link_joint" type="fixed">
       <parent link="${parent_link}"/>
       <child link="${prefix}base_link"/>
@@ -51,7 +51,7 @@
     <link name="${prefix}dummy_link"/>
     <joint name="${prefix}joint1" type="revolute">
       <!-- XL430-W250 at 12 V: stall torque 1.5 N m; no-load speed 61 rpm. -->
-      <limit effort="1.5" velocity="${61.0 * 2.0 * 3.141592653589793 / 60.0}" lower="-3.141592" upper="3.141592"/>
+      <limit effort="1.5" velocity="${61.0 * 2.0 * 3.141592653589793 / 60.0}" lower="${lower}" upper="${upper}"/>
       <!-- <limit effort="0.0" velocity="0.0" lower="-3.141592" upper="3.141592"/> -->
       <!-- <limit effort="0.0" velocity="0.0" lower="-0.567" upper="0.567"/> -->
       <parent link="${prefix}base_link"/>
