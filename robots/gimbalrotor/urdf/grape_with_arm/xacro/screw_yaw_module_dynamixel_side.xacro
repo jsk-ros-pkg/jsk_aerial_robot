@@ -50,7 +50,9 @@
     </link>
     <link name="${prefix}dummy_link"/>
     <joint name="${prefix}joint1" type="revolute">
-      <limit effort="3.0" velocity="8.06" lower="-3.14" upper="3.14"/>
+      <!-- XL430-W250, 12 V: 1.5 N m stall torque and 61 rpm no-load speed.
+           https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/ -->
+      <limit effort="1.5" velocity="${61.0 * 2.0 * 3.141592653589793 / 60.0}" lower="-3.14" upper="3.14"/>
       <!-- <limit effort="0.0" velocity="0.0" lower="-3.14" upper="3.14"/> -->
       <parent link="${prefix}base_link"/>
       <child link="${prefix}link1"/>

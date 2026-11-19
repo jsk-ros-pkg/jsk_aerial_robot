@@ -50,7 +50,8 @@
     </link>
     <link name="${prefix}dummy_link"/>
     <joint name="${prefix}joint1" type="revolute">
-      <limit effort="1.5" velocity="6.39" lower="-3.141592" upper="3.141592"/>
+      <!-- XL430-W250 at 12 V: stall torque 1.5 N m; no-load speed 61 rpm. -->
+      <limit effort="1.5" velocity="${61.0 * 2.0 * 3.141592653589793 / 60.0}" lower="-3.141592" upper="3.141592"/>
       <!-- <limit effort="0.0" velocity="0.0" lower="-3.141592" upper="3.141592"/> -->
       <!-- <limit effort="0.0" velocity="0.0" lower="-0.567" upper="0.567"/> -->
       <parent link="${prefix}base_link"/>
