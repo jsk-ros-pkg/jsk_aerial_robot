@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Run spinal bridge separately; the PC runs role:=joystick. -->
+  <arg name="role" default="onboard" doc="choose between [onboard, joystick, all]"/>
+  <arg name="joy_dev" default="/dev/input/js0"/>
+  <arg name="auto_reversals" default="6"/>
+  <arg name="auto_motor_speed" default="12.566370614359172"/>
+  <arg name="auto_motor_direction" default="1"/>
+  <arg name="motor_angle_ref" default="720.0"/>
+  <arg name="auto_prepare_fast_start" default="false"/>
+
+  <group if="$(eval arg('role') in ['onboard', 'all'])">
+    <node pkg="robotic_fish" type="vertical_auto.py" name="vertical_auto" output="screen" required="true">
+      <param name="max_val" value="250.0"/>
+      <param name="auto_hold_seconds" value="3.0"/>
+      <param name="auto_reversals" value="$(arg auto_reversals)" type="int"/>
+      <param name="auto_motor_speed" value="$(arg auto_motor_speed)" type="double"/>
+      <param name="auto_motor_direction" value="$(arg auto_motor_direction)" type="int"/>
+      <param name="motor_angle_ref" value="$(arg motor_angle_ref)" type="double"/>
+      <param name="auto_prepare_seconds" value="4.0"/>
+      <param name="auto_prepare_fast_start" value="$(arg auto_prepare_fast_start)" type="bool"/>
+      <param name="auto_up_prepare_seconds" value="10.0"/>
+      <param name="auto_up_seconds" value="20.0"/>
+      <param name="auto_reverse_seconds" value="0.5"/>
+      <param name="auto_gait_timeout" value="20.0"/>
+      <param name="auto_reverse_timeout" value="2.5"/>
+      <param name="joy_timeout" value="0.5"/>
+      <param name="feedback_timeout" value="0.5"/>
+    </node>
+  </group>
+
+  <group if="$(eval arg('role') in ['joystick', 'all'])">
+    <node pkg="joy" type="joy_node" name="vertical_auto_joy" output="screen">
+      <param name="dev" value="$(arg joy_dev)"/>
+      <param name="coalesce_interval" value="0.025"/>
+      <!-- The held axis direction must keep arriving throughout the 3-second hold. -->
+      <param name="autorepeat_rate" value="50.0"/>
+    </node>
+  </group>
+</launch>
