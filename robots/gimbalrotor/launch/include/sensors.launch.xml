@@ -46,4 +46,13 @@
 
   </group>
 
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch"/>
+
+  <include file="$(find udts_core)/launch/udts_driver.launch">
+    <param name="port" value="/dev/ttyACM0" />
+    <param name="sensor_name" value="udts" />
+    <param name="udts_republisher_config_file" value="$(find udts_core)/config/standard_udts/udts_republisher_config.yaml" />
+    <param name="rate" value="-1" />
+  </include>
+
 </launch>
