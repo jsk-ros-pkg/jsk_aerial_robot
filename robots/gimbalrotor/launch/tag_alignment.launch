@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find gimbalrotor)/launch/wall_bringup.launch">
+        <arg name="rm" value="false" />
+        <arg name="sim" value="true" />
+        <arg name="airframe" value="beatle" />
+        <arg name="worldname" value="wall_apriltag" />
+        <arg name="headless" value="false" />
+        <arg name="enable_camera" value="true" />
+    </include>
+    <include file="$(find camera)/launch/apriltag_detection.launch">
+        <arg name="simulation" value="true" />
+    </include>
+    <node pkg="gimbalrotor" type="tag_alignment.py" name="tag_alignment_node" output="screen">
+    </node>
+</launch>
