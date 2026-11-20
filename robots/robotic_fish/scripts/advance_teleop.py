@@ -22,7 +22,7 @@ class Teleop():
         self.servo_cmd = rospy.get_param('~servo_cmd', [0, 0]) # 0 for servo, 1 for motor
         self.motor_equ_angles = rospy.get_param('~motor_angle', 0.0)
         self.motor_angle_raw = rospy.get_param('~motor_angle_raw', 0.0)
-        self.motor_angle_ref = rospy.get_param('~motor_angle_ref', 2048+720)
+        self.motor_angle_ref = rospy.get_param('~motor_angle_ref', 708)
         self.imu_angle = rospy.get_param('imu_angle', 0.0)
         self.imu_angle_raw = rospy.get_param('imu_angle_raw', 0.0)
         self.tar_angle_ref = rospy.get_param('~tar_angle_ref', 0.0)

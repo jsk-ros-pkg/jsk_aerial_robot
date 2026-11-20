@@ -67,7 +67,8 @@ roslaunch robotic_fish vertical_auto.launch auto_prepare_fast_start:=true
 | 外部速度 | `_twistCallback()` | 接受 `/cmd_vel` 的 motor 速度；自主机动期间不接受该输入 |
 | 定时调度 | `_controlLoop()` | 检查轴方向保持时间、反馈和输入超时，执行自动动作或回中，再发布指令 |
 | 自主任务 | `start_vertical_auto()`、`vertical_control()`、`start_vertical_up_auto()`、`vertical_up_control()`、`finish_vertical_auto()` | 启动、运行和结束下潜/上升状态机 |
-| 反摆窗口 | `update_vertical_peak()`、`vertical_reverse_ready()` | 检测当前/预测 roll 峰及姿态许可 |
+| 定速反摆 | `start_vertical_reverse()`、`control_vertical_reverse()`、`move_reverse_axis()` | 切换目标，分别跟踪两轴越过逻辑 0 后的到位反馈 |
+| 下潜姿态判断 | `_imuCallback()`、`update_vertical_peak()` | 检测鼻尖回到水平，以及两轴停稳后的实测 roll 峰 |
 | 执行器控制 | `pos_control()`、`manual_control()`、`stop_control()` | 根据位置或巡航目标计算速度指令 |
 | 指令发布 | `publish_cmd()` | 更新巡航 motor 速度，并包装、发布两轴指令 |
 
@@ -89,9 +90,9 @@ roslaunch robotic_fish vertical_auto.launch auto_prepare_fast_start:=true
 |---|---|
 | `auto_pattern` | `stop / cruise / fast_start / fast_turn / vertical_auto / vertical_up_auto`，当前动作类别 |
 | `auto_control_mode` | 定时器是否调用 `auto_control()`；包含旧快速动作和新自主任务 |
-| `motor_pos_control` | R1 或 prepare 位置控制标志；下潜 prepare 加速起步时为 False，上升 prepare 时为 True |
+| `motor_pos_control` | R1、自动准备定位、收停及停稳等峰时的 motor 位置控制标志 |
 | `vertical_auto_mode` | 是否正在执行下潜或上升自主任务，共用手动屏蔽和停止逻辑 |
-| `vertical_state` | 新任务内部的 `manual / prepare / reverse / gait / up` |
+| `vertical_state` | 下潜使用 `prepare / align / reverse / gait / park / wait_peak`；上升使用 `prepare / up`；结束后为 `manual` |
 | `vertical_trigger_mode` | 当前候选触发模式：空值、`vertical_auto` 或 `vertical_up_auto` |
 | `vertical_trigger_axis` | 下潜触发方向：+1 准备 1024，-1 准备 3072；上升触发时置 0 |
 
@@ -149,43 +150,41 @@ elif self.auto_pattern == 'stop' and not self.motor_pos_control:
 
 ## 下潜状态机
 
-`prepare -> reverse -> gait <-> reverse -> manual stop`
+手柄方向决定准备侧。`axes[9]=+1` 时两轴准备在 1024，首次反摆去 3072；
+`axes[9]=-1` 时两轴准备在 3072，首次反摆去 1024。任务启动后锁定准备侧。
 
-| 状态 | 动作 / 切换 |
-|---|---|
-| `prepare` | 默认两轴都定位到 1024 或都定位到 3072，保持 4 秒；加速起步开关为 True 时仅 servo 定位，motor 直接按准备侧方向以 `vertical_motor_speed` 转动 |
-| 初始 `reverse` | 从准备侧切向另一侧，motor 按新侧以 ±4π/s 转动；至少经过 0.5 秒且 servo 距目标不超过 50 tick 后进入 `gait`，这次准备反摆不计数 |
-| `gait` | 保持本侧 servo 目标和固定 motor 转速；四元数观测满足 roll 窗口时切到另一侧 |
-| 后续 `reverse` | 同一控制周期翻转 servo 目标和 motor 方向；至少经过 0.5 秒且 servo 到位后计为一次完成的反摆 |
-| 完成 | 达到 `auto_reversals`（默认 6）后回手动 `stop`，servo、motor 持续位置控制回各自的 2048 |
+1. **准备（`prepare`）。** 默认两轴都位置控制到准备侧，至少保持 `auto_prepare_seconds`（默认 4 秒）。
+   开启 `auto_prepare_fast_start` 时，servo 定位，motor 在准备时间内按准备侧的游动速度转动，
+   随后在 `align` 阶段也定位到准备侧。两轴进入目标的 ±50 tick 后才开始首次反摆。
+2. **经逻辑 0 反摆（`reverse`）。** 两轴同时沿下表方向定速走半圈。每轴独立记录到位：
+   反馈进入目标的 ±50 tick，或沿规定方向越过目标，都算到位。servo 到位后切回目标位置保持。
+   motor 到位后立即切换为本侧游动速度，即使此时 servo 还在反摆。
+3. **游动到鼻尖回平。** 本侧鼻尖曾低于水平，且 motor 已开始游动，鼻尖回到水平的
+   IMU 观测触发收停。motor 从连续游动切为本侧目标的位置控制。这个判断从反摆中 motor
+   到位时起就生效。如果反摆完成时鼻尖尚未回平，则在 `gait` 中继续游动。
+4. **定位后等峰。** 在 `park` 中，两轴均定位到本侧目标。发出定位指令后收到新的 motor 位置反馈，且两轴误差均进入 ±50 tick 后，
+   转入 `wait_peak` 观测有利方向的实际 roll 峰。任一轴离开容差范围即重新收停。
+   控制器在下一个周期检查两轴位置和峰值时间，观测距今不超过 0.08 秒时同时启动两轴反摆。
 
-准备总时长由 `auto_prepare_seconds` 单独指定，默认 4 秒；不再叠加 `auto_position_seconds`。
-`auto_prepare_fast_start` 默认 False。False 时，准备结束要求两轴均距位置目标不超过
-50 tick；True 时 motor 已连续转动，只检查 servo 到位，不等待 motor 的位置目标。
-加速起步的 motor 内部速度为 `side * auto_motor_direction * vertical_motor_speed`。
-后续反摆完成条件只检查最短持续时间和 servo 到位，不检查 motor 累计转角。
+| 反摆路径（两轴逻辑坐标） | servo 反摆指令 | motor 反摆内部指令 | motor 到位后游动内部指令（默认） |
+|---|---:|---:|---:|
+| 1024 → 0 → 3072，递减并绕过零点 | −250 | −2π rad/s | +4π rad/s |
+| 3072 → 0 → 1024，递增并绕过零点 | +250 | +2π rad/s | −4π rad/s |
 
-| 触发方向 | 准备侧 | servo / motor 逻辑目标 | 初始反摆后的 servo 目标 / motor 内部速度 |
-|---|---|---|---|
-| `axes[9]=+1` | `side=-1` | 1024 / 1024 | 3072 / +4π/s |
-| `axes[9]=-1` | `side=+1` | 3072 / 3072 | 1024 / -4π/s |
+反摆时 servo 指令幅值固定为 250。游动时 motor 的内部指令为
+`side * auto_motor_direction * auto_motor_speed`，1024 侧取 `side=-1`，3072 侧取 `side=+1`。
+`auto_motor_direction` 用于游动方向，反摆方向由经过逻辑 0 的路径确定。
+motor 实际发布值为内部指令取负。
 
-上表 motor 速度按默认 `auto_motor_direction=1`；实际发布仍统一取负。
-进入任务后，准备侧已锁定，后续摇杆变化不会改写任务侧别。
+反摆完成需要两轴均已到过目标，当前 servo 距目标仍在 ±50 tick 内，
+且从开始反摆已过 `auto_reverse_seconds`（默认 0.5 秒）。此时 motor 可以已游离目标。
+首次从准备侧出发的反摆不计数。完成 `auto_reversals` 次后（默认 6 次），
+两轴进入手动 `stop` 并回到各自的逻辑 2048。
 
-单侧等待超过 20 秒或反摆超过 2.5 秒未到位，也终止自动并回手动。
-IMU 无效、IMU 超时或执行器反馈超时会终止自动。
-准备结束后再过 2.5 秒仍未定位，也终止自动。执行器反馈超时期间输出零速度，
-反馈恢复后继续 `stop` 回中。
-下潜任务结束按反摆计数判断，上升任务按持续时间结束，均没有水面检测判据。
-
-`side=+1` 对应 servo=3072、控制器内 motor=+4π/s；`side=-1` 对应
-servo=1024、motor=-4π/s。最终发布保留旧程序的 `motor.cmd = -self.servo_cmd[1]`。
-如需交换电机物理方向，设置 `auto_motor_direction:=-1`，servo 目标不变。
-`reverse` / `gait` 使用恒定速度，不叠加旧巡航的相位变速。
-默认 `prepare` 和停止时使用 R1＋摇杆同一个 `pos_control()`，以反馈位置误差生成速度，
-到位后速度归零。位置目标不受 `auto_motor_direction` 影响；开启准备加速起步后，
-motor 转速方向使用该参数。
+准备时间结束后，两轴还有 `auto_reverse_timeout`（默认 2.5 秒）可定位。
+反摆到位也受此超时限制。从反摆完成时开始，每侧游动、收停和等待 roll 峰共用 `auto_gait_timeout`
+（默认 20 秒）。这些阶段超时，或 IMU 无效、反馈过期，都会结束任务。
+执行器反馈过期期间输出零速度，反馈恢复后继续回中。
 
 motor 的位置目标使用原程序的校正坐标：
 
@@ -227,14 +226,15 @@ servo 编码器方向和实际弯曲方向仍需真机核对；这里约定正�
 身体 +X 向前、+Y 向左、+Z 向上。使用完整四元数，不使用旧程序的 yaw 参考角来判断反摆。
 角度变化率由相邻四元数观测差分获得，不使用 `gyro`。
 
-反摆窗口沿用仿真 `roll_sync` 的姿态部分：鼻尖角许可锁存（≤88°）、最短本侧摆动
-1.5 秒、有效 roll 几何、至少 25° 有利 roll、向下投影 ≥0.2、鼻尖角 ≥70°，
-以及当前或预测 roll 峰窗口连续确认 0.04 秒。鼻尖角以世界向下为 0°、水平为 90°。
-保留原低通时间常数和峰值窗口阈值；移除仿真的 J1 偏转角条件和关节 PD。
-roll 几何在鼻尖接近竖直时无效，不用于触发新反摆。
+鼻尖角以世界向下为 0°、水平为 90°。控制器使用当前四元数直接算出的鼻尖角判断回平；
+本侧出现过小于 90° 的观测后，motor 游动期间观测到角度达到或超过 90°，即触发收停。
 
-这版是待验证的真机适配，没有宣称能够可靠下潜或上浮。IMU 方向、左右弯曲对应关系、
-实际反摆延迟，以及差分噪声下的峰值窗口，都需要通过真机记录确认。
+roll 采用按当前侧别取正的横滚正弦和变化率。从鼻尖回平开始，若 roll 几何有效、
+有利方向达到 25° 且正弦变化率至少为 0.10/s，控制器就记录 roll 正在上升。
+两轴均定位后，若该变化率首次降至零或负值，且有利方向达到 30°、侧向朝下投影至少为 0.2，
+才接受该实测峰。鼻尖接近竖直、roll 几何无效时不能触发反摆。
+
+IMU 安装方向、servo 编码器与实际左右弯曲的对应关系，以及收停和反摆响应延迟，需通过真机记录核对。
 
 ## 离线检查
 

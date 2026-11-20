@@ -66,12 +66,12 @@ class VerticalAuto():
         self.vertical_reverse_timeout = rospy.get_param('~auto_reverse_timeout', 2.5)
         self.vertical_state_time = 0.0
         self.vertical_initial_reverse = False
+        self.vertical_reverse_previous = [None, None]
+        self.vertical_gait_start = 0.0
         self.vertical_nose_armed = False
+        self.vertical_nose_returned = False
         self.vertical_peak_armed = False
         self.vertical_peak_time = None
-        self.vertical_window_time = None
-        self.vertical_decision_sample = 0
-        self.vertical_decision_time = 0.0
         self.vertical_trigger_axis = 0
         self.vertical_trigger_mode = ''
         self.vertical_trigger_time = None
@@ -84,16 +84,12 @@ class VerticalAuto():
         self.motor_state_time = None
         self.imu_time = None
         self.imu_sample_time = None
-        self.imu_sample = 0
         self.imu_valid = False
         self.imu_geometry_valid = False
         self.imu_nose_angle = 90.0
-        self.imu_nose_rate = 0.0
         self.imu_roll_projection = 0.0
         self.imu_sin_roll = 0.0
         self.imu_sin_rate = 0.0
-        self.imu_sin_acc = 0.0
-        self.imu_previous_nose = 90.0
         self.imu_previous_sin = 0.0
 
         positive_parameters = [self.vertical_motor_speed, self.vertical_hold_seconds,
@@ -160,35 +156,32 @@ class VerticalAuto():
             dt = sample_time - self.imu_sample_time if self.imu_sample_time is not None else None
 
             if dt is None or dt > self.feedback_timeout or not self.imu_valid:
-                self.imu_nose_angle = nose_angle
-                self.imu_nose_rate = 0.0
                 self.imu_sin_roll = sin_roll
                 self.imu_sin_rate = 0.0
-                self.imu_sin_acc = 0.0
+                self.vertical_nose_armed = False
                 self.vertical_peak_armed = False
                 self.vertical_peak_time = None
-                self.vertical_window_time = None
             else:
-                # Quaternion differences replace the simulator's angular-velocity input.
-                nose_rate = (nose_angle - self.imu_previous_nose) / dt
                 sin_rate = ((sin_roll - self.imu_previous_sin) / dt
                             if geometry_valid and self.imu_geometry_valid else 0.0)
-                self.imu_nose_angle += (1.0 - math.exp(-dt / 0.08)) * (nose_angle - self.imu_nose_angle)
-                self.imu_nose_rate += (1.0 - math.exp(-dt / 0.04)) * (nose_rate - self.imu_nose_rate)
                 self.imu_sin_roll += (1.0 - math.exp(-dt / 0.04)) * (sin_roll - self.imu_sin_roll)
-                previous_rate = self.imu_sin_rate
                 self.imu_sin_rate += (1.0 - math.exp(-dt / 0.08)) * (sin_rate - self.imu_sin_rate)
-                self.imu_sin_acc += (1.0 - math.exp(-dt / 0.12)) * ((self.imu_sin_rate - previous_rate) / dt - self.imu_sin_acc)
 
             self.imu_roll_projection = side_z
-            self.imu_previous_nose = nose_angle
+            self.imu_nose_angle = nose_angle
             self.imu_previous_sin = sin_roll
             self.imu_geometry_valid = geometry_valid
             self.imu_time = now
             self.imu_sample_time = sample_time
-            self.imu_sample += 1
             self.imu_valid = True
-            if self.vertical_auto_mode and self.vertical_state == 'gait':
+            if self.vertical_state in ('reverse', 'gait'):
+                if nose_angle < 90.0:
+                    self.vertical_nose_armed = True
+                elif self.vertical_nose_armed and self.vertical_reverse_previous[1] is None:
+                    # The motor has reached the new side and started swimming.
+                    self.vertical_nose_returned = True
+            if (self.vertical_state in ('park', 'wait_peak') or
+                    (self.vertical_state in ('reverse', 'gait') and self.vertical_nose_returned)):
                 self.update_vertical_peak(now)
 
     def _motorStateCallback(self, msg):
@@ -434,15 +427,9 @@ class VerticalAuto():
     def set_vertical_state(self, state, now):
         self.vertical_state = state
         self.vertical_state_time = now
-        self.vertical_nose_armed = self.imu_nose_angle <= 88.0
-        self.vertical_peak_armed = False
-        self.vertical_peak_time = None
-        self.vertical_window_time = None
-        self.vertical_decision_sample = self.imu_sample
-        self.vertical_decision_time = now
-        self.motor_pos_control = (state == 'prepare'
-                                  and (self.auto_pattern == 'vertical_up_auto'
-                                       or not self.vertical_prepare_fast_start))
+        self.motor_pos_control = (state in ('align', 'park', 'wait_peak') or
+                                  (state == 'prepare' and (self.auto_pattern == 'vertical_up_auto'
+                                                           or not self.vertical_prepare_fast_start)))
         rospy.loginfo('vertical auto: %s, side %s, reversals %s/%s',
                       state, self.vertical_side, self.vertical_reversals, self.vertical_reverse_limit)
 
@@ -455,38 +442,73 @@ class VerticalAuto():
         self.stop_auto()
 
     def update_vertical_peak(self, now):
-        # Filter before applying side, so switching side creates no derivative pulse.
+        # Use the favorable roll direction for the side we are holding.
         height = -self.vertical_side * self.imu_sin_roll
         rate = -self.vertical_side * self.imu_sin_rate
-        minimum = math.sin(math.radians(25.0))
-        if self.imu_geometry_valid and height >= minimum and rate >= 0.10:
-            self.vertical_peak_armed = True
-            self.vertical_peak_time = None
-        if self.vertical_peak_armed and rate <= 0.0:
-            self.vertical_peak_time = now if self.imu_geometry_valid and height >= minimum else None
-            self.vertical_peak_armed = False
         if not self.imu_geometry_valid or height < 0.0:
             self.vertical_peak_armed = False
             self.vertical_peak_time = None
+        elif height >= math.sin(math.radians(25.0)) and rate >= 0.10:
+            self.vertical_peak_armed = True
+            self.vertical_peak_time = None
+        elif self.vertical_peak_armed and rate <= 0.0:
+            if (self.vertical_state == 'wait_peak' and height >= math.sin(math.radians(30.0))
+                    and -self.vertical_side * self.imu_roll_projection >= 0.20):
+                self.vertical_peak_time = now
+            self.vertical_peak_armed = False
 
-    def vertical_reverse_ready(self, now):
-        height = -self.vertical_side * self.imu_sin_roll
-        rate = -self.vertical_side * self.imu_sin_rate
-        acceleration = -self.vertical_side * self.imu_sin_acc
-        minimum_peak = math.sin(math.radians(30.0))
-        observed_peak = (self.vertical_peak_time is not None
-                         and 0.0 <= now - self.vertical_peak_time <= 0.08 and height >= minimum_peak)
-        predicted_peak = False
-        if rate > 0.0 and acceleration < -0.10:
-            peak_time = -rate / acceleration
-            peak_height = height + rate * peak_time + 0.5 * acceleration * peak_time * peak_time
-            predicted_peak = (self.vertical_peak_armed and 0.0 <= peak_time <= 0.80
-                              and abs(peak_time - 0.25) <= 0.10 and peak_height >= minimum_peak)
-        return (self.imu_geometry_valid and self.vertical_nose_armed
-                and height >= math.sin(math.radians(25.0))
-                and -self.vertical_side * self.imu_roll_projection >= 0.20
-                and self.imu_nose_angle >= 70.0 and self.imu_nose_rate >= -90.0
-                and (observed_peak or predicted_peak))
+    def start_vertical_reverse(self, now):
+        self.vertical_side *= -1
+        self.vertical_reverse_previous = [self.servo_equ_angles, self.motor_equ_angles]
+        self.vertical_nose_armed = self.imu_nose_angle < 90.0
+        self.vertical_nose_returned = False
+        self.vertical_peak_armed = False
+        self.vertical_peak_time = None
+        self.set_vertical_state('reverse', now)
+        self.control_vertical_reverse(now)
+
+    def move_reverse_axis(self, axis, position, target, speed):
+        # Both endpoints are half a turn apart. Go via logical 0 in both directions.
+        # None latches arrival even after the swimming motor moves past the target.
+        previous = self.vertical_reverse_previous[axis]
+        if previous is None:
+            return True
+        direction = -self.vertical_side
+        remaining = (direction * (target - previous)) % 4096
+        advance = (direction * (position - previous) + 2048) % 4096 - 2048
+        if abs(target - position) <= 50.0 or advance >= remaining:
+            self.vertical_reverse_previous[axis] = None
+            return True
+        self.vertical_reverse_previous[axis] = position
+        self.servo_cmd[axis] = direction * speed
+        return False
+
+    def control_vertical_reverse(self, now):
+        target = 2048.0 + self.vertical_side * 1024.0
+        servo_arrived = self.move_reverse_axis(0, self.servo_equ_angles, target, 250.0)
+        motor_arrived = self.move_reverse_axis(1, self.motor_equ_angles, target, 2.0 * math.pi)
+        if servo_arrived:
+            self.pos_control(0, target, 1.0)
+        if motor_arrived:
+            if self.vertical_nose_returned:
+                self.pos_control(1, target, 1.0)
+            else:
+                self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
+
+        elapsed = now - self.vertical_state_time
+        if (servo_arrived and motor_arrived and abs(self.servo_equ_angles - target) <= 50.0
+                and elapsed >= self.vertical_reverse_seconds):
+            if self.vertical_initial_reverse:
+                self.vertical_initial_reverse = False
+            else:
+                self.vertical_reversals += 1
+                if self.vertical_reversals >= self.vertical_reverse_limit:
+                    self.finish_vertical_auto('requested reversals completed')
+                    return
+            self.vertical_gait_start = now
+            self.set_vertical_state('park' if self.vertical_nose_returned else 'gait', now)
+        elif elapsed > self.vertical_reverse_timeout:
+            self.finish_vertical_auto('actuator reversal timeout')
 
     def vertical_control(self):
         now = time.monotonic()
@@ -494,68 +516,53 @@ class VerticalAuto():
                 or now - self.imu_time > self.feedback_timeout):
             self.finish_vertical_auto('IMU unavailable')
             return
-        elapsed = now - self.vertical_state_time
 
-        if self.vertical_state == 'prepare':
-            # Hold the servo position; optionally start the motor at swimming speed.
-            servo_tar = 2048.0 + self.vertical_side * 1024.0
-            self.pos_control(0, servo_tar, 1.0)
-            if self.vertical_prepare_fast_start:
+        target = 2048.0 + self.vertical_side * 1024.0
+        if self.vertical_state in ('prepare', 'align'):
+            self.pos_control(0, target, 1.0)
+            elapsed = now - self.vertical_state_time
+            if self.vertical_state == 'prepare' and self.vertical_prepare_fast_start:
                 self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
-            else:
-                self.pos_control(1, servo_tar, 1.0)
-            prepare_seconds = self.vertical_prepare_seconds
-            if (elapsed >= prepare_seconds and abs(self.servo_equ_angles - servo_tar) <= 50.0
-                    and (self.vertical_prepare_fast_start or abs(self.motor_equ_angles - servo_tar) <= 50.0)):
-                self.vertical_side *= -1
-                self.set_vertical_state('reverse', now)
-            elif elapsed > prepare_seconds + self.vertical_reverse_timeout:
+                if elapsed < self.vertical_prepare_seconds:
+                    return
+                # The freely spinning motor must start the first sweep on the same side as the servo.
+                self.set_vertical_state('align', now)
+                elapsed = 0.0
+            self.pos_control(1, target, 1.0)
+            hold = self.vertical_prepare_seconds if self.vertical_state == 'prepare' else 0.0
+            if (elapsed >= hold and abs(self.servo_equ_angles - target) <= 50.0
+                    and abs(self.motor_equ_angles - target) <= 50.0):
+                self.start_vertical_reverse(now)
+            elif elapsed > hold + self.vertical_reverse_timeout:
                 self.finish_vertical_auto('preparation position timeout')
-                return
-            else:
-                return
-
-        # Switch both outputs on the same control tick.
-        servo_tar = 2048.0 + self.vertical_side * 1024.0
-        self.pos_control(0, servo_tar, 1.0)
-        self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
+            return
 
         if self.vertical_state == 'reverse':
-            elapsed = now - self.vertical_state_time
-            if elapsed >= self.vertical_reverse_seconds and abs(self.servo_equ_angles - servo_tar) <= 50.0:
-                if self.vertical_initial_reverse:
-                    self.vertical_initial_reverse = False
-                else:
-                    self.vertical_reversals += 1
-                    if self.vertical_reversals >= self.vertical_reverse_limit:
-                        self.finish_vertical_auto('requested reversals completed')
-                        return
-                self.set_vertical_state('gait', now)
-            elif elapsed > self.vertical_reverse_timeout:
-                self.finish_vertical_auto('servo reversal timeout')
-                
-        elif self.vertical_state == 'gait':
-            if elapsed > self.vertical_gait_timeout:
-                self.finish_vertical_auto('no roll reversal window')
+            self.control_vertical_reverse(now)
+            return
+
+        if now - self.vertical_gait_start > self.vertical_gait_timeout:
+            self.finish_vertical_auto('nose return or roll peak timeout')
+            return
+        self.pos_control(0, target, 1.0)
+        if self.vertical_state == 'gait':
+            if not self.vertical_nose_returned:
+                self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
                 return
-            # Repeated timer ticks must not confirm one old IMU observation.
-            if self.vertical_decision_sample == self.imu_sample:
-                return
-            self.vertical_decision_sample = self.imu_sample
-            if now - self.vertical_decision_time > 0.10:
-                self.vertical_window_time = None
-            self.vertical_decision_time = now
-            self.vertical_nose_armed |= self.imu_nose_angle <= 88.0
-            if elapsed >= 1.5 and self.vertical_reverse_ready(now):
-                if self.vertical_window_time is None:
-                    self.vertical_window_time = now
-                if now - self.vertical_window_time >= 0.04 - 1e-8:
-                    self.vertical_side *= -1
-                    self.set_vertical_state('reverse', now)
-                    self.pos_control(0, 2048.0 + self.vertical_side * 1024.0, 1.0)
-                    self.servo_cmd[1] = self.vertical_side * self.vertical_motor_direction * self.vertical_motor_speed
-            else:
-                self.vertical_window_time = None
+            self.set_vertical_state('park', now)
+
+        self.pos_control(1, target, 1.0)
+        if abs(self.motor_equ_angles - target) > 50.0 or abs(self.servo_equ_angles - target) > 50.0:
+            if self.vertical_state == 'wait_peak':
+                self.set_vertical_state('park', now)
+            return
+        if self.vertical_state == 'park':
+            # Confirm parking with feedback received after commanding position hold.
+            if self.motor_state_time > self.vertical_state_time:
+                self.vertical_peak_time = None
+                self.set_vertical_state('wait_peak', now)
+        elif self.vertical_peak_time is not None and now - self.vertical_peak_time <= 0.08:
+            self.start_vertical_reverse(now)
 
     def vertical_up_control(self):
         now = time.monotonic()
