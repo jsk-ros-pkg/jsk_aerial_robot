@@ -40,6 +40,7 @@ install(DIRECTORY config plugins launch
 
 catkin_install_python(PROGRAMS
   script/arm_set_pre_hover_pose_compact.py
+  script/ctrl_gripper_by_sensor.py
   script/arm_world_eval.py
   script/analyze_base_sway.py
   script/analyze_arm_world_limits.py
