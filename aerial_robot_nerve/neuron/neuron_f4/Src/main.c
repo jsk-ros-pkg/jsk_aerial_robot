@@ -32,7 +32,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdint.h"
 #include "CAN/can_device_manager.h"
-#include "IMU/imu_mpu9250.h"
+#include "IMU/drivers/mpu9250/mpu9250.h"
 #include "Servo/servo.h"
 #include "Motor/motor.h"
 #include "Flashmemory/flashmemory.h"
