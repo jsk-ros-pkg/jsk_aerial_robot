@@ -2,7 +2,7 @@
 """Record native RViz RobotModel rendering of the measured Gazebo trajectories.
 
 Run on a dedicated Xvfb display and a private ROS_MASTER_URI. Meshes/materials
-come directly from grape_with_arm's URDF. Gimbal and gripper angles were not in
+come directly from grape's URDF. Gimbal and gripper angles were not in
 the evaluation CSV, so these joints are displayed at zero (not fabricated data).
 """
 import argparse
@@ -99,7 +99,7 @@ def main():
     if args.caption_only:
         add_captions(output,summary,chapter_duration)
         return
-    model=Path(__file__).resolve().parents[1]/'robots/grape_with_arm/gimbalrotor.urdf.xacro'
+    model=Path(__file__).resolve().parents[1]/'robots/grape/gimbalrotor.urdf.xacro'
     xml=subprocess.check_output(['xacro',str(model)],text=True)
     kin=ArmKinematics(xml)
     root_to_fc=kin.evaluate(kin.base_chain,{})
@@ -156,7 +156,7 @@ def main():
             grid.subProp('Cell Size').setValue(.1); grid.subProp('Plane Cell Count').setValue(14)
             grid.subProp('Offset').subProp('Z').setValue(-.3)
             grid.subProp('Alpha').setValue(.3)
-            robot=manager.createDisplay('rviz/RobotModel','Actual grape_with_arm',True)
+            robot=manager.createDisplay('rviz/RobotModel','Actual grape',True)
             robot.subProp('Robot Description').setValue('/rviz_replay/robot_description')
             robot.subProp('TF Prefix').setValue(prefix)
             robot.subProp('Alpha').setValue(1.)

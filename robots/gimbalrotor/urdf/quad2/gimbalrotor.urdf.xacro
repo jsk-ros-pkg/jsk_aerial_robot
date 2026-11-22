@@ -1,0 +1,301 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot name="gimbalrotor" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <link name="main_body">
+    <inertial>
+      <origin xyz="-0.00462482034298556 -7.72723613950892e-05 0.0137950803533556" rpy="0.0 -0.0 0.0"/>
+      <mass value="1.03359725029313"/>
+      <inertia ixx="0.0016139879539522" ixy="-5.366768549397e-07" ixz="-5.95600212021384e-07" iyy="0.00160428977142187" iyz="9.13377581199397e-08" izz="0.00305929998385753"/>
+    </inertial>
+    <!-- <visual> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.dae"/> -->
+    <!--   </geometry> -->
+    <!--   <material name="__unnamed_material_1"/> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </visual> -->
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+    <collision>
+      <geometry>
+        <box size="0.5 0.5 0.1"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="gimbal1_link">
+    <inertial>
+      <origin xyz="-0.0061543571832175 2.02344799955032e-06 0.00258056279461697" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.308825311849622"/>
+      <inertia ixx="6.23139432038947e-05" ixy="-6.80218913011022e-09" ixz="-2.71244742730139e-06" iyy="6.42832899579805e-05" iyz="-5.73083772407336e-09" izz="6.89107151163971e-05"/>
+    </inertial>
+    <!-- <visual> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal1_link.dae"/> -->
+    <!--   </geometry> -->
+    <!--   <material name="__unnamed_material_2"/> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </visual> -->
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal1_link.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="thrust1">
+    <inertial>
+      <origin xyz="-3.90447923992454e-09 2.30010885643358e-08 0.00419839111910028" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.0172928285355672"/>
+      <inertia ixx="0.000132814047308871" ixy="-6.27243278095286e-06" ixz="-3.04213085195885e-13" iyy="1.02207952913888e-06" iyz="-3.00688010181912e-13" izz="0.000133587732946345"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust1.dae"/>
+      </geometry>
+      <material name="__unnamed_material_3"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust1.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="gimbal2_link">
+    <inertial>
+      <origin xyz="-0.0061543571832175 2.02344799955111e-06 0.00258056279461695" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.308825311849623"/>
+      <inertia ixx="6.23139432038948e-05" ixy="-6.80218913009929e-09" ixz="-2.7124474273014e-06" iyy="6.42832899579805e-05" iyz="-5.73083772406979e-09" izz="6.89107151163972e-05"/>
+    </inertial>
+    <!-- <visual> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal2_link.dae"/> -->
+    <!--   </geometry> -->
+    <!--   <material name="__unnamed_material_4"/> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </visual> -->
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal2_link.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="thrust2">
+    <inertial>
+      <origin xyz="-1.30508629458959e-08 1.85095488362644e-07 0.00419843988070346" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.0172932093865153"/>
+      <inertia ixx="0.00013281236489956" ixy="6.27225423023414e-06" ixz="-7.99839179017161e-14" iyy="1.02205641696451e-06" iyz="3.025237661732e-12" izz="0.000133586033085267"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust2.dae"/>
+      </geometry>
+      <material name="__unnamed_material_5"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust2.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="gimbal3_link">
+    <inertial>
+      <origin xyz="-0.00615435718321899 2.0234479995473e-06 0.002580562794617" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.308825311849623"/>
+      <inertia ixx="6.23139432038948e-05" ixy="-6.80218913009913e-09" ixz="-2.71244742730139e-06" iyy="6.42832899579805e-05" iyz="-5.73083772407073e-09" izz="6.89107151163971e-05"/>
+    </inertial>
+    <!-- <visual> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal3_link.dae"/> -->
+    <!--   </geometry> -->
+    <!--   <material name="__unnamed_material_6"/> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </visual> -->
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal3_link.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="thrust3">
+    <inertial>
+      <origin xyz="5.83452963720532e-09 -5.91908131602234e-10 0.00419839092638537" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.0172928313440091"/>
+      <inertia ixx="0.000132814029105212" ixy="-6.27243221426146e-06" ixz="2.95243892069162e-13" iyy="1.02207952004091e-06" iyz="-1.24906779391424e-14" izz="0.000133587714747096"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust3.dae"/>
+      </geometry>
+      <material name="__unnamed_material_7"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust3.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="gimbal4_link">
+    <inertial>
+      <origin xyz="-0.00615435718321755 2.02344799954969e-06 0.00258056279461696" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.308825311849623"/>
+      <inertia ixx="6.23139432038948e-05" ixy="-6.80218913011076e-09" ixz="-2.7124474273014e-06" iyy="6.42832899579806e-05" iyz="-5.73083772407164e-09" izz="6.89107151163971e-05"/>
+    </inertial>
+    <!-- <visual> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal4_link.dae"/> -->
+    <!--   </geometry> -->
+    <!--   <material name="__unnamed_material_8"/> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </visual> -->
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal4_link.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="thrust4">
+    <inertial>
+      <origin xyz="-2.59015725534439e-09 2.94869426286333e-09 0.00419843814070694" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.017293238730581"/>
+      <inertia ixx="0.00013281274906218" ixy="6.27228613960569e-06" ixz="-1.77493503318e-13" iyy="1.02205918959433e-06" iyz="1.85598427852344e-13" izz="0.000133586419954865"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust4.dae"/>
+      </geometry>
+      <material name="__unnamed_material_9"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust4.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <link name="fc">
+    <inertial>
+      <origin xyz="0.0187002711962543 0.00169857186981875 -0.00124990288529885" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.0134869851240831"/>
+      <inertia ixx="1.81746685536929e-06" ixy="3.52111681460635e-09" ixz="2.41443574658866e-11" iyy="1.81309403254674e-06" iyz="-1.82051260509328e-10" izz="3.61332371658314e-06"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/fc.dae"/>
+      </geometry>
+      <material name="__unnamed_material_10"/>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <!-- <collision> -->
+    <!--   <geometry> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape/meshes/fc.stl"/> -->
+    <!--   </geometry> -->
+    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
+    <!-- </collision> -->
+  </link>
+  <joint name="gimbal1" type="revolute">
+    <limit effort="1.5" velocity="6.0" lower="-3.14" upper="3.14"/>
+    <parent link="main_body"/>
+    <child link="gimbal1_link"/>
+    <axis xyz="1. 0. 0."/>
+    <origin xyz="-0.22309 -0.22309 0.0" rpy="0.0 -0.0 -2.3562"/>
+  </joint>
+  <joint name="rotor1" type="continuous">
+    <limit effort="0.0" velocity="0.0" lower="0.0" upper="27.6"/>
+    <parent link="gimbal1_link"/>
+    <child link="thrust1"/>
+    <axis xyz=" 0.  0. -1."/>
+    <origin xyz="0.0 0.0 0.056" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <joint name="gimbal2" type="revolute">
+    <limit effort="1.5" velocity="6.0" lower="-3.14" upper="3.14"/>
+    <parent link="main_body"/>
+    <child link="gimbal2_link"/>
+    <axis xyz="1. 0. 0."/>
+    <origin xyz="0.22309 -0.22309 0.0" rpy="-0.0 -0.0 -0.7854"/>
+  </joint>
+  <joint name="rotor2" type="continuous">
+    <limit effort="0.0" velocity="0.0" lower="0.0" upper="27.6"/>
+    <parent link="gimbal2_link"/>
+    <child link="thrust2"/>
+    <axis xyz="0. 0. 1."/>
+    <origin xyz="0.0 0.0 0.056" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <joint name="gimbal3" type="revolute">
+    <limit effort="1.5" velocity="6.0" lower="-3.14" upper="3.14"/>
+    <parent link="main_body"/>
+    <child link="gimbal3_link"/>
+    <axis xyz="1. 0. 0."/>
+    <origin xyz="0.22309 0.22309 0.0" rpy="0.0 -0.0 0.7854"/>
+  </joint>
+  <joint name="rotor3" type="continuous">
+    <limit effort="0.0" velocity="0.0" lower="0.0" upper="27.6"/>
+    <parent link="gimbal3_link"/>
+    <child link="thrust3"/>
+    <axis xyz=" 0.  0. -1."/>
+    <origin xyz="0.0 0.0 0.056" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <joint name="gimbal4" type="revolute">
+    <limit effort="1.5" velocity="6.0" lower="-3.14" upper="3.14"/>
+    <parent link="main_body"/>
+    <child link="gimbal4_link"/>
+    <axis xyz="1. 0. 0."/>
+    <origin xyz="-0.22309 0.22309 0.0" rpy="0.0 -0.0 2.3562"/>
+  </joint>
+  <joint name="rotor4" type="continuous">
+    <limit effort="0.0" velocity="0.0" lower="0.0" upper="27.6"/>
+    <parent link="gimbal4_link"/>
+    <child link="thrust4"/>
+    <axis xyz="0. 0. 1."/>
+    <origin xyz="0.0 0.0 0.056" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <joint name="fc_joint" type="fixed">
+    <limit effort="0.0" velocity="0.0"/>
+    <parent link="main_body"/>
+    <child link="fc"/>
+    <axis xyz="0. 0. 0."/>
+    <origin xyz="-0.0172999968682441 -0.00110000084294132 0.05706099896" rpy="0.0 -0.0 0.0"/>
+  </joint>
+  <material name="__unnamed_material_1">
+    <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+  </material>
+  <material name="__unnamed_material_2">
+    <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+  </material>
+  <material name="__unnamed_material_3">
+    <color rgba="0.50196078 0.50196078 0.50196078 1.        "/>
+  </material>
+  <material name="__unnamed_material_4">
+    <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+  </material>
+  <material name="__unnamed_material_5">
+    <color rgba="0.50196078 0.50196078 0.50196078 1.        "/>
+  </material>
+  <material name="__unnamed_material_6">
+    <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+  </material>
+  <material name="__unnamed_material_7">
+    <color rgba="0.50196078 0.50196078 0.50196078 1.        "/>
+  </material>
+  <material name="__unnamed_material_8">
+    <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+  </material>
+  <material name="__unnamed_material_9">
+    <color rgba="0.50196078 0.50196078 0.50196078 1.        "/>
+  </material>
+  <material name="__unnamed_material_10">
+    <color rgba="1. 1. 1. 1."/>
+  </material>
+</robot>

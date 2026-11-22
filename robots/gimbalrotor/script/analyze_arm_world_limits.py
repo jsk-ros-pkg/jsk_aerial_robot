@@ -29,7 +29,7 @@ def main():
     time=np.array([float(r['time_s']) for r in rows])
     measured_q=np.array([[float(r['q%d'%i]) for i in range(1,5)] for r in rows])
     bases=np.array([transform([float(r['base_'+c]) for c in 'xyz'],Rotation.from_rotvec([float(r['base_r'+c]) for c in 'xyz']).as_matrix()) for r in rows])
-    model=Path(__file__).resolve().parents[1]/'robots/grape_with_arm/gimbalrotor.urdf.xacro'
+    model=Path(__file__).resolve().parents[1]/'robots/grape/gimbalrotor.urdf.xacro'
     xml=subprocess.check_output(['xacro',str(model)],text=True)
     k=ArmKinematics(xml)
     home=np.array(summary['configuration']['home'])

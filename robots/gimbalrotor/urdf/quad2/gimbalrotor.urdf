@@ -1,0 +1,564 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version:   Build Version: 1.6.9305.33219
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="gimbalrotor">
+  <link
+    name="main_body">
+    <inertial>
+      <origin
+        xyz="-0.00462482034298556 -7.72723613950892E-05 0.0137950803533556"
+        rpy="0 0 0" />
+      <mass
+        value="1.03359725029313" />
+      <inertia
+        ixx="0.0016139879539522"
+        ixy="-5.366768549397E-07"
+        ixz="-5.95600212021384E-07"
+        iyy="0.00160428977142187"
+        iyz="9.13377581199397E-08"
+        izz="0.00305929998385753" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="1.63764102160116E-16 -1.04324447545304E-15 0.0185"
+        rpy="3.14159265358979 0 2.35619449019236" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/main_body.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="1.63764102160116E-16 -1.04324447545304E-15 0.0185"
+        rpy="3.14159265358979 0 2.35619449019236" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/main_body.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="gimbal1_link">
+    <inertial>
+      <origin
+        xyz="-0.0061543571832175 2.02344799955032E-06 0.00258056279461697"
+        rpy="0 0 0" />
+      <mass
+        value="0.308825311849622" />
+      <inertia
+        ixx="6.23139432038947E-05"
+        ixy="-6.80218913011022E-09"
+        ixz="-2.71244742730139E-06"
+        iyy="6.42832899579805E-05"
+        iyz="-5.73083772407336E-09"
+        izz="6.89107151163971E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.315500000000002 8.30227005581504E-16 0.0185"
+        rpy="3.14159265358979 -2.77555756156282E-17 -1.57079632679489" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal1_link.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.315500000000002 8.30227005581504E-16 0.0185"
+        rpy="3.14159265358979 -2.77555756156282E-17 -1.57079632679489" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal1_link.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="gimbal1"
+    type="revolute">
+    <origin
+      xyz="-0.22309 -0.22309 0"
+      rpy="0 0 -2.3562" />
+    <parent
+      link="main_body" />
+    <child
+      link="gimbal1_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14"
+      upper="3.14"
+      effort="1.5"
+      velocity="6" />
+  </joint>
+  <link
+    name="thrust1">
+    <inertial>
+      <origin
+        xyz="-3.90447923992454E-09 2.30010885643358E-08 0.00419839111910028"
+        rpy="0 0 0" />
+      <mass
+        value="0.0172928285355672" />
+      <inertia
+        ixx="0.000132814047308871"
+        ixy="-6.27243278095286E-06"
+        ixz="-3.04213085195885E-13"
+        iyy="1.02207952913888E-06"
+        iyz="-3.00688010181912E-13"
+        izz="0.000133587732946345" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.315500000000001 3.43756814998384E-16 -0.0375"
+        rpy="3.14159265358979 -1.52895683241216E-17 -1.57079632679489" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust1.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.501960784313725 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.315500000000001 3.43756814998384E-16 -0.0375"
+        rpy="3.14159265358979 -1.52895683241216E-17 -1.57079632679489" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust1.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rotor1"
+    type="continuous">
+    <origin
+      xyz="0 0 0.056"
+      rpy="0 0 0" />
+    <parent
+      link="gimbal1_link" />
+    <child
+      link="thrust1" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="0"
+      upper="27.6"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="gimbal2_link">
+    <inertial>
+      <origin
+        xyz="-0.0061543571832175 2.02344799955111E-06 0.00258056279461695"
+        rpy="0 0 0" />
+      <mass
+        value="0.308825311849623" />
+      <inertia
+        ixx="6.23139432038948E-05"
+        ixy="-6.80218913009929E-09"
+        ixz="-2.7124474273014E-06"
+        iyy="6.42832899579805E-05"
+        iyz="-5.73083772406979E-09"
+        izz="6.89107151163972E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.315499999999999 1.58905509516455E-15 0.0185"
+        rpy="3.14159265358979 -3.74043203685751E-17 -3.14159265358979" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal2_link.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.315499999999999 1.58905509516455E-15 0.0185"
+        rpy="3.14159265358979 -3.74043203685751E-17 -3.14159265358979" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal2_link.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="gimbal2"
+    type="revolute">
+    <origin
+      xyz="0.22309 -0.22309 0"
+      rpy="0 0 -0.7854" />
+    <parent
+      link="main_body" />
+    <child
+      link="gimbal2_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14"
+      upper="3.14"
+      effort="1.5"
+      velocity="6" />
+  </joint>
+  <link
+    name="thrust2">
+    <inertial>
+      <origin
+        xyz="-1.30508629458959E-08 1.85095488362644E-07 0.00419843988070346"
+        rpy="0 0 0" />
+      <mass
+        value="0.0172932093865153" />
+      <inertia
+        ixx="0.00013281236489956"
+        ixy="6.27225423023414E-06"
+        ixz="-7.99839179017161E-14"
+        iyy="1.02205641696451E-06"
+        iyz="3.025237661732E-12"
+        izz="0.000133586033085267" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.315499999999999 1.10281552571633E-15 -0.0375"
+        rpy="3.14159265358979 -9.86366603259434E-17 -3.14159265358979" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust2.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.501960784313725 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.315499999999999 1.10281552571633E-15 -0.0375"
+        rpy="3.14159265358979 -9.86366603259434E-17 -3.14159265358979" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust2.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rotor2"
+    type="continuous">
+    <origin
+      xyz="0 0 0.056"
+      rpy="0 0 0" />
+    <parent
+      link="gimbal2_link" />
+    <child
+      link="thrust2" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="0"
+      upper="27.6"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="gimbal3_link">
+    <inertial>
+      <origin
+        xyz="-0.00615435718321899 2.0234479995473E-06 0.002580562794617"
+        rpy="0 0 0" />
+      <mass
+        value="0.308825311849623" />
+      <inertia
+        ixx="6.23139432038948E-05"
+        ixy="-6.80218913009913E-09"
+        ixz="-2.71244742730139E-06"
+        iyy="6.42832899579805E-05"
+        iyz="-5.73083772407073E-09"
+        izz="6.89107151163971E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.315500000000001 -8.80697369439052E-16 0.0185"
+        rpy="-3.14159265358979 -2.77555756156294E-17 1.5707963267949" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal3_link.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.315500000000001 -8.80697369439052E-16 0.0185"
+        rpy="-3.14159265358979 -2.77555756156294E-17 1.5707963267949" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal3_link.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="gimbal3"
+    type="revolute">
+    <origin
+      xyz="0.22309 0.22309 0"
+      rpy="0 0 0.7854" />
+    <parent
+      link="main_body" />
+    <child
+      link="gimbal3_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14"
+      upper="3.14"
+      effort="1.5"
+      velocity="6" />
+  </joint>
+  <link
+    name="thrust3">
+    <inertial>
+      <origin
+        xyz="5.83452963720532E-09 -5.91908131602234E-10 0.00419839092638537"
+        rpy="0 0 0" />
+      <mass
+        value="0.0172928313440091" />
+      <inertia
+        ixx="0.000132814029105212"
+        ixy="-6.27243221426146E-06"
+        ixz="2.95243892069162E-13"
+        iyy="1.02207952004091E-06"
+        iyz="-1.24906779391424E-14"
+        izz="0.000133587714747096" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.3155 -1.36716756002217E-15 -0.0375"
+        rpy="-3.14159265358979 -4.02215829071359E-17 1.5707963267949" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust3.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.501960784313725 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.3155 -1.36716756002217E-15 -0.0375"
+        rpy="-3.14159265358979 -4.02215829071359E-17 1.5707963267949" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust3.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rotor3"
+    type="continuous">
+    <origin
+      xyz="0 0 0.056"
+      rpy="0 0 0" />
+    <parent
+      link="gimbal3_link" />
+    <child
+      link="thrust3" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="0"
+      upper="27.6"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="gimbal4_link">
+    <inertial>
+      <origin
+        xyz="-0.00615435718321755 2.02344799954969E-06 0.00258056279461696"
+        rpy="0 0 0" />
+      <mass
+        value="0.308825311849623" />
+      <inertia
+        ixx="6.23139432038948E-05"
+        ixy="-6.80218913011076E-09"
+        ixz="-2.7124474273014E-06"
+        iyy="6.42832899579806E-05"
+        iyz="-5.73083772407164E-09"
+        izz="6.89107151163971E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.315500000000001 -1.60223584983753E-15 0.0185"
+        rpy="-3.14159265358979 2.51544593857654E-16 1.12130844599232E-16" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal4_link.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.315500000000001 -1.60223584983753E-15 0.0185"
+        rpy="-3.14159265358979 2.51544593857654E-16 1.12130844599232E-16" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/gimbal4_link.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="gimbal4"
+    type="revolute">
+    <origin
+      xyz="-0.22309 0.22309 0"
+      rpy="0 0 2.3562" />
+    <parent
+      link="main_body" />
+    <child
+      link="gimbal4_link" />
+    <axis
+      xyz="1 0 0" />
+    <limit
+      lower="-3.14"
+      upper="3.14"
+      effort="1.5"
+      velocity="6" />
+  </joint>
+  <link
+    name="thrust4">
+    <inertial>
+      <origin
+        xyz="-2.59015725534439E-09 2.94869426286333E-09 0.00419843814070694"
+        rpy="0 0 0" />
+      <mass
+        value="0.017293238730581" />
+      <inertia
+        ixx="0.00013281274906218"
+        ixy="6.27228613960569E-06"
+        ixz="-1.77493503318E-13"
+        iyy="1.02205918959433E-06"
+        iyz="1.85598427852344E-13"
+        izz="0.000133586419954865" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.3155 -2.08847541928575E-15 -0.0374999999999999"
+        rpy="-3.14159265358979 3.12776933815023E-16 5.08985046418704E-17" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust4.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.501960784313725 0.501960784313725 0.501960784313725 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="-0.3155 -2.08847541928575E-15 -0.0374999999999999"
+        rpy="-3.14159265358979 3.12776933815023E-16 5.08985046418704E-17" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/thrust4.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="rotor4"
+    type="continuous">
+    <origin
+      xyz="0 0 0.056"
+      rpy="0 0 0" />
+    <parent
+      link="gimbal4_link" />
+    <child
+      link="thrust4" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="0"
+      upper="27.6"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="fc">
+    <inertial>
+      <origin
+        xyz="0.0187002711962543 0.00169857186981875 -0.00124990288529885"
+        rpy="0 0 0" />
+      <mass
+        value="0.0134869851240831" />
+      <inertia
+        ixx="1.81746685536929E-06"
+        ixy="3.52111681460635E-09"
+        ixz="2.41443574658866E-11"
+        iyy="1.81309403254674E-06"
+        iyz="-1.82051260509328E-10"
+        izz="3.61332371658314E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0.0172999968682442 0.00110000084294011 -0.03856099896"
+        rpy="3.14159265358979 -1.98346832673126E-15 2.35619449019234" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/fc.3dxml" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0.0172999968682442 0.00110000084294011 -0.03856099896"
+        rpy="3.14159265358979 -1.98346832673126E-15 2.35619449019234" />
+      <geometry>
+        <mesh
+          filename="package://gimbalrotor/meshes/fc.3dxml" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="fc_joint"
+    type="fixed">
+    <origin
+      xyz="-0.0172999968682441 -0.00110000084294132 0.05706099896"
+      rpy="0 0 0" />
+    <parent
+      link="main_body" />
+    <child
+      link="fc" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>

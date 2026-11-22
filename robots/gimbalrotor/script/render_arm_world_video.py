@@ -31,7 +31,7 @@ def main():
     if args.urdf:
         xml=args.urdf.read_text()
     else:
-        model=Path(__file__).resolve().parents[1]/'robots/grape_with_arm/gimbalrotor.urdf.xacro'
+        model=Path(__file__).resolve().parents[1]/'robots/grape/gimbalrotor.urdf.xacro'
         xml=subprocess.check_output(['xacro',str(model)],text=True)
     k=ArmKinematics(xml,cfg['base_link'],cfg['tip_link'],cfg['tcp'])
     rows=list(csv.DictReader((args.result/'samples.csv').open()))

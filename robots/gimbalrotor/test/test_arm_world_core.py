@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Numerical regressions against the actual expanded grape_with_arm URDF."""
+"""Numerical regressions against the actual expanded grape URDF."""
 import pathlib
 import subprocess
 import sys
@@ -15,7 +15,7 @@ from arm_world_core import ArmKinematics, transform
 class ArmWorldTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        model = pathlib.Path(__file__).resolve().parents[1] / 'robots/grape_with_arm/gimbalrotor.urdf.xacro'
+        model = pathlib.Path(__file__).resolve().parents[1] / 'robots/grape/gimbalrotor.urdf.xacro'
         cls.xml = subprocess.check_output(['xacro', str(model)], text=True)
         cls.kin = ArmKinematics(cls.xml, velocity_cap=.6)
         cls.home = np.array([0., -.6, .9, -.3])
