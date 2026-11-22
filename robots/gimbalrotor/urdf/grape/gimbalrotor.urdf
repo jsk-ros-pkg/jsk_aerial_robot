@@ -43,14 +43,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl" />
       </geometry>
       <material name="__unnamed_material_1" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
     </visual>
     <collision>
       <geometry>
-        <!-- <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl"/> -->
+        <!-- <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/> -->
         <box size="0.25 0.25 0.035" />
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -64,7 +64,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal1_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal1_link.stl" />
       </geometry>
       <material name="__unnamed_material_2" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -78,7 +78,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust1.stl" />
       </geometry>
       <material name="__unnamed_material_3" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -92,7 +92,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal2_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal2_link.stl" />
       </geometry>
       <material name="__unnamed_material_4" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -106,7 +106,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust2.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust2.stl" />
       </geometry>
       <material name="__unnamed_material_5" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -120,7 +120,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal3_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal3_link.stl" />
       </geometry>
       <material name="__unnamed_material_6" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -134,7 +134,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust3.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust3.stl" />
       </geometry>
       <material name="__unnamed_material_7" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -148,7 +148,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal4_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal4_link.stl" />
       </geometry>
       <material name="__unnamed_material_8" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -162,7 +162,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust4.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust4.stl" />
       </geometry>
       <material name="__unnamed_material_9" />
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0" />
@@ -405,14 +405,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_yaw_module_dynamixel_side/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/base_link.dae" />
       </geometry>
       <material name="arm_joint1___unnamed_material_1" />
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 2.83742224257185e-17 5.37764277552873e-17" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_yaw_module_dynamixel_side/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/base_link.stl" />
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 2.83742224257185e-17 5.37764277552873e-17" />
     </collision>
@@ -425,14 +425,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_yaw_module_dynamixel_side/link1.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/link1.dae" />
       </geometry>
       <material name="arm_joint1___unnamed_material_2" />
       <origin xyz="-0.00399999999999988 1.52187655629222e-16 -0.0285" rpy="1.5707963267949003 6.48786257890944e-17 -1.5707963267949003" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_yaw_module_dynamixel_side/link1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/link1.stl" />
       </geometry>
       <origin xyz="-0.00399999999999988 1.52187655629222e-16 -0.0285" rpy="1.5707963267949003 6.48786257890944e-17 -1.5707963267949003" />
     </collision>
@@ -472,14 +472,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_90deg_module/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_90deg_module/base_link.dae" />
       </geometry>
       <material name="arm_90deg___unnamed_material_1" />
       <origin xyz="0.0285 -1.88586037787625e-16 0.0285000000000001" rpy="3.14159265358979 -2.52653528463934e-16 1.57079632679489" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_90deg_module/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_90deg_module/base_link.dae" />
       </geometry>
       <origin xyz="0.0285 -1.88586037787625e-16 0.0285000000000001" rpy="3.14159265358979 -2.52653528463934e-16 1.57079632679489" />
     </collision>
@@ -509,14 +509,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_200mmpipe_module/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_200mmpipe_module/base_link.dae" />
       </geometry>
       <material name="arm_pipe___unnamed_material_1" />
       <origin xyz="-0.018612068965513 1.00000000000001 0.146669004611067" rpy="-1.5707963267948835 1.570796326794893 3.141592653589793" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_200mmpipe_module/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_200mmpipe_module/base_link.stl" />
       </geometry>
       <origin xyz="-0.018612068965513 1.00000000000001 0.146669004611067" rpy="-1.5707963267948835 1.570796326794893 3.141592653589793" />
     </collision>
@@ -546,14 +546,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/base_link.dae" />
       </geometry>
       <material name="arm_joint2___unnamed_material_1" />
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 -2.99239799605999e-16 -1.5707963267949003" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/base_link.stl" />
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 -2.99239799605999e-16 -1.5707963267949003" />
     </collision>
@@ -566,14 +566,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/link1.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/link1.dae" />
       </geometry>
       <material name="arm_joint2___unnamed_material_2" />
       <origin xyz="2.09657352239695e-18 -0.035 1.00064680020069e-17" rpy="3.141592653589793 1.570796326794893 3.141592653589793" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/link1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/link1.stl" />
       </geometry>
       <origin xyz="2.09657352239695e-18 -0.035 1.00064680020069e-17" rpy="3.141592653589793 1.570796326794893 3.141592653589793" />
     </collision>
@@ -613,14 +613,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/base_link.dae" />
       </geometry>
       <material name="arm_joint3___unnamed_material_1" />
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 -2.99239799605999e-16 -1.5707963267949003" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/base_link.stl" />
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 -2.99239799605999e-16 -1.5707963267949003" />
     </collision>
@@ -633,14 +633,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/link1.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/link1.dae" />
       </geometry>
       <material name="arm_joint3___unnamed_material_2" />
       <origin xyz="2.09657352239695e-18 -0.035 1.00064680020069e-17" rpy="3.141592653589793 1.570796326794893 3.141592653589793" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/link1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/link1.stl" />
       </geometry>
       <origin xyz="2.09657352239695e-18 -0.035 1.00064680020069e-17" rpy="3.141592653589793 1.570796326794893 3.141592653589793" />
     </collision>
@@ -680,14 +680,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/base_link.dae" />
       </geometry>
       <material name="arm_joint4___unnamed_material_1" />
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 -2.99239799605999e-16 -1.5707963267949003" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/base_link.stl" />
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 -2.99239799605999e-16 -1.5707963267949003" />
     </collision>
@@ -700,14 +700,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/link1.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/link1.dae" />
       </geometry>
       <material name="arm_joint4___unnamed_material_2" />
       <origin xyz="2.09657352239695e-18 -0.035 1.00064680020069e-17" rpy="3.141592653589793 1.570796326794893 3.141592653589793" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_hinge_module_dynamixel/link1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_hinge_module_dynamixel/link1.stl" />
       </geometry>
       <origin xyz="2.09657352239695e-18 -0.035 1.00064680020069e-17" rpy="3.141592653589793 1.570796326794893 3.141592653589793" />
     </collision>
@@ -747,14 +747,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_drive_module_dynamixel/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_drive_module_dynamixel/base_link.dae" />
       </geometry>
       <material name="arm_joint5___unnamed_material_1" />
       <origin xyz="-1.51387102717471e-18 5.99174275367398e-19 0.0457" rpy="1.5707963267949003 -0.0 1.5707963267949003" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_drive_module_dynamixel/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_drive_module_dynamixel/base_link.stl" />
       </geometry>
       <origin xyz="-1.51387102717471e-18 5.99174275367398e-19 0.0457" rpy="1.5707963267949003 -0.0 1.5707963267949003" />
     </collision>
@@ -767,14 +767,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_drive_module_dynamixel/link1.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_drive_module_dynamixel/link1.dae" />
       </geometry>
       <material name="arm_joint5___unnamed_material_2" />
       <origin xyz="-2.15167357330528e-17 -1.20100411619191e-17 0.0152" rpy="1.5707963267949003 -1.09476442525376e-47 1.5707963267949003" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/screw_drive_module_dynamixel/link1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/screw_drive_module_dynamixel/link1.stl" />
       </geometry>
       <origin xyz="-2.15167357330528e-17 -1.20100411619191e-17 0.0152" rpy="1.5707963267949003 -1.09476442525376e-47 1.5707963267949003" />
     </collision>
@@ -814,14 +814,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/base_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/base_link.dae" />
       </geometry>
       <material name="arm_gripper___unnamed_material_1" />
       <origin xyz="0.0 0.0 0.0" rpy="-1.1895621213035508e-32 -2.44929359829471e-16 1.57079632679489" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/base_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/base_link.stl" />
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="-1.1895621213035508e-32 -2.44929359829471e-16 1.57079632679489" />
     </collision>
@@ -834,14 +834,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/pick_dummy_link.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/pick_dummy_link.dae" />
       </geometry>
       <material name="arm_gripper___unnamed_material_2" />
       <origin xyz="-1.43008831174061e-17 -1.78863404261684e-17 -0.023" rpy="-1.3497194182685498e-15 -7.618871916663648e-16 -1.5707963267944498" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/pick_dummy_link.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/pick_dummy_link.stl" />
       </geometry>
       <origin xyz="-1.43008831174061e-17 -1.78863404261684e-17 -0.023" rpy="-1.3497194182685498e-15 -7.618871916663648e-16 -1.5707963267944498" />
     </collision>
@@ -854,14 +854,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/gripper_link1.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/gripper_link1.dae" />
       </geometry>
       <material name="arm_gripper___unnamed_material_3" />
       <origin xyz="-0.00699999999999998 1.0683109299301e-18 -0.0235" rpy="6.301392866405062e-16 -9.87992243989157e-16 -1.5707963267949006" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/gripper_link1.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/gripper_link1.stl" />
       </geometry>
       <origin xyz="-0.00699999999999998 1.0683109299301e-18 -0.0235" rpy="6.301392866405062e-16 -9.87992243989157e-16 -1.5707963267949006" />
     </collision>
@@ -874,14 +874,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/gripper_link2.dae" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/gripper_link2.dae" />
       </geometry>
       <material name="arm_gripper___unnamed_material_4" />
       <origin xyz="0.00700000000000003 1.31857538436738e-16 -0.0235" rpy="5.703715567474983e-16 -1.04683580036436e-15 -1.5707963267949006" />
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/arm/vial_pick_module/gripper_link2.stl" />
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/arm/vial_pick_module/gripper_link2.stl" />
       </geometry>
       <origin xyz="0.00700000000000003 1.31857538436738e-16 -0.0235" rpy="5.703715567474983e-16 -1.04683580036436e-15 -1.5707963267949006" />
     </collision>

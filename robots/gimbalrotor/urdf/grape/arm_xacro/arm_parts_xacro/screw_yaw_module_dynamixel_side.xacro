@@ -1,0 +1,76 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="screw_yaw_module_dynamixel_side">
+  <xacro:macro name="screw_yaw_module_dynamixel_side" params="prefix:='' parent_link:=world xyz:='0 0 0' rpy:='0 0 0' package_name:=gimbalrotor">
+    <joint name="${parent_link}_to_${prefix}base_link_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="${prefix}base_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+    <link name="${prefix}base_link">
+      <inertial>
+        <origin xyz="2.05400538280698e-06 0.00964614213009143 0.0328157127384981" rpy="0.0 -0.0 0.0"/>
+        <!-- <mass value="0.0974969477576165"/> -->
+	<mass value="0.134835603611421"/>
+        <inertia ixx="2.94983710615554e-05" ixy="8.65358355557671e-09" ixz="-5.99019648532088e-09" iyy="3.11696241448887e-05" iyz="1.32416975855121e-06" izz="2.3568380981746e-05"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/base_link.dae"/>
+        </geometry>
+        <material name="${prefix}__unnamed_material_1"/>
+        <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 2.83742224257185e-17 5.37764277552873e-17"/>
+      </visual>
+      <!-- <collision> -->
+      <!--   <geometry> -->
+      <!--     <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/base_link.stl"/> -->
+      <!--   </geometry> -->
+      <!--   <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 2.83742224257185e-17 5.37764277552873e-17"/> -->
+      <!-- </collision> -->
+    </link>
+    <link name="${prefix}link1">
+      <inertial>
+        <origin xyz="0.0315627099580794 3.23428430836527e-05 0.000305100560390667" rpy="0.0 -0.0 0.0"/>
+        <!-- <mass value="0.0155927868590324"/> -->
+	<mass value="0.0215643963885794"/>
+        <inertia ixx="4.31040540970899e-06" ixy="-1.84501397306783e-10" ixz="1.71628424283485e-09" iyy="2.33860081225919e-06" iyz="5.31064452921531e-10" izz="2.37493267246664e-06"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/link1.dae"/>
+        </geometry>
+        <material name="${prefix}__unnamed_material_2"/>
+        <origin xyz="-0.00399999999999988 1.52187655629222e-16 -0.0285" rpy="1.5707963267949003 6.48786257890944e-17 -1.5707963267949003"/>
+      </visual>
+      <!-- <collision> -->
+      <!--   <geometry> -->
+      <!--     <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/link1.stl"/> -->
+      <!--   </geometry> -->
+      <!--   <origin xyz="-0.00399999999999988 1.52187655629222e-16 -0.0285" rpy="1.5707963267949003 6.48786257890944e-17 -1.5707963267949003"/> -->
+      <!-- </collision> -->
+    </link>
+    <link name="${prefix}dummy_link"/>
+    <joint name="${prefix}joint1" type="revolute">
+      <!-- XL430-W250, 12 V: 1.5 N m stall torque and 61 rpm no-load speed.
+           https://emanual.robotis.com/docs/en/dxl/x/xl430-w250/ -->
+      <limit effort="1.5" velocity="${61.0 * 2.0 * 3.141592653589793 / 60.0}" lower="-3.14" upper="3.14"/>
+      <!-- <limit effort="0.0" velocity="0.0" lower="-3.14" upper="3.14"/> -->
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}link1"/>
+      <axis xyz="-1.  0.  0."/>
+      <origin xyz="0.0 0.004 0.0285" rpy="0.0 -0.0 1.5708"/>
+    </joint>
+    <joint name="${prefix}dummy_joint" type="fixed">
+      <limit effort="0.0" velocity="0.0"/>
+      <parent link="${prefix}link1"/>
+      <child link="${prefix}dummy_link"/>
+      <axis xyz="0. 0. 0."/>
+      <origin xyz="0.0365 0.0 0.0" rpy="-3.141592653589793 -1.5707926535897934 3.141592653589793"/>
+    </joint>
+    <material name="${prefix}__unnamed_material_1">
+      <color rgba="1. 1. 1. 1."/>
+    </material>
+    <material name="${prefix}__unnamed_material_2">
+      <color rgba="0.29803922 0.29803922 0.29803922 1.        "/>
+    </material>
+  </xacro:macro>
+</robot>

@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="arm">
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/screw_yaw_module_dynamixel_side.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/screw_90deg_module.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/screw_200mmpipe_module.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/screw_hinge_module_dynamixel.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/screw_drive_module_dynamixel.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/vial_pick_module.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/screw_yaw_module_dynamixel_side.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/screw_90deg_module.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/screw_200mmpipe_module.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/screw_hinge_module_dynamixel.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/screw_drive_module_dynamixel.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/vial_pick_module.xacro"/>
 
   <xacro:macro name="arm" params="legacy:=true parent_link:=main_body xyz:='0.0995 0.0 -0.0465' rpy:='3.141592653589793 1.5707926535897934 3.141592653589793'">
     <!-- Dummy link to attach the arm to the main body -->

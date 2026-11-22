@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="arm">
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/arm_parts_xacro/screw_yaw_module_dynamixel_side.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/arm_parts_xacro/screw_90deg_module.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/arm_parts_xacro/screw_200mmpipe_module.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/arm_parts_xacro/screw_hinge_module_dynamixel.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/arm_parts_xacro/screw_drive_module_dynamixel.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/arm_parts_xacro/vial_pick_module.xacro"/>
+
+  <xacro:macro name="arm_5dof" params="parent_link:=main_body xyz:='0.0995 0.0 -0.0465' rpy:='3.141592653589793 1.5707926535897934 3.141592653589793'">
+    <link name="arm_dummy_link"/>
+    <joint name="arm_dummy_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="arm_dummy_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- Joint 1: Yaw module -->
+    <xacro:screw_yaw_module_dynamixel_side
+      prefix="arm_joint1_"
+      parent_link="arm_dummy_link"
+      xyz="0 0 0"
+      rpy="0 0 -1.5707963267948966"/>
+
+    <!-- 90deg elbow module -->
+    <xacro:screw_90deg_module
+      prefix="arm_90deg_"
+      parent_link="arm_joint1_dummy_link"
+      xyz="0 0 0"
+      rpy="0 3.14 -3.14159"/>
+
+    <xacro:screw_200mmpipe_module
+      prefix="arm_pipe_"
+      parent_link="arm_90deg_dummy_link"
+      xyz="0 0 0"
+      rpy="0 0 0"/>
+
+    <!-- Joint 2: Yaw hinge -->
+    <xacro:screw_hinge_module_dynamixel
+      prefix="arm_joint2_"
+      parent_link="arm_pipe_dummy_link"
+      xyz="0 0 0"
+      rpy="0 0 0"
+      lower="-3.141592"
+      upper="3.141592"/>
+
+    <!-- Joint 3: Hinge module -->
+    <xacro:screw_hinge_module_dynamixel
+      prefix="arm_joint3_"
+      parent_link="arm_joint2_dummy_link"
+      xyz="0 0 0"
+      rpy="0 3.14 -1.5707963267948966"/>
+
+    <!-- Joint 4: Pitch -->
+    <xacro:screw_hinge_module_dynamixel
+      prefix="arm_joint4_"
+      parent_link="arm_joint3_dummy_link"
+      xyz="0 0 0"
+      rpy="0 3.14 0"/>
+
+    <!-- Joint 5: Drive module -->
+    <xacro:screw_drive_module_dynamixel
+      prefix="arm_joint5_"
+      parent_link="arm_joint4_dummy_link"
+      xyz="0 0 0"
+      rpy="0 3.14 3.14"/>
+
+    <!-- Gripper -->
+    <xacro:vial_pick_module
+      prefix="arm_gripper_"
+      parent_link="arm_joint5_dummy_link"
+      parent_joint="arm_joint5_joint1"
+      xyz="0 0 0"
+      rpy="0 0 0"/>
+
+    <transmission name="arm_joint1_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm_joint1_joint1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="arm_servo1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="arm_joint2_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm_joint2_joint1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="arm_servo2">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="arm_joint3_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm_joint3_joint1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="arm_servo3">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="arm_joint4_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm_joint4_joint1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="arm_servo4">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="arm_joint5_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="arm_joint5_joint1">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="arm_servo5">
+        <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+</robot>

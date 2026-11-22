@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <robot name="gimbalrotor" xmlns:xacro="http://www.ros.org/wiki/xacro">  
 
-  <xacro:arg name="with_arm" default="true"/>
-  <xacro:arg name="arm_variant" default="original"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/common.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/gimbal_inertial.xacro"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_with_arm/xacro/arm.xacro"/>
+  <xacro:arg name="arm_variant" default="no_arm"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/common.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/gimbal_inertial.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/3DoF_arm.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/5DoF_arm.xacro"/>
 
   <!-- <link name="root"> -->
   <!--   <inertial> -->
@@ -80,14 +80,14 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/>
       </geometry>
       <material name="__unnamed_material_1"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
     </visual>
     <collision>
       <geometry>
-        <!-- <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl"/> -->
+        <!-- <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/> -->
         <!-- <box size="0.25 0.25 0.035"/> -->
 	<box size="0.5 0.5 0.035"/>
       </geometry>
@@ -99,7 +99,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal1_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal1_link.stl"/>
       </geometry>
       <material name="__unnamed_material_2"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -115,7 +115,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust1.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust1.stl"/>
       </geometry>
       <material name="__unnamed_material_3"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -126,7 +126,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal2_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal2_link.stl"/>
       </geometry>
       <material name="__unnamed_material_4"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -142,7 +142,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust2.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust2.stl"/>
       </geometry>
       <material name="__unnamed_material_5"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -153,7 +153,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal3_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal3_link.stl"/>
       </geometry>
       <material name="__unnamed_material_6"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -169,7 +169,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust3.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust3.stl"/>
       </geometry>
       <material name="__unnamed_material_7"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -180,7 +180,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal4_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal4_link.stl"/>
       </geometry>
       <material name="__unnamed_material_8"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -196,7 +196,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust4.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust4.stl"/>
       </geometry>
       <material name="__unnamed_material_9"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -441,9 +441,11 @@
 
   <xacro:property name="arm_variant" value="$(arg arm_variant)"/>
 
-  <!-- Include the arm macro -->
-  <xacro:if value="$(arg with_arm)">
-    <xacro:arm parent_link="main_body" legacy="${dict(original=True, compact=False)[arm_variant]}"/>
+  <xacro:if value="${arm_variant == '3DoF_arm'}">
+    <xacro:arm_3dof parent_link="main_body"/>
+  </xacro:if>
+  <xacro:if value="${arm_variant == '5DoF_arm'}">
+    <xacro:arm_5dof parent_link="main_body"/>
   </xacro:if>
   
 </robot>
