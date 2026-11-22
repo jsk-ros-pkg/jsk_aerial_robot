@@ -88,3 +88,22 @@ def difference_pose(pose_ref, pose):
     adj_pose.position.z = pose.position.z - pose_ref.position.z
     adj_pose.orientation = inverse_calculate_quaternion(pose_ref.orientation, pose.orientation)
     return adj_pose
+
+# 回転軸と回転角の計算　入力：Quaternion型　出力：回転軸配列, 回転角
+def quaternion_to_axis_angle(quat):
+    axis = np.array([quat.x, quat.y, quat.z])
+    axis_normalized = axis / np.linalg.norm(axis)
+    angle = 2 * np.arccos(quat.w)
+    return axis_normalized, angle
+
+# 回転軸と回転角からクオータニオンの計算　入力：回転軸配列, 回転角　出力：Quaternion型
+def axis_angle_to_quaternion(axis, angle):
+    axis_normalized = axis / np.linalg.norm(axis)
+    half_angle = angle / 2.0
+    sin_half_angle = np.sin(half_angle)
+    quat = Quaternion()
+    quat.x = axis_normalized[0] * sin_half_angle
+    quat.y = axis_normalized[1] * sin_half_angle
+    quat.z = axis_normalized[2] * sin_half_angle
+    quat.w = np.cos(half_angle)
+    return quat

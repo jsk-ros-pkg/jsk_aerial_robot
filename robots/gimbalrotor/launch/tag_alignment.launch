@@ -8,6 +8,12 @@
         <arg name="headless" value="false" />
         <arg name="enable_camera" value="true" />
     </include>
+    <!-- override baselink rotation interpolation of GimbalrotorNavigator (NavigationConfig.yaml: 0.2 s / 0.04 rad)
+         to make the target attitude change smoother while keeping the max rate (0.2 rad/s) -->
+    <group ns="gimbalrotor">
+        <param name="navigation/baselink_rot_pub_interval" value="0.025" />
+        <param name="navigation/baselink_rot_change_thresh" value="0.005" />
+    </group>
     <include file="$(find camera)/launch/apriltag_detection.launch">
         <arg name="simulation" value="true" />
     </include>
