@@ -19,7 +19,7 @@
 
 #define ESC_BUFFER_SIZE 512
 
-#define TELE_VOLTAGE_SCALE 1.022f
+#define TELE_VOLTAGE_SCALE 1.0f
 
 namespace
 {
