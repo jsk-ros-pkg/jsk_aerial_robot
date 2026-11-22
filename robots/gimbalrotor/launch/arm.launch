@@ -2,11 +2,12 @@
 <launch>
   <arg name="config_dir" default="$(find gimbalrotor)/config"/>
   <arg name="airframe" default="grape"/>
+  <arg name="arm_variant" default="3DoF_arm" doc="arm config variant: 3DoF_arm, 5DoF_arm (grape only)"/>
   <arg name="robot_ns" default="arm"/>
 
   <group ns="$(arg robot_ns)">
     ###########  Servo Config  ###########
-    <rosparam file="$(arg config_dir)/$(arg airframe)/Servo_arm.yaml" command="load"/>
+    <rosparam file="$(arg config_dir)/$(arg airframe)/$(arg arm_variant)/Servo.yaml" command="load"/>
 
     ###########  Servo Bridge  ###########
     <arg name="robot_model" value="$(find gimbalrotor)/robots/$(arg airframe)/gimbalrotor.urdf.xacro"/>
