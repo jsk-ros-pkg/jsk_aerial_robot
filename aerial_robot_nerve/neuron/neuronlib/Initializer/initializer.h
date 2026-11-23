@@ -10,7 +10,7 @@
 
 #include "CAN/can_device_manager.h"
 #include "Servo/servo.h"
-#include "IMU/imu_mpu9250.h"
+#include "IMU/imu_base.h"
 
 
 class Initializer : public CANDevice

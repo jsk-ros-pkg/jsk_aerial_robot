@@ -39,6 +39,8 @@ install(DIRECTORY config plugins launch
   )
 
 catkin_install_python(PROGRAMS
+  scripts/gimbal_test.py
+  scripts/gimbal_test_times.py
   script/arm_set_pre_hover_pose_compact.py
   script/ctrl_gripper_by_sensor.py
   script/arm_world_eval.py
