@@ -96,6 +96,17 @@ protected:
 #endif
   std::string baselink_parent_;
 
+  std::vector<std::string> additional_frames_;
+#if GAZEBO_MAJOR_VERSION > 8
+  std::map<std::string, ignition::math::Pose3d> additional_frame_offsets_;
+#else
+  std::map<std::string, gazebo::math::Pose> additional_frame_offsets_;
+#endif
+  std::map<std::string, std::string> additional_frame_parents_;
+
+  std::map<std::string, ros::Publisher> additional_frame_odom_pubs_;
+  std::map<std::string, ros::Time> additional_frame_last_pub_times_;
+
   double start_t_;
   double spinal_init_wait_time_;
 
