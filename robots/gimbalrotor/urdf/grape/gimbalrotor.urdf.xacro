@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <robot name="gimbalrotor" xmlns:xacro="http://www.ros.org/wiki/xacro">  
 
-  <xacro:arg name="arm_variant" default="no_arm"/>
+  <xacro:arg name="variant" default="default"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape/common.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/gimbal_inertial.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/3DoF_arm.xacro"/>
@@ -439,12 +439,12 @@
   <!--   <origin xyz="0 0 -0.08" rpy="3.14159 0 0"/> -->
   <!-- </joint> -->
 
-  <xacro:property name="arm_variant" value="$(arg arm_variant)"/>
+  <xacro:property name="variant" value="$(arg variant)"/>
 
-  <xacro:if value="${arm_variant == '3DoF_arm'}">
+  <xacro:if value="${variant == '3DoF_arm'}">
     <xacro:arm_3dof parent_link="main_body"/>
   </xacro:if>
-  <xacro:if value="${arm_variant == '5DoF_arm'}">
+  <xacro:if value="${variant == '5DoF_arm'}">
     <xacro:arm_5dof parent_link="main_body"/>
   </xacro:if>
   
