@@ -19,9 +19,9 @@ rosrun aerial_robot_base keyboard_command.py
 
 ### アーム構成を選ぶ
 
-`airframe:=grape_with_arm` で `with_arm:=true` の場合、既定の `arm_variant:=original` がこれまでの構成を選ぶ。省自由度版を使うときは、実機・Gazebo それぞれの `bringup.launch` に `arm_variant:=compact` を追加する。
+`airframe:=grape` の構成は `variant` で選ぶ。既定の `variant:=default` はアームなし、`variant:=3DoF_arm` は省自由度版、`variant:=5DoF_arm` は従来の5軸構成になる。実機・Gazebo とも同じ引数を使う。
 
-省自由度版は機体から **200 mm パイプ → yaw → pitch → ドライブ → グリッパ** の順。`bringup.launch` は `arm_variant:=compact` のとき [Servo_compact_arm.yaml](../config/grape_with_arm/Servo_compact_arm.yaml) を読み込む。`original` は `Servo.yaml`、アームなしは `Servo_no_arm.yaml` を使う。
+省自由度版は機体から **200 mm パイプ → yaw → pitch → ドライブ → グリッパ** の順。`bringup.launch` は `config/<airframe>/<variant>/` の `Servo.yaml` と制御設定を読み込む。grape では [3DoF_arm](../config/grape/3DoF_arm/Servo.yaml)、[5DoF_arm](../config/grape/5DoF_arm/Servo.yaml)、[default](../config/grape/default/Servo.yaml) を使う。bi・quad・quad2・tri・tri_omni も `variant:=default` を使う。
 
 | 省自由度版の軸 | URDF の関節名 | ServoBridge の `id` |
 | --- | --- | --- |
@@ -36,29 +36,31 @@ rosparam get /gimbalrotor/servo_controller/joints
 rostopic echo -n 1 /gimbalrotor/servo/states
 ```
 
-先端保持の自動評価は従来構成を使う。`with_arm:=false` ではアームなしになる。
+先端保持の自動評価は従来構成を使う。`variant:=default` ではアームなしになる。
 
 ### Gazebo の機体だけを起動する
 
 ```bash
 roslaunch gimbalrotor bringup.launch \
-  airframe:=grape_with_arm with_arm:=true \
+  airframe:=grape variant:=5DoF_arm \
   simulation:=true real_machine:=false headless:=false
 ```
 
 `headless:=true` で GUI を省略できる。
 
+`simulation:=true` では RealSense・UDTS・Livox・FAST-LIO・IMU 座標変換の実機ノードは起動しない。
+
 省自由度版を起動する場合は次のコマンドを使う。
 
 ```bash
 roslaunch gimbalrotor bringup.launch \
-  airframe:=grape_with_arm with_arm:=true arm_variant:=compact \
+  airframe:=grape variant:=3DoF_arm \
   simulation:=true real_machine:=false headless:=false
 ```
 
 ### 省自由度版のアームを動かす
 
-`arm_variant:=compact` で Gazebo を起動し、非武装のまま別端末で実行する。
+`variant:=3DoF_arm` で Gazebo を起動し、非武装のまま別端末で実行する。
 
 ```bash
 rosrun gimbalrotor arm_set_pre_hover_pose_compact.py
@@ -83,21 +85,21 @@ roslaunch gimbalrotor arm_world_eval.launch \
 
 ```bash
 roslaunch gimbalrotor bringup.launch \
-  airframe:=grape_with_arm with_arm:=true \
+  airframe:=grape variant:=5DoF_arm \
   simulation:=false real_machine:=true
 ```
 
-省自由度版の実機では `arm_variant:=compact` を追加する。この設定ではフライトコントローラへのシリアル接続（`/dev/flight_controller`）、mocap、Livox MID-360、FAST-LIO を起動する。既定の ROS 名前空間は `/gimbalrotor`。先端保持ノードは従来構成で使う場合に別端末から起動する。
+省自由度版の実機では `variant:=3DoF_arm` を指定する。grape の実機ではフライトコントローラへのシリアル接続（`/dev/flight_controller`）、mocap、Livox MID-360、FAST-LIO、IMU 座標変換を起動する。`3DoF_arm`・`5DoF_arm` では RealSense と UDTS も起動する。既定の ROS 名前空間は `/gimbalrotor`。先端保持ノードは従来構成で使う場合に別端末から起動する。
 
 実機側で `rospack find livox_ros_driver2` と `rospack find fast_lio` が通ることを確認する。手元のシミュレーション用ワークスペースでは `fast_lio` が見つからず、実機用 launch の展開はそこまでの確認に留まった。
 
-with_arm:=falseでアームなしのジンバルローターになるのはシミュレーションと同様だが、アームがつながっていないとCANのエラーが多分出るけど、一応大丈夫らしい。
+variant:=defaultでアームなしのジンバルローターになるのはシミュレーションと同様だが、アームがつながっていないとCANのエラーが多分出るけど、一応大丈夫らしい。
 自分はその時は念の為neuronのCANを抜いてエラーが出ないようにしつつ試していた。
 
 
 ### アームの姿勢を送る
 
-以下の2本は `with_arm:=true arm_variant:=original` の機体に関節角を一度だけ送る。各値は第1軸から第5軸（グリッパ）までの順で、単位は rad。姿勢を送る前にアームの周囲に干渉がないことを確認する。
+以下の2本は `variant:=5DoF_arm` の機体に関節角を一度だけ送る。各値は第1軸から第5軸（グリッパ）までの順で、単位は rad。姿勢を送る前にアームの周囲に干渉がないことを確認する。
 
 | 用途 | コマンド | 指令角 |
 | --- | --- | --- |
