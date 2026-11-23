@@ -15,7 +15,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/base_link.dae"/>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_yaw_module_dynamixel_side/base_link.dae"/>
         </geometry>
         <material name="${prefix}__unnamed_material_1"/>
         <origin xyz="0.0 0.0 0.0" rpy="1.5707963267949003 2.83742224257185e-17 5.37764277552873e-17"/>
@@ -36,7 +36,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_yaw_module_dynamixel_side/link1.dae"/>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_yaw_module_dynamixel_side/link1.dae"/>
         </geometry>
         <material name="${prefix}__unnamed_material_2"/>
         <origin xyz="-0.00399999999999988 1.52187655629222e-16 -0.0285" rpy="1.5707963267949003 6.48786257890944e-17 -1.5707963267949003"/>

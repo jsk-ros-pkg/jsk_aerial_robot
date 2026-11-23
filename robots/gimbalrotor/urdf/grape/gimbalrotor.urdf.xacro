@@ -80,7 +80,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl"/>
       </geometry>
       <material name="__unnamed_material_1"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>

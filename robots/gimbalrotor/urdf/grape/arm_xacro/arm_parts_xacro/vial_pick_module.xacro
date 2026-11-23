@@ -22,7 +22,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/vial_pick_module/base_link.dae"/>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/vial_pick_module/base_link.dae"/>
         </geometry>
         <material name="${prefix}__unnamed_material_1"/>
         <origin xyz="0.0 0.0 0.0" rpy="-1.1895621213035508e-32 -2.44929359829471e-16 1.57079632679489"/>
@@ -43,7 +43,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/vial_pick_module/pick_dummy_link.dae"/>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/vial_pick_module/pick_dummy_link.dae"/>
         </geometry>
         <material name="${prefix}__unnamed_material_2"/>
         <origin xyz="-1.43008831174061e-17 -1.78863404261684e-17 -0.023" rpy="-1.3497194182685498e-15 -7.618871916663648e-16 -1.5707963267944498"/>
@@ -70,7 +70,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/vial_pick_module/gripper_link1.dae"/>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/vial_pick_module/gripper_link1.dae"/>
         </geometry>
         <material name="${prefix}__unnamed_material_3"/>
         <origin xyz="-0.00699999999999998 1.0683109299301e-18 -0.0235" rpy="6.301392866405062e-16 -9.87992243989157e-16 -1.5707963267949006"/>
@@ -98,7 +98,7 @@
       </inertial>
       <visual>
         <geometry>
-          <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/vial_pick_module/gripper_link2.dae"/>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/vial_pick_module/gripper_link2.dae"/>
         </geometry>
         <material name="${prefix}__unnamed_material_4"/>
         <origin xyz="0.00700000000000003 1.31857538436738e-16 -0.0235" rpy="5.703715567474983e-16 -1.04683580036436e-15 -1.5707963267949006"/>

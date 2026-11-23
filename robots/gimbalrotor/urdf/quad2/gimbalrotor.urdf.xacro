@@ -13,12 +13,12 @@
       <material name="__unnamed_material_1"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
     </visual>
-    <!-- <collision> -->
-    <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/> -->
-    <!--   </geometry> -->
-    <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
-    <!-- </collision> -->
+    <collision>
+      <geometry>
+        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/>
+      </geometry>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </collision>
     <collision>
       <geometry>
         <box size="0.5 0.5 0.1"/>
