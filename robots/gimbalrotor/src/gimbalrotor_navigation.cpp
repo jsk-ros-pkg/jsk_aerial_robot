@@ -50,13 +50,6 @@ void GimbalrotorNavigator::targetBaselinkRotCallback(const geometry_msgs::Quater
 {
   tf::quaternionMsgToTF(msg->quaternion, final_target_baselink_rot_);
   target_omega_.setValue(0, 0, 0);  // for sure to reset the target angular velocity
-
-  // special process
-  if (getTargetRPY().z() != 0)
-  {
-    curr_target_baselink_rot_.setRPY(0, 0, getTargetRPY().z());
-    eq_cog_world_ = true;
-  }
 }
 
 void GimbalrotorNavigator::targetBaselinkRPYCallback(const geometry_msgs::Vector3StampedConstPtr& msg)
