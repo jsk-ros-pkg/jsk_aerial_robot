@@ -3,56 +3,64 @@
   <arg name="real_machine" default="false" />
   <arg name="simulation" default="false" />
   <arg name="robot_ns" default="gimbalrotor" />
+  <arg name="airframe" default="quad" />
+  <arg name="variant" default="default" />
 
   <group ns="$(arg robot_ns)">
+    <group if="$(eval arg('real_machine') and not arg('simulation'))">
+      <!-- fc & IMU & GPS -->
+      <include file="$(find spinal)/launch/bridge.launch">
+        <arg name="mode" value="serial" />
+        <arg name="serial_port" value="/dev/flight_controller" />
+        <arg name="serial_baud" value="921600" />
+      </include>
 
-    <group if="$(arg real_machine)">
-      <group unless="$(arg simulation)">
+      <!-- mocap -->
+      <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
 
-        <!-- fc & IMU & GPS -->
-        <include file="$(find spinal)/launch/bridge.launch" >
-          <arg name="mode" value="serial" />
-          <arg name="serial_port" value="/dev/flight_controller" />
-          <arg name="serial_baud" value="921600" />
-        </include>
-
-        <!-- mocap -->
-        <include file="$(find aerial_robot_base)/launch/external_module/mocap.launch" />
-
+      <group if="$(eval arg('airframe') == 'grape')">
         <!-- livox mid360 & fast lio -->
         <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch" />
-        <include file="$(find fast_lio)/launch/mapping_mid360.launch" >
+        <include file="$(find fast_lio)/launch/mapping_mid360.launch">
           <arg name="rviz" value="false" />
         </include>
 
         <!-- imu pipeline to use imu data of spinal for fast lio -->
         <node pkg="imu_transformer" type="imu_transformer_node" name="imu_data_transformer" output="screen">
-          <remap from="imu_in/data" to="sensor_plugin/imu1/ros_converted"/>
-          <remap from="imu_out/data" to="livox/imu_spinal"/>
-          <param name="target_frame" value="$(arg robot_ns)/lidar_imu"/>
+          <remap from="imu_in/data" to="sensor_plugin/imu1/ros_converted" />
+          <remap from="imu_out/data" to="livox/imu_spinal" />
+          <param name="target_frame" value="$(arg robot_ns)/lidar_imu" />
         </node>
-
       </group>
     </group>
 
     <!-- basic configuration for sensors (e.g. noise sigma) -->
     <rosparam file="$(find gimbalrotor)/config/sensors/imu/spinal.yaml" command="load" />
     <rosparam file="$(find aerial_robot_base)/config/sensors/mocap.yaml" command="load" />
-    <rosparam file="$(find aerial_robot_base)/config/sensors/lio/livox_mid360.yaml" command="load" />
 
-    <!-- overwrite basic parameters to use imu data for fast lio -->
-    <param name="mapping/acc_scale" value="0.101936799"/> <!-- 1/g -->
-    <param name="common/imu_topic" value="livox/imu_spinal"/>
+    <group if="$(eval arg('airframe') == 'grape')">
+      <rosparam file="$(find aerial_robot_base)/config/sensors/lio/livox_mid360.yaml" command="load" />
 
+      <!-- overwrite basic parameters to use imu data for fast lio -->
+      <param name="mapping/acc_scale" value="0.101936799" /> <!-- 1/g -->
+      <param name="common/imu_topic" value="livox/imu_spinal" />
+    </group>
+
+    <!-- Other airframes use only the spinal IMU and mocap for estimation. -->
+    <rosparam param="estimation/sensor_list" unless="$(eval arg('airframe') == 'grape')">
+      [sensor_plugin/imu, sensor_plugin/mocap]
+    </rosparam>
   </group>
 
-  <include file="$(find realsense2_camera)/launch/rs_camera.launch" if="$(arg real_machine)"/>
+  <group if="$(eval arg('real_machine') and not arg('simulation') and arg('airframe') == 'grape' and arg('variant') in ['3DoF_arm', '5DoF_arm'])">
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch" />
 
-  <include file="$(find udts_core)/launch/udts_driver.launch" if="$(arg real_machine)">
-    <param name="port" value="/dev/ttyACM0" />
-    <param name="sensor_name" value="udts" />
-    <param name="udts_republisher_config_file" value="$(find udts_core)/config/standard_udts/udts_republisher_config.yaml" />
-    <param name="rate" value="-1" />
-  </include>
+    <include file="$(find udts_core)/launch/udts_driver.launch">
+      <arg name="port" value="/dev/ttyACM0" />
+      <arg name="sensor_name" value="udts" />
+      <arg name="udts_republisher_config_file" value="$(find udts_core)/config/standard_udts/udts_republisher_config.yaml" />
+      <arg name="rate" value="-1" />
+    </include>
+  </group>
 
 </launch>
