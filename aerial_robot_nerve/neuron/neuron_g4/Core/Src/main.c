@@ -24,10 +24,21 @@
 /* USER CODE BEGIN Includes */
 #include "CAN/can_device_manager.h"
 #include "Flashmemory/flashmemory.h"
-#include "IMU/imu_mpu9250.h"
 #include "Initializer/initializer.h"
 #include "Motor/motor.h"
 #include "Servo/servo.h"
+
+#ifndef IS_IMU_ICM
+#define IS_IMU_ICM 1
+#endif
+
+#if IS_IMU_ICM
+#include "IMU/drivers/icm42686/icm42686.h"
+using NeuronIMU = ICM42686;
+#else
+#include "IMU/drivers/mpu9250/mpu9250.h"
+using NeuronIMU = MPU9250;
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -71,7 +82,7 @@ osSemaphoreId canTxSemHandle;
 /* USER CODE BEGIN PV */
 osMailQId canMsgMailHandle;
 
-IMU imu_;
+NeuronIMU imu_;
 Motor motor_;
 Servo servo_;
 /* USER CODE END PV */
@@ -201,7 +212,7 @@ int main(void)
   }
 
   motor_ = Motor(slave_id);
-  imu_ = IMU(slave_id);
+  imu_ = NeuronIMU(slave_id);
   servo_ = Servo(slave_id);
 
   Initializer initializer(slave_id, servo_, imu_);
@@ -756,7 +767,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(IMU_CS_GPIO_Port, IMU_CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(IMU_CS_GPIO_Port, IMU_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;

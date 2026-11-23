@@ -277,7 +277,7 @@ int main(void)
   estimator_.init(&imu_, &baro_, &gps_, &nh_);  // imu + baro + gps => att + alt + pos(xy)
 #endif
 
-  FlashMemory::read(); //IMU calib data (including IMU in neurons)
+  FlashMemory::read(); //IMU calib data (not including IMU in neurons)
 
   DirectServo* servoptr = nullptr;
   bool servo_connect = servo_.init(&huart2, &nh_, NULL);
@@ -291,6 +291,7 @@ int main(void)
   bool nerve_connect = Spine::init(&hfdcan1, &nh_, &estimator_, &controller_, LED1_GPIO_Port, LED1_Pin);
   if(nerve_connect)
     {
+      FlashMemory::read(); //neuron IMU data
       Spine::useRTOS(&canMsgMailHandle); // use RTOS for CAN in spinal
       servo_manager_.addSpineServo();
     }
