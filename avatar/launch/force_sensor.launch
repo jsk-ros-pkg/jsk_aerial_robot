@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- general parameters -->
+  <arg name="force_sensor" default="CFS018CA201U" /> <!-- other sensor: PFS055YA501U6 -->
+
+  <node name="forces_node" pkg="cfs_sensor" type="cfs_node"  output="screen" >
+    <rosparam file="$(find cfs_sensor)/config/$(arg force_sensor).yaml" command="load" />
+  </node>
+
+</launch>

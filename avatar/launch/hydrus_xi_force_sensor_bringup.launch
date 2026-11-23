@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<launch>
+    ###########  launch config  ###########
+    <arg name="sensor_connect" default="true" />
+    <arg name="headless" default="true" />
+    <arg name="real_machine" default="true" />
+    <arg name="simulation" default="false" />
+    <arg name="type" default="quad" />
+    <arg name="onboards_model" default="upboard202007" />
+    <arg name="estimate_mode" default="1" />
+    <arg name="init_gimbal_angle" default="false" />
+    <arg name="config_dir" default="$(find hydrus_xi)/config"/>
+    <arg name="robot_ns" value="hydrus_xi" />
+    <arg name="force_sensor" default="CFS018CA201U" /> <!-- other sensor: PFS055YA501U6 -->
+    <arg name="filter_param" default="0.5" />    <!-- delay param for low-pass-filter -->
+
+    ###########  bringup  ###########
+    <include file="$(find hydrus_xi)/launch/bringup.launch">
+        <arg name="headless" value="$(arg headless)" />
+        <arg name="real_machine" value="$(arg real_machine)" />
+        <arg name="simulation" value="$(arg simulation)" />
+        <arg name="type" value="$(arg type)" />
+        <arg name="onboards_model" value="$(arg onboards_model)" />
+        <arg name="estimate_mode" value="$(arg estimate_mode)" />
+        <arg name="init_gimbal_angle" value="$(arg init_gimbal_angle)" />
+    </include>
+
+    ###########  force_sensor  ###########
+    <group if = "$(arg sensor_connect)">
+        <node name="forces_node" pkg="cfs_sensor" type="cfs_node"  output="screen" >
+            <rosparam file="$(find cfs_sensor)/config/$(arg force_sensor).yaml" command="load" />
+        </node>
+        <node name="lpf_for_FTsensor" pkg="avatar" type="lpf_for_FTsensor.py" output="screen" >
+            <param name="delay_param" value="$(arg filter_param)" />
+        </node>
+    </group>
+    <!-- TODO consider to publish sensor data when testing -->
+    <!-- <group unless = "$(arg sensor_connect)">
+
+    </group> -->
+
+</launch>
+
+

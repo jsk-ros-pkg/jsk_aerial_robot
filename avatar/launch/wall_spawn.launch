@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="wall_x" default="1.0"/>
+  <arg name="wall_y" default="2.0"/>
+  <arg name="wall_z" default="0.0"/>
+  <arg name="wall_pitch" default="0.0"/>
+  <arg name="wall_yaw" default="0.0"/>
+
+  <param name="wall/robot_description" command="$(find xacro)/xacro $(find avatar)/urdf/wall.urdf"/>
+
+  <node pkg="gazebo_ros" type="spawn_model" name="wall_spawn" args="-param wall/robot_description -urdf -x $(arg wall_x) -y $(arg wall_y) -z 0 -P $(arg wall_pitch) -Y $(arg wall_yaw) -model wall_model" />
+
+
+</launch>

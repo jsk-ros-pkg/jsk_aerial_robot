@@ -5,8 +5,8 @@
   <arg name="simulation" default="False" />
   <arg name="control_mode" default="0" />
   <arg name="config_dir" default="$(find hydrus_xi)/config"/>
-  <arg name="type" default="hex_branch" />
-  <arg name="onboards_model" default="xavier201811" />
+  <arg name="type" default="quad" />
+  <arg name="onboards_model" default="upboard202007" />
   <arg name="init_gimbal_angle" default="true" />
   <arg name="estimate_mode"  default= "0" />
   <arg name="sim_estimate_mode"  default= "2" />

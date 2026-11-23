@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<launch>
+  ###########  launch config  ###########
+  <arg name="debug" default="false" />
+  <arg name="mocap" default="false" />
+  <arg name="headless" default="true" />
+  <arg name="real_machine" default="true" />
+  <arg name="simulation" default="false" />
+  <arg name="fusion" default="false" />
+  <arg name="type" default="quad" />
+  <arg name="onboards_model" default="upboard202007" />
+  <arg name="config_dir" default="$(find hydrus_xi)/config"/>
+  <arg name="optimize_RollPitchDist" default="false" />
+  <arg name="robot_ns" value="hydrus_xi" />
+
+  ###### visualize ####
+  <group if = "$(arg debug)">
+    <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch"  >
+        <arg name="headless" value="false" />
+        <arg name="robot_model" value="$(find hydrus_xi)/robots/$(arg type)/$(arg onboards_model).urdf.xacro"/>
+        <arg name="robot_ns" value="$(arg robot_ns)" />
+        <arg name="rviz_config" value="$(find hydrus_xi)/config/rviz_config" />
+        <arg name="rviz_init_pose" value="$(find hydrus_xi)/config/$(arg type)/RvizInit.yaml" />
+        <arg name="need_joint_state" value="false" />
+    </include >
+    <node pkg="tf" type="static_transform_publisher" name="static_cast" args="0 0 0 0 0 0 world hydrus_xi/root 100" />
+    ######### init gimbal angles #########    
+    <!--<node pkg="hydrus_xi" name="init_gimbal_angles" type="init_gimbal_angles.py" ns="$(arg robot_ns)" />-->
+
+  </group>
+
+  ###### simulation ####
+  <group unless = "$(arg debug)">
+    <group if = "$(arg simulation)">
+        <include file="$(find hydrus_xi)/launch/bringup.launch"> 
+            <arg name="headless" value="false" /> 
+            <arg name="real_machine" value="false" /> 
+            <arg name="simulation" value="true" /> 
+        </include > 
+        <include file="$(find avatar)/launch/wall_spawn.launch" />
+    </group>
+  </group>
+  
+  ###### base position from mocap of real_avatar ####
+  <group if = "$(arg mocap)">
+    <group if = "$(arg real_machine)">
+      <node pkg="mocap_optitrack" type="mocap_node" name="avatar_mocap_node" respawn="false" >
+        <rosparam subst_value="true">
+          rigid_bodies:
+              '7':
+                pose: avatar/pose
+                pose2d: avatar/ground_pose
+                child_frame_id: baselink
+                parent_frame_id: world
+          optitrack_config:
+            multicast_address: 239.255.42.99
+            command_port: 1510
+            data_port: 1511
+        </rosparam>
+      </node>
+      <node pkg="avatar" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <param name="real_machine" value="$(arg real_machine)" />
+        <param name="robot_ns" value="$(arg robot_ns)" />
+      </node>
+    </group>
+    <group unless = "$(arg real_machine)">
+      <include file="$(find avatar)/launch/includes/mocap.launch" />
+      <node pkg="avatar" type="real_avatar_mocap_control.py" name="real_avatar_mocap_control" output="screen" >
+        <param name="real_machine" value="$(arg real_machine)" />
+        <param name="robot_ns" value="$(arg robot_ns)" />
+      </node>
+    </group>
+  </group>
+
+  ###### joint angles from real avator ####
+  <include file="$(find avatar)/launch/includes/dynamixel_controllers.launch" />
+  <group unless = "$(arg fusion)">
+    <node pkg="avatar" type="real_avatar_position_control.py" name="real_avatar_position_control" output="screen">
+      <param name="debug" value="$(arg debug)" />
+      <param name="robot_ns" value="$(arg robot_ns)" />
+    </node>
+  </group>
+  <group if = "$(arg fusion)">
+    <node pkg="avatar" type="real_avatar_torque_control.py" name="real_avatar_torque_control" output="screen">
+      <param name="debug" value="$(arg debug)" />
+      <param name="robot_ns" value="$(arg robot_ns)" />
+    </node>
+  </group>
+
+  ###### optimize pose ####
+
+  <group if = "$(arg fusion)" >
+    <node pkg="avatar" type="optimize_pose_sample" name="optimize_pose_sample" ns="hydrus_xi"  output="screen">
+      <param name="fc_t_min_thresh" value="0.5"/>
+      <param name="delta_angle_range" value="0.4"/>
+      <param name="robot_model" value="hydrus_xi_fully_actuated_robot_model"/>
+      <param name="optimize_RollPitchDist" value="$(arg optimize_RollPitchDist)" />
+    </node>
+  
+  ###### fusion avatar_pos and optimized pose ####
+
+    <node pkg="avatar" type="real_avatar_fusion_avatar_optimize.py" name="real_avatar_fusion_avatar_optimize" output="screen">
+      <param name="debug" value="$(arg debug)" />
+      <param name="robot_ns" value="$(arg robot_ns)" />
+    </node>
+
+  </group>
+  
+  
+</launch>
