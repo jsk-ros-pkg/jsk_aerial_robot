@@ -23,6 +23,7 @@ namespace CAN {
 	constexpr uint8_t DEVICEID_MOTOR = 0;
 	constexpr uint8_t DEVICEID_IMU = 1;
 	constexpr uint8_t DEVICEID_SERVO = 2;
+        constexpr uint8_t DEVICEID_ENCODER = 3;
 	constexpr uint8_t DEVICEID_INITIALIZER = 7;
 	constexpr uint8_t MESSAGEID_SEND_GYRO = 0;
 	constexpr uint8_t MESSAGEID_SEND_ACC = 1;
@@ -41,6 +42,8 @@ namespace CAN {
 	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_1 = 2;
 	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_2 = 3;
   	constexpr uint8_t MESSAGEID_SEND_INITIAL_CONFIG_3 = 4;
+        constexpr uint8_t MESSAGEID_SEND_ENCODER_DATA = 0;
+        constexpr uint8_t MESSAGEID_RECEIVE_ENCODER_OFFSET = 1;
 	constexpr uint8_t BOARD_CONFIG_SET_SLAVE_ID = 0;
 	constexpr uint8_t BOARD_CONFIG_SET_IMU_SEND_FLAG = 1;
 	constexpr uint8_t BOARD_CONFIG_SET_SERVO_HOMING_OFFSET = 2;

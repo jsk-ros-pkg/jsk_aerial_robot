@@ -8,6 +8,7 @@
 #ifndef APPLICATION_HYDRUS_LIB_NEURON_NEURON_H_
 #define APPLICATION_HYDRUS_LIB_NEURON_NEURON_H_
 
+#include <CANDevice/encoder/can_encoder.h>
 #include <CANDevice/imu/can_imu_mpu9250.h>
 #include <CANDevice/motor/can_motor.h>
 #include <CANDevice/servo/can_servo.h>
@@ -22,6 +23,7 @@ public:
 	CANMotor can_motor_;
 	CANIMU can_imu_;
 	CANServo can_servo_;
+        CANEncoder can_encoder_;
 
 	bool operator<(const Neuron& right) const
 	{
