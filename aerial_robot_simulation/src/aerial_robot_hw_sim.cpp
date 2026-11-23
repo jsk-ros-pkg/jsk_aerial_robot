@@ -368,16 +368,19 @@ namespace gazebo_ros_control
             gazebo::physics::LinkPtr parent_link  = sim_rotors_.at(j)->GetParent();
             gazebo::physics::LinkPtr child_link  = sim_rotors_.at(j)->GetChild();
 
+            if(std::isfinite(rotor.getForce()))
+              {
 #if GAZEBO_MAJOR_VERSION >= 8
-            child_link->AddRelativeForce(ignition::math::Vector3d(0, 0, rotor.getForce()));
-            auto  torque = rotor.getTorque();
-            parent_link->AddRelativeTorque(ignition::math::Vector3d(torque.x(), torque.y(), torque.z()));
+                child_link->AddRelativeForce(ignition::math::Vector3d(0, 0, rotor.getForce()));
+                auto  torque = rotor.getTorque();
+                parent_link->AddRelativeTorque(ignition::math::Vector3d(torque.x(), torque.y(), torque.z()));
 #else
-            child_link->AddRelativeForce(gazebo::math::Vector3(0, 0, rotor.getForce()));
-            auto  torque = rotor.getTorque();
-            parent_link->AddRelativeTorque(gazebo::math::Vector3(torque.x(), torque.y(), torque.z()));
+                child_link->AddRelativeForce(gazebo::math::Vector3(0, 0, rotor.getForce()));
+                auto  torque = rotor.getTorque();
+                parent_link->AddRelativeTorque(gazebo::math::Vector3(torque.x(), torque.y(), torque.z()));
 #endif
-            sim_rotors_.at(j)->SetVelocity(0, rotor.getSpeed());
+                sim_rotors_.at(j)->SetVelocity(0, rotor.getSpeed());
+              }
           }
       }
   }
