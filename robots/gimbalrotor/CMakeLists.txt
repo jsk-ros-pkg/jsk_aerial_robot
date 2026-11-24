@@ -43,25 +43,10 @@ catkin_install_python(PROGRAMS
   scripts/gimbal_motion_test.py
   scripts/arm_motion_test.py
   scripts/gripper_motion_test.py
-  script/arm_set_pre_hover_pose_compact.py
-  script/ctrl_gripper_by_sensor.py
-  script/arm_world_eval.py
-  script/analyze_base_sway.py
-  script/analyze_arm_world_limits.py
-  script/render_arm_world_video.py
-  script/render_arm_world_rviz.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(PROGRAMS scripts/rosbag_record.sh
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(FILES script/arm_world_core.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(FILES
-  evaluation/base_sway/take9_2026-10-28-19-03-07_sway.npz
-  evaluation/base_sway/take9_2026-10-28-19-03-07_summary.json
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/evaluation/base_sway
 )
 
 if(CATKIN_ENABLE_TESTING)
