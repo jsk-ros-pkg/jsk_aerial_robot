@@ -21,6 +21,9 @@ class TagAlignmentController():
         self.q_camera_body = Quaternion(x=0.5, y=-0.5, z=0.5, w=0.5)
         self.q_world_body = None
         self.gain_rotation = 0.5
+        # limits of target roll/pitch for publishing [rad]
+        self.roll_limit = rospy.get_param("~roll_limit", 0.5)
+        self.pitch_limit = rospy.get_param("~pitch_limit", 0.5)
         self.last_publish_time = rospy.Time.now().to_sec()
 
     def callback_tag_detection(self, msg):
@@ -68,6 +71,10 @@ class TagAlignmentController():
             self.last_publish_time = current_time
 
     def publish_final_target_rpy(self, rpy):
+        if abs(rpy[0]) > self.roll_limit or abs(rpy[1]) > self.pitch_limit:
+            rospy.logwarn("Target RPY is out of range (roll=%.3f, pitch=%.3f, limit: roll=%.3f, pitch=%.3f). Skip publishing.",
+                          rpy[0], rpy[1], self.roll_limit, self.pitch_limit)
+            return
         rpy_msg = Vector3Stamped()
         rpy_msg.header.stamp = rospy.Time.now()
         rpy_msg.vector.x = rpy[0]
