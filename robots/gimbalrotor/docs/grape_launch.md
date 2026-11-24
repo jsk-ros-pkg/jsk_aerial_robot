@@ -1,130 +1,66 @@
-# Grape アーム付き機体の起動手順
+# Grape と Quad2 の起動・動作確認
 
-`develop/grape_addfanguard` をビルドした ROS 1 の catkin ワークスペースを使う。各端末で作業環境を読み込む。パスは自分の環境に合わせる。
+ビルド済みの ROS 1 catkin ワークスペースを各端末で読み込む。
 
 ```bash
-source ~/ros/jsk_aerial_robot_ws/devel/setup.bash
+source devel/setup.bash
 rospack find gimbalrotor
 ```
 
-## キーボード操作
+## 機体と構成
 
-Gazebo での手動操縦と実機の通常操縦は、普段どおり `aerial_robot_base` のキーボード操作を使う。機体の起動後、別端末で実行する。
-
-```bash
-rosrun aerial_robot_base keyboard_command.py
-```
-
-## シミュレーション
-
-### アーム構成を選ぶ
-
-`airframe:=grape` の構成は `variant` で選ぶ。既定の `variant:=default` はアームなし、`variant:=3DoF_arm` は省自由度版、`variant:=5DoF_arm` は従来の5軸構成になる。実機・Gazebo とも同じ引数を使う。
-
-省自由度版は機体から **200 mm パイプ → yaw → pitch → ドライブ → グリッパ** の順。`bringup.launch` は `config/<airframe>/<variant>/` の `Servo.yaml` と制御設定を読み込む。grape では [3DoF_arm](../config/grape/3DoF_arm/Servo.yaml)、[5DoF_arm](../config/grape/5DoF_arm/Servo.yaml)、[default](../config/grape/default/Servo.yaml) を使う。bi・quad・quad2・tri・tri_omni も `variant:=default` を使う。
-
-| 省自由度版の軸 | URDF の関節名 | ServoBridge の `id` |
+| `airframe` | `variant` | 構成 |
 | --- | --- | --- |
-| yaw | `arm_joint3_joint1` | 7 |
-| pitch | `arm_joint4_joint1` | 8 |
-| グリッパ駆動 | `arm_joint5_joint1` | 9 |
+| `grape` | `default` | アームなし |
+| `grape` | `3DoF_arm` | yaw、pitch、グリッパ駆動 |
+| `grape` | `5DoF_arm` | 5軸アーム |
+| `quad2` | `default` | Quad2 |
 
-YAML の `id` は Spinal が ROS に出す `/gimbalrotor/servo/states` の `index` に対応する。表の 7、8、9 は省自由度版の実機で確認済み。配線や構成を変更した場合は、起動後に設定値と実機の値を確認する。
+`bringup.launch` は `robots/<airframe>/` から実機用または Gazebo 用のモデルを読み込み、`config/<airframe>/<variant>/` からサーボ・制御設定を読む。
 
-```bash
-rosparam get /gimbalrotor/servo_controller/joints
-rostopic echo -n 1 /gimbalrotor/servo/states
-```
+Grape と Quad2 のモデルは [urdf/grape/common.xacro](../urdf/grape/common.xacro) の共通マクロを使う。Grape のジンバルと推力リンクの STL は [urdf/grape/meshes/](../urdf/grape/meshes/) にある。Quad2 の機体モデルは [urdf/quad2/](../urdf/quad2/) にある。
 
-先端保持の自動評価は従来構成を使う。`variant:=default` ではアームなしになる。
+Grape のジンバル質量・重心・慣性は `gimbal_mass_variant` で切り替える。実機・Gazebo とも起動時の既定値は `guard_reinforced`（補強ファンガード付き）。標準ファンガードは `guard`、ファンガードなしは `original` を指定する。アーム構成は `variant` で独立に選ぶ。
 
-### Gazebo の機体だけを起動する
+## Gazebo
 
 ```bash
-roslaunch gimbalrotor bringup.launch \
-  airframe:=grape variant:=5DoF_arm \
+roslaunch gimbalrotor bringup.launch airframe:=grape variant:=3DoF_arm \
   simulation:=true real_machine:=false headless:=false
 ```
 
-`headless:=true` で GUI を省略できる。
+アームなしや5軸アームに切り替える場合は `variant` を変更する。Quad2 は `airframe:=quad2 variant:=default` を指定する。画面表示が不要なら `headless:=true` を指定する。
 
-`simulation:=true` では RealSense・UDTS・Livox・FAST-LIO・IMU 座標変換の実機ノードは起動しない。
+手動での操縦には別端末で `rosrun aerial_robot_base keyboard_command.py` を実行する。
 
-省自由度版を起動する場合は次のコマンドを使う。
+### 飛行テスト結果
 
-```bash
-roslaunch gimbalrotor bringup.launch \
-  airframe:=grape variant:=3DoF_arm \
-  simulation:=true real_machine:=false headless:=false
-```
-
-### 省自由度版のアームを動かす
-
-`variant:=3DoF_arm` で Gazebo を起動し、非武装のまま別端末で実行する。
-
-```bash
-rosrun gimbalrotor arm_set_pre_hover_pose_compact.py
-```
-
-指令角の順は yaw、pitch、グリッパ駆動、単位は rad。`[0.3, 0, -3.0]` と `[-0.5, -0.2, -3.0]` を続けて送り、以後は既定で1.5秒間隔で `[0.5, -0.2, -3.0]`、`[0, 0, -3.0]` を送る。待ち時間は `_move_time:=2.0` のように指定できる。
-
-### 先端保持を自動評価する
-
-Gazebo を別に立ち上げていない状態で実行する。この launch が Gazebo の起動、離陸、アーム固定と先端補償ありの比較、着陸まで行う。
-
-```bash
-roslaunch gimbalrotor arm_world_eval.launch \
-  scale:=0.25 output:=/tmp/arm_world_eval
-```
-
-結果は指定したディレクトリの `summary.json`、`samples.csv`、`comparison.png` に出る。抽出済みの波形がブランチに含まれている。GUI を表示する場合は `headless:=false`、旧試験の追加速度制限を使う場合は `joint_speed_cap:=0.6` を付ける。すでに Gazebo を立ち上げている場合は、[設計書の評価ノード単体の実行例](arm_world_hold.md#実行)を使う。
+モデル配置を変更した `fd9f0ca5` では、Grape の全3構成と Quad2 の `default` で離陸、3秒間のホバリング、着陸を確認した。ホバリング中の最大水平ドリフトは全構成で 2 mm 以下だった。
 
 ## 実機
 
-### 機体とアームを起動する
-
 ```bash
-roslaunch gimbalrotor bringup.launch \
-  airframe:=grape variant:=5DoF_arm \
-  simulation:=false real_machine:=true
+roslaunch gimbalrotor bringup.launch airframe:=grape variant:=3DoF_arm \
+  real_machine:=true simulation:=false
 ```
 
-省自由度版の実機では `variant:=3DoF_arm` を指定する。grape の実機ではフライトコントローラへのシリアル接続（`/dev/flight_controller`）、mocap、Livox MID-360、FAST-LIO、IMU 座標変換を起動する。`3DoF_arm`・`5DoF_arm` では RealSense と UDTS も起動する。既定の ROS 名前空間は `/gimbalrotor`。先端保持ノードは従来構成で使う場合に別端末から起動する。
+実機の Grape では Livox MID-360 と FAST-LIO が起動する。アーム付きの構成では RealSense と UDTS も起動する。
 
-実機側で `rospack find livox_ros_driver2` と `rospack find fast_lio` が通ることを確認する。手元のシミュレーション用ワークスペースでは `fast_lio` が見つからず、実機用 launch の展開はそこまでの確認に留まった。
+## 動作確認と記録
 
-variant:=defaultでアームなしのジンバルローターになるのはシミュレーションと同様だが、アームがつながっていないとCANのエラーが多分出るけど、一応大丈夫らしい。
-自分はその時は念の為neuronのCANを抜いてエラーが出ないようにしつつ試していた。
-
-
-### アームの姿勢を送る
-
-以下の2本は `variant:=5DoF_arm` の機体に関節角を一度だけ送る。各値は第1軸から第5軸（グリッパ）までの順で、単位は rad。姿勢を送る前にアームの周囲に干渉がないことを確認する。
-
-| 用途 | コマンド | 指令角 |
-| --- | --- | --- |
-| アーム4軸のゼロ姿勢（旧 `arm_init.py`） | `rosrun gimbalrotor arm_set_zero_pose.py` | `[0, 0, 0, 0, 3.0]` |
-| ホバリング前の姿勢（旧 `arm_init2.py`） | `rosrun gimbalrotor arm_set_pre_hover_pose.py` | `[0.4, -1.57, -1.15, 0, -3.0]` |
-
-旧 `arm_move.py` は、決め打ちの中間姿勢を既定で1.5秒間隔で送り、最後にグリッパを含む全5軸をゼロにする動作試験用だった。過去の動作シーケンスはコミット `dc13115f` を参照。通常のホバリング前には、表の一回送信用スクリプトを使う。
-
-### 先端保持を試す
-
-このブランチで先端保持を確認したのは Gazebo まで。実機で有効にする前に、アームの干渉と可動域、TCP、観測座標から `fc` への変換を確認する。以下は mocap の観測姿勢が `fc` と一致し、`header.frame_id` が `world` の例。異なる場合は[観測入力と実機への移行](arm_world_hold.md#観測入力と実機への移行)に沿って引数を合わせる。
+アームとグリッパの試験はアーム付き Grape を起動した状態で、1つずつ実行する。試験は既定で URDF 上の可動域を端から端まで動かし、成功時に対象軸をゼロに戻す。小さな動きだけ確認する場合は `_full_range:=false` を指定する。
 
 ```bash
-rosrun gimbalrotor arm_world_eval.py --control-only \
-  --pose-topic /gimbalrotor/mocap/pose --pose-type pose --world-frame world
+rosrun gimbalrotor arm_motion_test.py
+rosrun gimbalrotor gripper_motion_test.py _full_range:=false
 ```
 
-先端保持は無効の状態で起動する。ホバリングが整定してから有効化すると、その時点のTCPを目標にする。
+`robot_id` を指定して起動した場合は、アーム・グリッパの試験に `_robot_ns:=/gimbalrotor<robot_id>` を渡す。
+
+ジンバルのコマンドは既定の `/gimbalrotor` 名前空間を使う。動作シーケンスを繰り返す回数は `_test_times` で指定する。
 
 ```bash
-rosservice call /arm_world_hold/set_enabled 'data: true'
-```
-
-先端保持を解除する場合は以下を実行する。
-
-```bash
-rosservice call /arm_world_hold/set_enabled 'data: false'
+rosrun gimbalrotor gimbal_motion_test.py _test_times:=1
+rosrun gimbalrotor gimbal_return_to_zero.py
+rosrun gimbalrotor rosbag_record.sh grape_test
 ```
