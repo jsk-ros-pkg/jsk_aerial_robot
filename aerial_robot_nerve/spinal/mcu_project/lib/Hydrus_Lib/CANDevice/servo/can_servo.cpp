@@ -17,18 +17,34 @@ void Servo::setTorqueEnable(bool torque_enable)
 void CANServo::sendData()
 {
   uint16_t target_angle[4];
-  for (unsigned int i = 0 ; i < servo_.size(); i++) {
+  unsigned int send_servo_num = std::min(static_cast<int>(servo_.size()), 4);
+
+  for (unsigned int i = 0 ; i < send_servo_num; i++) {
     target_angle[i] = ((servo_[i].goal_position_ack_ ? 1 : 0) << 15) | (servo_[i].goal_position_ & 0x7FFF);
     servo_[i].goal_position_ack_ = false;
   }
-  sendMessage(CAN::MESSAGEID_RECEIVE_SERVO_ANGLE, m_slave_id, servo_.size() * 2, reinterpret_cast<uint8_t*>(target_angle), 0);
+  sendMessage(CAN::MESSAGEID_RECEIVE_SERVO_ANGLE, m_slave_id, send_servo_num * 2, reinterpret_cast<uint8_t*>(target_angle), 0);
 
   uint16_t target_current[4];
-  for (unsigned int i = 0 ; i < servo_.size(); i++) {
+  for (unsigned int i = 0 ; i < send_servo_num; i++) {
     target_current[i] = ((servo_[i].torque_enable_ ? 1 : 0) << 15) | (servo_[i].goal_current_ & 0x7FFF);
   }
-  sendMessage(CAN::MESSAGEID_RECEIVE_SERVO_CURRENT, m_slave_id, servo_.size() * 2, reinterpret_cast<uint8_t*>(target_current), 0);
+  sendMessage(CAN::MESSAGEID_RECEIVE_SERVO_CURRENT, m_slave_id, send_servo_num * 2, reinterpret_cast<uint8_t*>(target_current), 0);
 
+  if (servo_.size() <= 4) return;
+
+  uint16_t extra_target_angle[4];
+  send_servo_num = std::min(static_cast<int>(servo_.size() - 4), 4);
+  for (unsigned int i = 0 ; i < send_servo_num; i++) {
+    extra_target_angle[i] = ((servo_[i + 4].goal_position_ack_ ? 1 : 0) << 15) | (servo_[i + 4].goal_position_ & 0x7FFF);
+  }
+  sendMessage(CAN::MESSAGEID_RECEIVE_EXTRA_SERVO_ANGLE, m_slave_id, send_servo_num * 2, reinterpret_cast<uint8_t*>(extra_target_angle), 0);
+
+  uint16_t extra_target_current[4];
+  for (unsigned int i = 0 ; i < send_servo_num; i++) {
+    extra_target_current[i] = ((servo_[i + 4].torque_enable_ ? 1 : 0) << 15) | (servo_[i + 4].goal_current_ & 0x7FFF);
+  }
+  sendMessage(CAN::MESSAGEID_RECEIVE_EXTRA_SERVO_CURRENT, m_slave_id, send_servo_num * 2, reinterpret_cast<uint8_t*>(extra_target_current), 0);
 }
 
 void CANServo::receiveDataCallback(uint8_t slave_id, uint8_t message_id, uint32_t DLC, uint8_t* data)

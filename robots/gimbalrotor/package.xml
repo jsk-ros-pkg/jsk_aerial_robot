@@ -27,6 +27,12 @@
   <run_depend>spinal</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>pluginlib</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>rosbag</run_depend>
+  <run_depend>xacro</run_depend>
 
   <test_depend>rostest</test_depend>
 

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<robot
+    xmlns:xacro="http://www.ros.org/wiki/xacro" name="gimbalrotor" >
+  <xacro:arg name="robot_name" default="gimbalrotor" />
+
+  <xacro:include filename="$(find gimbalrotor)/robots/grape/gimbalrotor.urdf.xacro" />
+
+  <!-- gazebo plugin for default controller and sensors -->
+  <xacro:include filename="$(find aerial_robot_simulation)/xacro/spinal.gazebo.xacro" />
+  <xacro:gazebo_spinal robot_name="$(arg robot_name)" mag_frame="fc" />
+
+  <xacro:rotor_transmission id="1"/>
+  <xacro:rotor_transmission id="2"/>
+  <xacro:rotor_transmission id="3"/>
+  <xacro:rotor_transmission id="4"/>
+
+  <xacro:joint_transmission joint="gimbal1"/>
+  <xacro:joint_transmission joint="gimbal2"/>
+  <xacro:joint_transmission joint="gimbal3"/>
+  <xacro:joint_transmission joint="gimbal4"/>
+
+</robot>

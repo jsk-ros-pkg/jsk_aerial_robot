@@ -33,10 +33,21 @@ target_link_libraries(gimbalrotor_robot_model ${catkin_LIBRARIES})
 add_library(gimbalrotor_navigation src/gimbalrotor_navigation.cpp)
 target_link_libraries(gimbalrotor_navigation ${catkin_LIBRARIES})
 
-install(DIRECTORY config plugins launch
+install(DIRECTORY config plugins launch robots urdf
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
   )
+
+catkin_install_python(PROGRAMS
+  scripts/gimbal_return_to_zero.py
+  scripts/gimbal_motion_test.py
+  scripts/arm_motion_test.py
+  scripts/gripper_motion_test.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(PROGRAMS scripts/rosbag_record.sh
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)

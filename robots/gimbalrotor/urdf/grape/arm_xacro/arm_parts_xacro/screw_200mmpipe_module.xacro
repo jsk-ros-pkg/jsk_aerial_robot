@@ -1,0 +1,42 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="screw_200mmpipe_module">
+  <xacro:macro name="screw_200mmpipe_module" params="prefix:='' parent_link:=world xyz:='0 0 0' rpy:='0 0 0' package_name:=gimbalrotor">
+    <joint name="${parent_link}_to_${prefix}base_link_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="${prefix}base_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+    <link name="${prefix}base_link">
+      <inertial>
+        <origin xyz="0.0314472120441254 0.0185600648406693 0.999996863971173" rpy="0.0 -0.0 0.0"/>
+        <!-- <mass value="0.0784"/> -->
+	<mass value="0.0807"/>
+        <inertia ixx="1.92067336342704e-05" ixy="4.86844738251007e-08" ixz="-3.58103918098541e-08" iyy="0.000556258110321859" iyz="-3.52324723813976e-10" izz="0.000556910936857427"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_200mmpipe_module/base_link.dae"/>
+        </geometry>
+        <material name="${prefix}__unnamed_material_1"/>
+        <origin xyz="-0.018612068965513 1.00000000000001 0.146669004611067" rpy="-1.5707963267948835 1.570796326794893 3.141592653589793"/>
+      </visual>
+      <!-- <collision> -->
+      <!--   <geometry> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_200mmpipe_module/base_link.stl"/> -->
+      <!--   </geometry> -->
+      <!--   <origin xyz="-0.018612068965513 1.00000000000001 0.146669004611067" rpy="-1.5707963267948835 1.570796326794893 3.141592653589793"/> -->
+      <!-- </collision> -->
+    </link>
+    <link name="${prefix}dummy_link"/>
+    <joint name="${prefix}dummy_joint" type="fixed">
+      <limit effort="0.0" velocity="0.0"/>
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}dummy_link"/>
+      <axis xyz="0. 0. 0."/>
+      <origin xyz="0.0 0.0 0.221" rpy="0.0 -0.0 0.0"/>
+    </joint>
+    <material name="${prefix}__unnamed_material_1">
+      <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+    </material>
+  </xacro:macro>
+</robot>

@@ -34,7 +34,6 @@ class BoardConfigurator(Plugin):
 
         self.get_board_info_client_ = rospy.ServiceProxy(robot_ns + '/get_board_info', GetBoardInfo)
         self.set_board_config_client_ = rospy.ServiceProxy(robot_ns + '/set_board_config', SetBoardConfig)
-        self.direct_servo_config_client_ = rospy.ServiceProxy(robot_ns + '/direct_servo_config', SetDirectServoConfig)
         self.servo_torque_pub_ = rospy.Publisher(robot_ns + '/servo/torque_enable', ServoTorqueCmd, queue_size = 1)
 
         from argparse import ArgumentParser
@@ -194,12 +193,9 @@ class BoardConfigurator(Plugin):
         if self._board_id == None:
             rospy.logerr("board id is not registered")
             return
-        elif self._board_id == '0':
-            spinal_flag = True
-            req = SetDirectServoConfigRequest()
-        else:
-            req = SetBoardConfigRequest()
-            req.data.append(int(self._board_id))
+
+        req = SetBoardConfigRequest()
+        req.data.append(int(self._board_id)) # data[0] is always board id
 
         if self._command == 'board_id':
             if spinal_flag:
@@ -210,6 +206,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SLAVE_ID
+
         elif self._command == 'imu_send_data_flag':
             if spinal_flag:
                 return
@@ -219,6 +216,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_IMU_SEND_FLAG
+
         elif self._command == 'pid_gain':
             try:
                 req.data.append(int(self._servo_index))
@@ -230,6 +228,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_PID_GAIN
+
         elif self._command == 'profile_velocity':
             try:
                 req.data.append(int(self._servo_index))
@@ -238,6 +237,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_PROFILE_VEL
+
         elif self._command == 'send_data_flag':
             try:
                 req.data.append(int(self._servo_index))
@@ -246,6 +246,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_SEND_DATA_FLAG
+
         elif self._command == 'current_limit':
             try:
                 req.data.append(int(self._servo_index))
@@ -260,6 +261,7 @@ class BoardConfigurator(Plugin):
             servo_trq_msg.torque_enable = [0]
             self.servo_torque_pub_.publish(servo_trq_msg)
             rospy.sleep(0.5)
+
         elif self._command == 'dynamixel_ttl_rs485_mixed':
             try:
                 req.data.append(distutils.util.strtobool(self._widget.lineEdit.text()))
@@ -267,6 +269,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_DYNAMIXEL_TTL_RS485_MIXED
+
         elif self._command == 'servo_pulley_skip_thresh':
             try:
                 req.data.append(int(self._widget.lineEdit.text()))
@@ -274,6 +277,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_PULLEY_SKIP_THRESH
+
         elif self._command == 'external_encoder_flag':
             try:
                 req.data.append(int(self._servo_index))
@@ -282,6 +286,7 @@ class BoardConfigurator(Plugin):
                 print(e)
                 return
             req.command = req.SET_SERVO_EXTERNAL_ENCODER_FLAG
+
         elif self._command == 'resolution[joint:servo]':
             try:
                 req.data.append(int(self._servo_index))
@@ -299,16 +304,9 @@ class BoardConfigurator(Plugin):
         rospy.loginfo('command: ' + str(req.command))
         rospy.loginfo('data: ' + str(req.data))
         try:
-            res = None;
-            if(spinal_flag):
-                res = self.direct_servo_config_client_(req)
-            else:
-                res = self.set_board_config_client_(req)
+            res = self.set_board_config_client_(req)
             rospy.loginfo(bool(res.success))
             rospy.sleep(1)
             self.updateButtonCallback()
         except rospy.ServiceException as e:
-            if(spinal_flag):
-                print("/direct_servo_config service call failed: {}".format(e))
-            else:
-                print("/set_board_config service call failed: {}".format(e))
+            print("/set_board_config service call failed: {}".format(e))

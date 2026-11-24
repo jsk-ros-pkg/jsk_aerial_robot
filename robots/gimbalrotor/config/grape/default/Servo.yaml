@@ -1,0 +1,28 @@
+servo_controller:
+  gimbals:
+    angle_sgn: 1
+    angle_scale: 0.001534
+    zero_point_offset: 2047
+
+    # for simulation
+    simulation:
+      pid: {p: 50.0, i: 0.01, d: 1.0, i_clamp_min: -6.6, i_clamp_max: 6.6}
+      init_value: 0.0
+      type: effort_controllers/JointPositionController
+
+    controller1:
+      id: 0
+      name: gimbal1
+
+    controller2:
+      id: 1
+      name: gimbal2
+
+    controller3:
+      id: 2
+      name: gimbal3
+
+    controller4:
+      id: 3
+      name: gimbal4
+

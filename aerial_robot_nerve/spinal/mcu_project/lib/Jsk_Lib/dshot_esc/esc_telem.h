@@ -19,7 +19,7 @@
 
 #define ESC_BUFFER_SIZE 512
 
-#define TELE_VOLTAGE_SCALE 1.022f
+#define TELE_VOLTAGE_SCALE 1.0f
 
 namespace
 {
@@ -45,9 +45,7 @@ public:
   spinal::ESCTelemetry esc_msg_4_;
 
   void init(UART_HandleTypeDef* huart);
-  void update(spinal::ESCTelemetry& esc_msg);
-  bool available();
-  int readOneByte();
+  bool update(spinal::ESCTelemetry& esc_msg);
 
   bool is_update_all_msg_ = false;
 

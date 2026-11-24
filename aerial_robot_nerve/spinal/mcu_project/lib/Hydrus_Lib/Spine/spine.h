@@ -54,9 +54,16 @@ namespace Spine
   void setMotorPwm(uint16_t pwm, uint8_t motor);
   void convertGyroFromJointvalues();
   bool connected();
+  std::vector<Neuron>& getNeuron();
+  std::vector<std::reference_wrapper<Servo>>& getServo();
+  std::vector<std::reference_wrapper<Servo>>& getServoWithSendFlag();
+  CANInitializer& getCANInitializer();
+  int8_t getServoNum();
   uint8_t getSlaveNum();
   int8_t getUavModel();
+  void setCanTxIdleStartTime(uint32_t time);
   void useRTOS(osMailQId* handle);
+  bool getServoControlFlag();
   void setServoControlFlag(bool flag);
   void servoPublish();
   void servoPositionCallback(const spinal::ServoControlCmd& control_msg);

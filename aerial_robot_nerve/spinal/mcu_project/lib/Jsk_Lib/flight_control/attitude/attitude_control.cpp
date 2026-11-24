@@ -219,13 +219,14 @@ void AttitudeController::pwmsControl(void)
       for (int i = 0; i < 4; i++)
         {
           // target_pwm_: 0.5 ~ 1.0
-          uint16_t motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
-
-          if (motor_v > DSHOT_MAX_THROTTLE)
+          uint16_t motor_v;
+          if(target_pwm_[i] <= IDLE_DUTY)
+            motor_v = DSHOT_DISARM_THROTTLE;
+          else if(target_pwm_[i] >= MAX_PWM)
             motor_v = DSHOT_MAX_THROTTLE;
-          else if (motor_v < DSHOT_MIN_THROTTLE)
-            motor_v = DSHOT_MIN_THROTTLE;
-    
+          else
+            motor_v = (uint16_t)((target_pwm_[i] - 0.5) / 0.5 * DSHOT_RANGE + DSHOT_MIN_THROTTLE);
+
           motor_value[i] = motor_v;
         }
 
