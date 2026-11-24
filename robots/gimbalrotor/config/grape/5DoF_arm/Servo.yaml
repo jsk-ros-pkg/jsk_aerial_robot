@@ -57,4 +57,4 @@ servo_controller:
       id: 8
       name: arm_joint5_joint1
       simulation:
-        pid: {p: 0.0005, i: 0, d: 0.0005, i_clamp_max: 2.0, i_clamp_min: -2.0}
+        pid: {p: 0.0005, i: 0, d: 0.00002, i_clamp_max: 2.0, i_clamp_min: -2.0}
