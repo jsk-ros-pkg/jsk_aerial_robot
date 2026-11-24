@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check each Grape arm joint in turn, then return all tested joints to zero."""
+"""Sweep each Grape arm joint through its allowed range, then return all axes to zero."""
 
 import math
 import time
@@ -72,12 +72,12 @@ def command_and_check(publisher, topic, name, target, bounds, move_time, timeout
     raise RuntimeError(f"{name} did not reach {target:.3f} rad within {timeout:g} s ({actual})")
 
 
-def main():
-    rospy.init_node("arm_motion_test")
+def main(gripper_only=False):
+    rospy.init_node("gripper_motion_test" if gripper_only else "arm_motion_test")
     timeout = float(rospy.get_param("~timeout", 8.0))
     tolerance = float(rospy.get_param("~tolerance", 0.08))
     move_time = float(rospy.get_param("~move_time", 2.0))
-    full_range = rospy.get_param("~full_range", False)
+    full_range = rospy.get_param("~full_range", True)
     if not all(math.isfinite(value) and value > 0 for value in (timeout, tolerance, move_time)):
         raise ValueError("~timeout, ~tolerance, and ~move_time must be positive and finite")
 
@@ -92,6 +92,8 @@ def main():
     names = ARM_JOINTS[-dof:]
     if joints.keys() != set(names):
         raise RuntimeError(f"Expected {dof} arm joints, found {', '.join(sorted(joints)) or 'none'}")
+    if gripper_only:
+        names = (ARM_JOINTS[-1],)
 
     limits = {name: joint_bounds(model, joints[name]) for name in names}
     for name, (lower, upper) in limits.items():
@@ -148,14 +150,18 @@ def main():
         raise RuntimeError(f"Motion test incomplete. Skipped: {', '.join(incomplete)}")
     for name in names:
         command_and_check(publisher, topic, name, 0.0, limits[name], move_time, timeout, tolerance)
-    rospy.loginfo("%d arm axes reached their test positions and returned to zero", dof)
+    rospy.loginfo("%d tested axes reached their test positions and returned to zero", len(names))
 
 
-if __name__ == "__main__":
+def run(gripper_only=False):
     try:
-        main()
+        main(gripper_only)
     except rospy.ROSInterruptException:
         pass
     except (RuntimeError, rospy.ROSException, ValueError, KeyError) as error:
         rospy.logerr("%s", error)
         raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    run()

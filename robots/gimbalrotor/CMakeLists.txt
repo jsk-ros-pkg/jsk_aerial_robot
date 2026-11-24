@@ -42,6 +42,7 @@ catkin_install_python(PROGRAMS
   scripts/gimbal_return_to_zero.py
   scripts/gimbal_motion_test.py
   scripts/arm_motion_test.py
+  scripts/gripper_motion_test.py
   script/arm_set_pre_hover_pose_compact.py
   script/ctrl_gripper_by_sensor.py
   script/arm_world_eval.py
