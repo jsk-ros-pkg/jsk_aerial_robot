@@ -20,7 +20,7 @@ rospack find gimbalrotor
 
 Grape と Quad2 のモデルは [urdf/grape/common.xacro](../urdf/grape/common.xacro) の共通マクロを使う。Grape のジンバルと推力リンクの STL は [urdf/grape/meshes/](../urdf/grape/meshes/) にある。Quad2 の機体モデルは [urdf/quad2/](../urdf/quad2/) にある。
 
-Grape のジンバル質量・重心・慣性は `gimbal_mass_variant` で切り替える。実機・Gazebo とも起動時の既定値は `guard_reinforced`（補強ファンガード付き）。標準ファンガードは `guard`、ファンガードなしは `original` を指定する。アーム構成は `variant` で独立に選ぶ。
+Grape のジンバル質量・重心・慣性は、実機用・Gazebo 用とも補強ファンガード付きの値を使う。ジンバルは1基あたり 0.5050447 kg。アーム構成は `variant` で選ぶ。
 
 ## Gazebo
 

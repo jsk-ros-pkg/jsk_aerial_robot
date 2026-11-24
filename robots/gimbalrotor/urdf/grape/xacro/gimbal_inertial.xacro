@@ -1,28 +1,13 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:arg name="gimbal_mass_variant" default="original"/>
-
-  <!-- CAD origin is assumed to coincide with each gimbal link frame.
-       New CAD presets replace the module only; thrust1..4 remain separate.
-       Use COM moments Lxx/Lyy/Lzz, not origin moments Ixx/Iyy/Izz.
-       CAD positive products of inertia have the opposite sign to URDF
-       off-diagonal tensor entries. Original preserves the existing model.
-       An unknown variant fails dictionary lookup instead of silently falling back. -->
-  <xacro:property name="gimbal_mass_presets" value="${dict(
-    original=dict(mass=0.308825311849623, xyz='0.0097185 -0.0000023 0.0115030',
-                  ixx=0.0004342, ixy=0.0, ixz=-0.0000960, iyy=0.0005399, iyz=0.0, izz=0.0001644),
-    guard=dict(mass=0.3863600, xyz='0.0084597 -0.0000016 0.0097037',
-               ixx=0.0016361, ixy=0.0, ixz=0.0001121, iyy=0.0019861, iyz=0.0, izz=0.0025654),
-    guard_reinforced=dict(mass=0.5050447, xyz='0.0062318 -0.0000012 0.0217146',
-                          ixx=0.0038561, ixy=0.0, ixz=0.0001552, iyy=0.0042235, iyz=0.0, izz=0.0064135))}"/>
-
+  <!-- CAD mass properties at the center of mass for the reinforced fan guard assembly.
+       The thrust links have separate inertial definitions. -->
   <xacro:macro name="gimbal_module_inertial" params="">
-    <xacro:property name="selected" value="${gimbal_mass_presets['$(arg gimbal_mass_variant)']}"/>
     <inertial>
-      <origin xyz="${selected['xyz']}" rpy="0 0 0"/>
-      <mass value="${selected['mass']}"/>
-      <inertia ixx="${selected['ixx']}" ixy="${selected['ixy']}" ixz="${selected['ixz']}"
-               iyy="${selected['iyy']}" iyz="${selected['iyz']}" izz="${selected['izz']}"/>
+      <origin xyz="0.0062318 -0.0000012 0.0217146" rpy="0 0 0"/>
+      <mass value="0.5050447"/>
+      <inertia ixx="0.0038561" ixy="0.0" ixz="0.0001552"
+               iyy="0.0042235" iyz="0.0" izz="0.0064135"/>
     </inertial>
   </xacro:macro>
 </robot>
