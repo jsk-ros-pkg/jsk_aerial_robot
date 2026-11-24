@@ -73,10 +73,7 @@
   <include file="$(find aerial_robot_model)/launch/aerial_robot_model.launch" >
     <arg name="headless" value="$(arg headless)" />
     <arg name="robot_model" value="$(find gimbalrotor)/robots/$(arg airframe)/gimbalrotor.$(arg description_mode).xacro"/>
-    <arg name="model_options" value="gimbal_mass_variant:=$(arg gimbal_mass_variant) variant:=$(arg variant)"
-         if="$(eval arg('airframe') == 'grape')"/>
-    <arg name="model_options" value=""
-         unless="$(eval arg('airframe') == 'grape')"/>
+    <arg name="model_options" value="gimbal_mass_variant:=$(arg gimbal_mass_variant) variant:=$(arg variant)" />
     <arg name="robot_ns" value="$(arg robot_ns)" />
     <arg name="rviz_config" value="$(arg config_dir)/rviz_config" />
     <arg name="rviz_init_pose" value="$(arg config_dir)/RvizInit.yaml" />
