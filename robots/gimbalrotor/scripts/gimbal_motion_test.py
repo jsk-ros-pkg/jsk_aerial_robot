@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from sensor_msgs.msg import JointState
 import time
 
-rospy.init_node("gimbal_test_sequence")
+rospy.init_node("gimbal_motion_test")
 
 pub = rospy.Publisher("/gimbalrotor/gimbals_ctrl", JointState, queue_size=1)
 
@@ -34,6 +34,5 @@ for _ in range(test_times):
     msg.position = [0, 0, 0, 0]
     msg.header.stamp = rospy.Time.now()
     pub.publish(msg)
-    rospy.loginfo(f"Published: {value}")
+    rospy.loginfo("Published: 0.0")
     time.sleep(1.0)
-

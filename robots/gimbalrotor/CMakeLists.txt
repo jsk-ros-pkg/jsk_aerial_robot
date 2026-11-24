@@ -39,8 +39,9 @@ install(DIRECTORY config plugins launch robots urdf
   )
 
 catkin_install_python(PROGRAMS
-  scripts/gimbal_test.py
-  scripts/gimbal_test_times.py
+  scripts/gimbal_return_to_zero.py
+  scripts/gimbal_motion_test.py
+  scripts/arm_motion_test.py
   script/arm_set_pre_hover_pose_compact.py
   script/ctrl_gripper_by_sensor.py
   script/arm_world_eval.py
@@ -48,6 +49,9 @@ catkin_install_python(PROGRAMS
   script/analyze_arm_world_limits.py
   script/render_arm_world_video.py
   script/render_arm_world_rviz.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(PROGRAMS scripts/rosbag_record.sh
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(FILES script/arm_world_core.py

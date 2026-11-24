@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from sensor_msgs.msg import JointState
 import time
 
-rospy.init_node("zero_joint_0_1_2_3")
+rospy.init_node("gimbal_return_to_zero")
 pub = rospy.Publisher("/gimbalrotor/gimbals_ctrl", JointState, queue_size=1)
 radian = rospy.get_param("~radian", 0)
 
