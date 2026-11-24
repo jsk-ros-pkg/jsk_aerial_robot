@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- CAD mass properties at the center of mass for the reinforced fan guard assembly.
+       The thrust links have separate inertial definitions. -->
+  <xacro:macro name="gimbal_module_inertial" params="">
+    <inertial>
+      <origin xyz="0.0062318 -0.0000012 0.0217146" rpy="0 0 0"/>
+      <mass value="0.5050447"/>
+      <inertia ixx="0.0038561" ixy="0.0" ixz="0.0001552"
+               iyy="0.0042235" iyz="0.0" izz="0.0064135"/>
+    </inertial>
+  </xacro:macro>
+</robot>

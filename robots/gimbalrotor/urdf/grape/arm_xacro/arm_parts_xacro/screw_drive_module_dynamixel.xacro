@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="screw_drive_module_dynamixel">
+  <xacro:macro name="screw_drive_module_dynamixel" params="prefix:='' parent_link:=world xyz:='0 0 0' rpy:='0 0 0' package_name:=gimbalrotor">
+    <joint name="${parent_link}_to_${prefix}base_link_joint" type="fixed">
+      <parent link="${parent_link}"/>
+      <child link="${prefix}base_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+    <link name="${prefix}base_link">
+      <inertial>
+        <origin xyz="-0.00765228787056842 -4.62071402854722e-06 0.030577013511963" rpy="0.0 -0.0 0.0"/>
+        <!-- <mass value="0.0789612388386658"/> -->
+	<mass value="0.10090"/>
+        <inertia ixx="1.79587389811886e-05" ixy="-4.55577944240825e-09" ixz="-4.90809821784595e-07" iyy="2.50354890172928e-05" iyz="-4.43481793491922e-09" izz="2.37470837281577e-05"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_drive_module_dynamixel/base_link.dae"/>
+        </geometry>
+        <material name="${prefix}__unnamed_material_1"/>
+        <origin xyz="-1.51387102717471e-18 5.99174275367398e-19 0.0457" rpy="1.5707963267949003 -0.0 1.5707963267949003"/>
+      </visual>
+      <!-- <collision> -->
+      <!--   <geometry> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_drive_module_dynamixel/base_link.stl"/> -->
+      <!--   </geometry> -->
+      <!--   <origin xyz="-1.51387102717471e-18 5.99174275367398e-19 0.0457" rpy="1.5707963267949003 -0.0 1.5707963267949003"/> -->
+      <!-- </collision> -->
+    </link>
+    <link name="${prefix}link1">
+      <inertial>
+        <origin xyz="-0.000256062171402636 -1.23464794906739e-10 0.0223133729686151" rpy="0.0 -0.0 0.0"/>
+        <!-- <mass value="0.00140627867032843"/> -->
+	<mass value="0.0017970"/>
+        <inertia ixx="3.69305972647323e-08" ixy="4.70059675645385e-16" ixz="1.36569540430659e-09" iyy="4.37001527382599e-08" iyz="4.21205301040001e-16" izz="6.37416918942377e-08"/>
+	<!-- <mass value="0.00000001"/> -->
+	<!-- <inertia ixx="1e-10" ixy="1e-10" ixz="1e-10" -->
+	<!-- 	 iyy="1e-10" iyz="1e-10" -->
+	<!-- 	 izz="1e-10"/> -->
+      </inertial>
+      <visual>
+        <geometry>
+          <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_drive_module_dynamixel/link1.dae"/>
+        </geometry>
+        <material name="${prefix}__unnamed_material_2"/>
+        <origin xyz="-2.15167357330528e-17 -1.20100411619191e-17 0.0152" rpy="1.5707963267949003 -1.09476442525376e-47 1.5707963267949003"/>
+      </visual>
+      <!-- <collision> -->
+      <!--   <geometry> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_drive_module_dynamixel/link1.stl"/> -->
+      <!--   </geometry> -->
+      <!--   <origin xyz="-2.15167357330528e-17 -1.20100411619191e-17 0.0152" rpy="1.5707963267949003 -1.09476442525376e-47 1.5707963267949003"/> -->
+      <!-- </collision> -->
+    </link>
+    <link name="${prefix}dummy_link"/>
+    <joint name="${prefix}joint1" type="revolute">
+      <!-- <joint name="${prefix}joint1" type="continuous"> -->
+      <!-- <limit effort="1.5" velocity="6.39"/> -->
+      <!-- <limit effort="300" velocity="6.39" lower="-3.141592" upper="3.141592"/> -->
+      <!-- XL430-W250 at 12 V: stall torque 1.5 N m; no-load speed 61 rpm. -->
+      <limit effort="1.5" velocity="${61.0 * 2.0 * 3.141592653589793 / 60.0}" lower="-3.141592" upper="3.141592"/>
+      <!-- <limit effort="0.0" velocity="0.0"/> -->
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}link1"/>
+      <axis xyz=" 0.  0. -1."/>
+      <origin xyz="0.0 0.0 0.0305" rpy="0.0 -0.0 0.0"/>
+      <dynamics damping="0.000001" friction="0.0000001"/>
+    </joint>
+    <joint name="${prefix}dummy_joint" type="fixed">
+      <limit effort="0.0" velocity="0.0"/>
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}dummy_link"/>
+      <axis xyz="0. 0. 0."/>
+      <origin xyz="0.0 0.0 0.058" rpy="0.0 -0.0 -3.1415853071795867"/>
+    </joint>
+    <material name="${prefix}__unnamed_material_1">
+      <color rgba="0.75294118 0.75294118 0.75294118 1.        "/>
+    </material>
+    <material name="${prefix}__unnamed_material_2">
+      <color rgba="0.29803922 0.29803922 0.29803922 1.        "/>
+    </material>
+  </xacro:macro>
+</robot>

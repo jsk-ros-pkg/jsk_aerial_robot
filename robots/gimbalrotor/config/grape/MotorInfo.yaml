@@ -1,0 +1,53 @@
+motor_info:
+        min_pwm: 0.55 # = 1100 [us]
+        max_pwm: 0.95 # = 1900 [us]             
+        min_thrust: 1.5 #[N]
+        force_landing_thrust: 5 #[N]
+        m_f_rate: -0.0181
+        pwm_conversion_mode: 1 # Polynominal Mode
+        vel_ref_num: 5
+        
+        ref1:        
+          voltage: 25.2
+          max_thrust: 27.6145 # N
+          polynominal4: -1.12949716  # x10^4
+          polynominal3: 7.50308204  # x10^3
+          polynominal2: -18.25677800  # x10^2
+          polynominal1: 31.87340353  # x10^1
+          polynominal0: 53.51156180  # x10^0
+        ref2:
+          voltage: 24.2
+          max_thrust: 26.1297 # N
+          polynominal4: -1.29364072  # x10^4
+          polynominal3: 8.37150945  # x10^3
+          polynominal2: -19.82058700  # x10^2
+          polynominal1: 33.50993435  # x10^1
+          polynominal0: 53.50642798  # x10^0        
+        ref3:
+          voltage: 23.2
+          max_thrust: 24.6101 # N
+          polynominal4: -1.72538678  # x10^4
+          polynominal3: 10.53666846  # x10^3
+          polynominal2: -23.47496985  # x10^2
+          polynominal1: 36.48385456  # x10^1
+          polynominal0: 53.45641784  # x10^0
+        ref4:
+          voltage: 22.2
+          max_thrust: 23.0238 # N
+          polynominal4: -2.20814344  # x10^4
+          polynominal3: 12.61243094  # x10^3
+          polynominal2: -26.34140255  # x10^2
+          polynominal1: 38.62231543  # x10^1
+          polynominal0: 53.60971212  # x10^0
+        ref5:
+          voltage: 21.2
+          max_thrust: 21.3872 # N
+          polynominal4: -2.84122145  # x10^4
+          polynominal3: 15.34142701  # x10^3
+          polynominal2: -30.31195684  # x10^2
+          polynominal1: 41.65781051  # x10^1
+          polynominal0: 53.63431336  # x10^0
+
+        # for simualtion
+        rotor_damping_rate: 0.1 # = 0.001 / (0.01 + 0.001); 0.01: time constant; 0.001: dt
+        rotor_force_noise: 0.01 # [N] but good performance in gazebo
