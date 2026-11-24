@@ -146,7 +146,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal1_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal1_link.stl"/>
       </geometry>
       <material name="__unnamed_material_2"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -161,7 +161,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust1.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust1.stl"/>
       </geometry>
       <material name="__unnamed_material_3"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -175,7 +175,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal2_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal2_link.stl"/>
       </geometry>
       <material name="__unnamed_material_4"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -190,7 +190,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust2.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust2.stl"/>
       </geometry>
       <material name="__unnamed_material_5"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -204,7 +204,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal3_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal3_link.stl"/>
       </geometry>
       <material name="__unnamed_material_6"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -219,7 +219,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust3.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust3.stl"/>
       </geometry>
       <material name="__unnamed_material_7"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -233,7 +233,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal4_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal4_link.stl"/>
       </geometry>
       <material name="__unnamed_material_8"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>
@@ -248,7 +248,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust4.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust4.stl"/>
       </geometry>
       <material name="__unnamed_material_9"/>
       <origin rpy="0.0 -0.0 0.0" xyz="0.0 0.0 0.0"/>

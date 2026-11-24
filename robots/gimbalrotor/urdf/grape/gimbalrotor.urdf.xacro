@@ -2,7 +2,7 @@
 <robot name="gimbalrotor" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:arg name="variant" default="default"/>
-  <xacro:include filename="$(find gimbalrotor)/urdf/grape_quad2/common.xacro"/>
+  <xacro:include filename="$(find gimbalrotor)/urdf/grape/common.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape/xacro/gimbal_inertial.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/3DoF_arm.xacro"/>
   <xacro:include filename="$(find gimbalrotor)/urdf/grape/arm_xacro/5DoF_arm.xacro"/>
@@ -99,7 +99,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal1_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal1_link.stl"/>
       </geometry>
       <material name="__unnamed_material_2"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -115,7 +115,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust1.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust1.stl"/>
       </geometry>
       <material name="__unnamed_material_3"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -126,7 +126,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal2_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal2_link.stl"/>
       </geometry>
       <material name="__unnamed_material_4"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -142,7 +142,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust2.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust2.stl"/>
       </geometry>
       <material name="__unnamed_material_5"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -153,7 +153,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal3_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal3_link.stl"/>
       </geometry>
       <material name="__unnamed_material_6"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -169,7 +169,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust3.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust3.stl"/>
       </geometry>
       <material name="__unnamed_material_7"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -180,7 +180,7 @@
     <xacro:gimbal_module_inertial/>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal4_link.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/gimbal4_link.stl"/>
       </geometry>
       <material name="__unnamed_material_8"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
@@ -196,7 +196,7 @@
     </inertial>
     <visual>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust4.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/thrust4.stl"/>
       </geometry>
       <material name="__unnamed_material_9"/>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
