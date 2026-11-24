@@ -22,7 +22,7 @@
       </visual>
       <!-- <collision> -->
       <!--   <geometry> -->
-      <!--     <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_90deg_module/base_link.dae"/> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_90deg_module/base_link.dae"/> -->
       <!--   </geometry> -->
       <!--   <origin xyz="0.0285 -1.88586037787625e-16 0.0285000000000001" rpy="3.14159265358979 -2.52653528463934e-16 1.57079632679489"/> -->
       <!-- </collision> -->

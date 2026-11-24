@@ -22,7 +22,7 @@
       </visual>
       <!-- <collision> -->
       <!--   <geometry> -->
-      <!--     <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_drive_module_dynamixel/base_link.stl"/> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_drive_module_dynamixel/base_link.stl"/> -->
       <!--   </geometry> -->
       <!--   <origin xyz="-1.51387102717471e-18 5.99174275367398e-19 0.0457" rpy="1.5707963267949003 -0.0 1.5707963267949003"/> -->
       <!-- </collision> -->
@@ -47,7 +47,7 @@
       </visual>
       <!-- <collision> -->
       <!--   <geometry> -->
-      <!--     <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_drive_module_dynamixel/link1.stl"/> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_drive_module_dynamixel/link1.stl"/> -->
       <!--   </geometry> -->
       <!--   <origin xyz="-2.15167357330528e-17 -1.20100411619191e-17 0.0152" rpy="1.5707963267949003 -1.09476442525376e-47 1.5707963267949003"/> -->
       <!-- </collision> -->

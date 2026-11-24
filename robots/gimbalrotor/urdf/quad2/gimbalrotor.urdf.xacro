@@ -15,7 +15,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://gimbalrotor/urdf/quad2/meshes/main_body.stl"/>
+        <mesh filename="package://gimbalrotor/urdf/grape/meshes/main_body.stl"/>
       </geometry>
       <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
     </collision>
@@ -40,7 +40,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal1_link.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal1_link.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -60,7 +60,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust1.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust1.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -80,7 +80,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal2_link.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal2_link.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -100,7 +100,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust2.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust2.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -120,7 +120,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal3_link.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal3_link.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -140,7 +140,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust3.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust3.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -160,7 +160,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/gimbal4_link.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/gimbal4_link.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->
@@ -180,7 +180,7 @@
     </visual>
     <!-- <collision> -->
     <!--   <geometry> -->
-    <!--     <mesh filename="package://gimbalrotor/urdf/quad2/meshes/thrust4.stl"/> -->
+    <!--     <mesh filename="package://gimbalrotor/urdf/grape_quad2/meshes/thrust4.stl"/> -->
     <!--   </geometry> -->
     <!--   <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/> -->
     <!-- </collision> -->

@@ -22,7 +22,7 @@
       </visual>
       <!-- <collision> -->
       <!--   <geometry> -->
-      <!--     <mesh filename="package://${package_name}/urdf/quad2/meshes/arm/screw_200mmpipe_module/base_link.stl"/> -->
+      <!--     <mesh filename="package://${package_name}/urdf/grape/meshes/arm/screw_200mmpipe_module/base_link.stl"/> -->
       <!--   </geometry> -->
       <!--   <origin xyz="-0.018612068965513 1.00000000000001 0.146669004611067" rpy="-1.5707963267948835 1.570796326794893 3.141592653589793"/> -->
       <!-- </collision> -->
