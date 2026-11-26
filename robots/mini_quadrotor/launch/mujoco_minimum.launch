@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot_ns" value="quadrotor"/>
+  <arg name="headless" value="False"/>
+  <arg name="rviz_config" value="$(find mini_quadrotor)/config/rviz_config"/>
+
+  ########## Robot description #########
+  <group ns="$(arg robot_ns)">
+    <param name="robot_description" command="$(find xacro)/xacro '$(find mini_quadrotor)/urdf/robot.urdf.xacro' robot_name:=$(arg robot_ns)" />
+  </group>
+
+  ########## Simulation in Mujoco #########
+  <include file="$(find aerial_robot_simulation)/launch/mujoco.launch" >
+    <arg name="robot_ns" value="$(arg robot_ns)" />
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="mujoco_model" value="$(find mini_quadrotor)/mujoco/robot.xml"/>
+    <arg name="use_spinal" value="False"/>
+  </include>
+
+  ########## Visualization #########
+  <group ns="$(arg robot_ns)">
+    <node name="$(anon robot_state_publisher)" pkg="robot_state_publisher" type="robot_state_publisher">
+      <param name="tf_prefix" value="$(arg robot_ns)" />
+    </node>
+    <node name="$(anon rotor_tf_publisher)" pkg="aerial_robot_model" type="rotor_tf_publisher">
+      <param name="tf_prefix" value="$(arg robot_ns)" />
+    </node>
+  </group>
+
+  <group unless="$(arg headless)">
+    <node name="$(anon rviz)" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" respawn="true" unless="$(arg headless)"/>
+  </group>
+
+</launch>

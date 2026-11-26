@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(mini_quadrotor)
 
 find_package(catkin REQUIRED COMPONENTS
-  mujoco_ros_control
+  mujoco_ros_utils
   )
 
 catkin_package(
