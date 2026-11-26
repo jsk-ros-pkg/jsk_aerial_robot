@@ -1,5 +1,7 @@
 #include <aerial_robot_model/model/aerial_robot_model.h>
 
+#include <limits>
+
 namespace aerial_robot_model {
 
   RobotModel::RobotModel(bool init_with_rosparam, bool verbose, bool fixed_model, double fc_f_min_thre, double fc_t_min_thre, double epsilon):
@@ -492,14 +494,20 @@ namespace aerial_robot_model {
 
   bool RobotModel::stabilityCheck(bool verbose)
   {
-    if(fc_f_min_ < fc_f_min_thre_)
+    if(static_thrust_.size() == 0 || static_thrust_.size() != rotor_num_ || !static_thrust_.allFinite())
+      {
+        if(verbose) ROS_ERROR("Invalid static thrust");
+        return false;
+      }
+
+    if(!std::isfinite(fc_f_min_) || fc_f_min_ < fc_f_min_thre_)
       {
         if(verbose)
           ROS_ERROR_STREAM("the min distance to the plane of feasible control force convex " << fc_f_min_ << " is lower than the threshold " <<  fc_f_min_thre_);
           return false;
       }
 
-    if(fc_t_min_ < fc_t_min_thre_)
+    if(!std::isfinite(fc_t_min_) || fc_t_min_ < fc_t_min_thre_)
       {
         if(verbose)
           ROS_ERROR_STREAM("the min distance to the plane of feasible control torque convex " << fc_t_min_ << " is lower than the threshold " <<  fc_t_min_thre_);
@@ -519,10 +527,20 @@ namespace aerial_robot_model {
   double RobotModel::calcTripleProduct(const Eigen::Vector3d& ui, const Eigen::Vector3d& uj, const Eigen::Vector3d& uk)
   {
     Eigen::Vector3d uixuj = ui.cross(uj);
-    if (uixuj.norm() < 1e-5) {
+    if (!isValidFeasibleControlPlane(ui, uj)) {
       return 0.0;
     }
     return uixuj.dot(uk) / uixuj.norm();
+  }
+
+  bool RobotModel::isValidFeasibleControlPlane(const Eigen::Vector3d& vector_i, const Eigen::Vector3d& vector_j)
+  {
+    const double norm_product = vector_i.norm() * vector_j.norm();
+    const double cross_norm = vector_i.cross(vector_j).norm();
+    // Reject only pairs indistinguishable from parallel at double precision.
+    // Scaling by both lengths also preserves small, nonparallel torque generators.
+    return norm_product > 0.0 && std::isfinite(norm_product) &&
+      std::isfinite(cross_norm) && cross_norm > std::numeric_limits<double>::epsilon() * norm_product;
   }
 
   std::vector<Eigen::Vector3d> RobotModel::calcV()
@@ -542,7 +560,9 @@ namespace aerial_robot_model {
   void RobotModel::calcFeasibleControlFDists()
   {
     const int rotor_num = getRotorNum();
+    const double thrust_min = getThrustLowerLimit();
     const double thrust_max = getThrustUpperLimit();
+    const double invalid_distance = std::numeric_limits<double>::infinity();
 
     const auto& u = getRotorsNormalFromCog<Eigen::Vector3d>();
     Eigen::Vector3d gravity_force = getMass() * gravity_3d_;
@@ -559,26 +579,31 @@ namespace aerial_robot_model {
           if (i == k || j == k) continue;
           const Eigen::Vector3d& u_k = u.at(k);
           double u_triple_product = calcTripleProduct(u_i, u_j, u_k);
-          dist_ij += std::max(0.0, u_triple_product * thrust_max);
+          // Support of the actual thrust interval [thrust_min, thrust_max].
+          dist_ij += std::max(u_triple_product * thrust_min, u_triple_product * thrust_max);
         }
 
         Eigen::Vector3d uixuj = u_i.cross(u_j);
-        if (uixuj.norm() < 1e-5) {
-          fc_f_dists_(index) = 0;
+        if (!isValidFeasibleControlPlane(u_i, u_j)) {
+          // A parallel pair does not define a facet, so exclude it from the minimum.
+          fc_f_dists_(index) = invalid_distance;
         } else {
-          fc_f_dists_(index) = fabs(dist_ij - (uixuj.dot(gravity_force) / uixuj.norm()));
+          fc_f_dists_(index) = dist_ij - (uixuj.dot(gravity_force) / uixuj.norm());
         }
 
         index++;
       }
     }
-    fc_f_min_ = fc_f_dists_.minCoeff();
+    fc_f_min_ = fc_f_dists_.size() == 0 ? 0.0 : fc_f_dists_.minCoeff();
+    if (fc_f_min_ == invalid_distance) fc_f_min_ = 0.0;
   }
 
   void RobotModel::calcFeasibleControlTDists()
   {
     const int rotor_num = getRotorNum();
+    const double thrust_min = getThrustLowerLimit();
     const double thrust_max = getThrustUpperLimit();
+    const double invalid_distance = std::numeric_limits<double>::infinity();
 
     const auto v = calcV();
     int index = 0;
@@ -593,14 +618,21 @@ namespace aerial_robot_model {
           if (i == k || j == k) continue;
           const Eigen::Vector3d& v_k = v.at(k);
           double v_triple_product = calcTripleProduct(v_i, v_j, v_k);
-          dist_ij += std::max(0.0, v_triple_product * thrust_max);
+          dist_ij += std::max(v_triple_product * thrust_min, v_triple_product * thrust_max);
         }
-        fc_t_dists_(index) = dist_ij;
+
+        if (!isValidFeasibleControlPlane(v_i, v_j)) {
+          // A parallel pair does not define a facet, so exclude it from the minimum.
+          fc_t_dists_(index) = invalid_distance;
+        } else {
+          fc_t_dists_(index) = dist_ij;
+        }
         index++;
       }
     }
 
-    fc_t_min_ = fc_t_dists_.minCoeff();
+    fc_t_min_ = fc_t_dists_.size() == 0 ? 0.0 : fc_t_dists_.minCoeff();
+    if (fc_t_min_ == invalid_distance) fc_t_min_ = 0.0;
   }
 
   TiXmlDocument RobotModel::getRobotModelXml(const std::string param, ros::NodeHandle nh)
@@ -655,4 +687,3 @@ namespace aerial_robot_model {
   }
 
 } //namespace aerial_robot_model
-
